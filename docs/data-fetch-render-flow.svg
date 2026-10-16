@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1240" viewBox="0 0 1680 1240" role="img" aria-labelledby="title description">
+  <title id="title">Flusso tecnico di fetch e rendering dei dati</title>
+  <desc id="description">Sequenza tecnica di caricamento tabelle, query SQL e Activity history, dalla UI alle API e database, fino al rendering client.</desc>
+  <defs>
+    <marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#60a5fa"/></marker>
+    <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#34d399"/></marker>
+    <marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#c084fc"/></marker>
+    <marker id="a-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#a1a1aa"/></marker>
+    <style>
+      .bg{fill:#09090b}.band{fill:#0f0f12;stroke:#27272a;stroke-width:2}.box{fill:#18181b;stroke:#3f3f46;stroke-width:2}.boxb{fill:#111827;stroke:#3b82f6;stroke-width:2}.boxg{fill:#052e24;stroke:#059669;stroke-width:2}.boxp{fill:#2e1065;stroke:#9333ea;stroke-width:2}.boxt{fill:#172554;stroke:#2563eb;stroke-width:2}.title{font:700 28px system-ui,sans-serif;fill:#fafafa}.subtitle{font:500 15px system-ui,sans-serif;fill:#a1a1aa}.lane{font:700 14px system-ui,sans-serif;fill:#a1a1aa;letter-spacing:1px}.h{font:700 16px system-ui,sans-serif;fill:#f4f4f5}.b{font:500 13px system-ui,sans-serif;fill:#d4d4d8}.s{font:500 12px system-ui,sans-serif;fill:#a1a1aa}.blue{fill:none;stroke:#60a5fa;stroke-width:2.5;marker-end:url(#a-blue)}.green{fill:none;stroke:#34d399;stroke-width:2.5;marker-end:url(#a-green)}.purple{fill:none;stroke:#c084fc;stroke-width:2.5;marker-end:url(#a-purple)}.gray{fill:none;stroke:#a1a1aa;stroke-width:2;stroke-dasharray:7 6;marker-end:url(#a-gray)}.tagb{font:700 11px system-ui,sans-serif;fill:#bfdbfe;letter-spacing:.5px}.tagg{font:700 11px system-ui,sans-serif;fill:#a7f3d0;letter-spacing:.5px}.tagp{font:700 11px system-ui,sans-serif;fill:#e9d5ff;letter-spacing:.5px}
+    </style>
+  </defs>
+  <rect class="bg" width="1680" height="1240" rx="24"/>
+  <text class="title" x="52" y="58">Fetch → trasformazione → rendering</text>
+  <text class="subtitle" x="52" y="86">Sequenza tecnica dei dati nel Playground · le righe vengono mostrate prima dei conteggi esatti.</text>
+
+  <!-- table flow -->
+  <rect class="band" x="36" y="112" width="1608" height="530" rx="16"/>
+  <text class="lane" x="62" y="145">A · APERTURA E PAGINAZIONE DI UNA TABELLA</text>
+
+  <rect class="boxb" x="62" y="178" width="220" height="120" rx="12"/>
+  <text class="tagb" x="80" y="202">BROWSER</text><text class="h" x="80" y="229">Sidebar / Tables v2</text>
+  <text class="b" x="80" y="253">selezione dataset/tabella</text><text class="s" x="80" y="276">redux: tables e queryTabs</text>
+
+  <rect class="box" x="340" y="178" width="238" height="120" rx="12"/>
+  <text class="tagb" x="358" y="202">METADATI</text><text class="h" x="358" y="229">GET /db/table</text>
+  <text class="b" x="358" y="253">SHOW TABLES + information_schema</text><text class="s" x="358" y="276">schema, PK, statistiche stimate</text>
+
+  <rect class="box" x="340" y="352" width="238" height="144" rx="12"/>
+  <text class="tagb" x="358" y="376">RIGHE</text><text class="h" x="358" y="403">GET /db/table/rows</text>
+  <text class="b" x="358" y="428">auth + ownership + preferenze</text><text class="b" x="358" y="451">filtri parametrizzati prima di LIMIT</text>
+  <text class="s" x="358" y="477">legge PK · SELECT pagina · max 100</text>
+
+  <rect class="box" x="638" y="352" width="258" height="144" rx="12"/>
+  <text class="tagb" x="656" y="376">ACCESSO ESTERNO</text><text class="h" x="656" y="403">Connection pool</text>
+  <text class="b" x="656" y="428">decrypt → DNS/SSRF validation</text><text class="b" x="656" y="451">acquire Sequelize / MySQL</text>
+  <text class="s" x="656" y="477">slot globale · pool riusato per processo</text>
+
+  <rect class="boxt" x="954" y="352" width="234" height="144" rx="12"/>
+  <text class="tagb" x="972" y="376">DATABASE ESTERNO</text><text class="h" x="972" y="403">Query MySQL</text>
+  <text class="b" x="972" y="428">PK presente → keyset cursor</text><text class="b" x="972" y="451">senza PK → LIMIT/OFFSET</text>
+  <text class="s" x="972" y="477">una riga extra determina hasNext</text>
+
+  <rect class="boxg" x="1246" y="352" width="350" height="144" rx="12"/>
+  <text class="tagg" x="1264" y="376">RISPOSTA API</text><text class="h" x="1264" y="403">data + cursori + flags</text>
+  <text class="b" x="1264" y="428">maskSensitiveRows prima del JSON</text><text class="b" x="1264" y="451">riga salvata subito nel query tab</text>
+  <text class="s" x="1264" y="477">rilascio pool e connection slot</text>
+
+  <path class="blue" d="M282 238 H330"/><text class="s" x="285" y="224">1 · schema</text>
+  <path class="blue" d="M460 298 V342"/><text class="s" x="470" y="327">2 · selezione tabella</text>
+  <path class="blue" d="M578 424 H628"/><text class="s" x="580" y="410">3</text>
+  <path class="blue" d="M896 424 H944"/><text class="s" x="900" y="410">4 · SQL</text>
+  <path class="green" d="M1188 424 H1236"/><text class="s" x="1193" y="410">5 · rows</text>
+  <path class="gray" d="M1236 470 H1198"/>
+  <path class="gray" d="M944 470 H906"/>
+
+  <rect class="boxp" x="62" y="535" width="450" height="76" rx="12"/>
+  <text class="tagp" x="80" y="559">IN PARALLELO DOPO LA PRIMA PAGINA</text>
+  <text class="b" x="80" y="586">count_only=true → COUNT(*) → aggiorna il totale; non blocca il primo render</text>
+
+  <!-- render pipeline -->
+  <rect class="band" x="36" y="664" width="1608" height="278" rx="16"/>
+  <text class="lane" x="62" y="697">B · COME LE RIGHE DIVENTANO CELLE</text>
+  <rect class="boxg" x="62" y="730" width="245" height="142" rx="12"/>
+  <text class="tagg" x="80" y="754">RISPOSTA JSON</text><text class="h" x="80" y="782">data[] + schema</text>
+  <text class="b" x="80" y="808">valori già mascherati</text><text class="b" x="80" y="832">conteggio può essere null</text><text class="s" x="80" y="854">contiene solo pagina richiesta</text>
+
+  <rect class="boxb" x="370" y="730" width="258" height="142" rx="12"/>
+  <text class="tagb" x="388" y="754">STATO CLIENT</text><text class="h" x="388" y="782">queryTabs (Redux)</text>
+  <text class="b" x="388" y="808">righe, schema e pageIndex</text><text class="b" x="388" y="832">pageSize e next/previous cursor</text><text class="s" x="388" y="854">aggiornamento della scheda tabella</text>
+
+  <rect class="box" x="690" y="730" width="276" height="142" rx="12"/>
+  <text class="tagb" x="708" y="754">MODELLO TANSTACK</text><text class="h" x="708" y="782">QueryResultsTable</text>
+  <text class="b" x="708" y="808">schema → column definitions</text><text class="b" x="708" y="832">gruppi/sort → righe della pagina</text><text class="s" x="708" y="854">resize e stato celle</text>
+
+  <rect class="box" x="1028" y="730" width="250" height="142" rx="12"/>
+  <text class="tagb" x="1046" y="754">RENDER</text><text class="h" x="1046" y="782">Header e celle</text>
+  <text class="b" x="1046" y="808">input read-only/editable</text><text class="b" x="1046" y="832">resize con preview DOM</text><text class="s" x="1046" y="854">nessun fetch per render cella</text>
+
+  <rect class="box" x="1340" y="730" width="256" height="142" rx="12"/>
+  <text class="tagb" x="1358" y="754">CAMBIO PAGINA</text><text class="h" x="1358" y="782">Nuovo fetch righe</text>
+  <text class="b" x="1358" y="808">cursore + direzione</text><text class="b" x="1358" y="832">oppure OFFSET fallback</text><text class="s" x="1358" y="854">ritorna al queryTabs</text>
+
+  <path class="green" d="M307 800 H360"/><path class="blue" d="M628 800 H680"/><path class="blue" d="M966 800 H1018"/><path class="blue" d="M1278 800 H1330"/>
+  <path class="gray" d="M1468 730 V710 H460 V342"/>
+
+  <!-- SQL and History -->
+  <rect class="band" x="36" y="964" width="1608" height="232" rx="16"/>
+  <text class="lane" x="62" y="997">C · PERCORSI CON RISPOSTA / PAGINAZIONE DIVERSI</text>
+  <rect class="boxt" x="62" y="1024" width="720" height="142" rx="12"/>
+  <text class="tagb" x="82" y="1050">SQL</text><text class="h" x="82" y="1079">Editor → POST /api/playground/query → executeExternalSql</text>
+  <text class="b" x="82" y="1106">stream MySQL · timeout 30s · il JSON conserva max 1.000 righe</text>
+  <text class="s" x="82" y="1134">pagine SQL sul client: slice() sul risultato già ricevuto; non è paginazione SQL server-side</text>
+
+  <rect class="boxp" x="830" y="1024" width="766" height="142" rx="12"/>
+  <text class="tagp" x="850" y="1050">ACTIVITY HISTORY</text><text class="h" x="850" y="1079">GET /api/database/[id]/audit → Prisma → DatabaseAuditLog</text>
+  <text class="b" x="850" y="1106">findMany(limit + 1) + countOnly separato; il count non blocca il rendering · indice user_id + database_id + createdAt</text>
+  <text class="s" x="850" y="1134">History usa il DB interno; la sua tabella visualizza solo i log della pagina richiesta</text>
+</svg>

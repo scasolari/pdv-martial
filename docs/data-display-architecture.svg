@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title description">
+  <title id="title">Architettura di lettura e visualizzazione dei dati</title>
+  <desc id="description">Schema dei flussi tra interfaccia, API, pool di connessioni, database esterno e database interno dell'applicazione.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#60a5fa"/></marker>
+    <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#a78bfa"/></marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#94a3b8"/></marker>
+    <style>
+      .bg{fill:#09090b}.panel{fill:#111113;stroke:#27272a;stroke-width:2}.client{fill:#111827;stroke:#3b82f6}.api{fill:#111827;stroke:#60a5fa}.pool{fill:#18181b;stroke:#a1a1aa}.external{fill:#172554;stroke:#3b82f6}.internal{fill:#2e1065;stroke:#a78bfa}.support{fill:#111113;stroke:#3f3f46}.title{font:700 28px system-ui,sans-serif;fill:#fafafa}.subtitle{font:500 15px system-ui,sans-serif;fill:#a1a1aa}.heading{font:700 18px system-ui,sans-serif;fill:#f4f4f5}.body{font:500 15px system-ui,sans-serif;fill:#d4d4d8}.small{font:500 13px system-ui,sans-serif;fill:#a1a1aa}.tag{font:700 12px system-ui,sans-serif;fill:#bfdbfe;letter-spacing:.4px}.tag-v{font:700 12px system-ui,sans-serif;fill:#ddd6fe;letter-spacing:.4px}.line-blue{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#arrow-blue)}.line-violet{fill:none;stroke:#a78bfa;stroke-width:3;marker-end:url(#arrow-violet)}.line-gray{fill:none;stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:8 7;marker-end:url(#arrow-gray)}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="980" rx="24"/>
+  <text class="title" x="56" y="62">Visualizzazione dei dati · architettura</text>
+  <text class="subtitle" x="56" y="91">Due percorsi distinti: dati del database connesso e log dell'applicazione.</text>
+
+  <!-- Main layers -->
+  <rect class="panel" x="44" y="122" width="1352" height="500" rx="18"/>
+  <text class="tag" x="72" y="157">PERCORSO DATI DEL DATABASE CONNESSO</text>
+
+  <rect class="client" x="78" y="202" width="282" height="304" rx="16"/>
+  <text class="heading" x="104" y="240">Interfaccia Playground</text>
+  <text class="body" x="104" y="280">Tabelle</text>
+  <text class="small" x="104" y="303">schema · righe · paginazione</text>
+  <text class="body" x="104" y="344">Editor SQL</text>
+  <text class="small" x="104" y="367">query · risultati · export</text>
+  <text class="body" x="104" y="408">Tabella condivisa</text>
+  <text class="small" x="104" y="431">celle · resize · edit · selezione</text>
+  <text class="body" x="104" y="472">Filtri e gruppi</text>
+  <text class="small" x="104" y="493">filtri SQL · gruppi sulla pagina</text>
+
+  <rect class="api" x="438" y="202" width="306" height="304" rx="16"/>
+  <text class="heading" x="464" y="240">API Next.js</text>
+  <text class="body" x="464" y="280">Schema tabelle</text>
+  <text class="small" x="464" y="303">SHOW TABLES + information_schema</text>
+  <text class="body" x="464" y="344">Righe tabella</text>
+  <text class="small" x="464" y="367">LIMIT · cursori PK · count separato</text>
+  <text class="body" x="464" y="408">Esecuzione SQL</text>
+  <text class="small" x="464" y="431">timeout · streaming · max 1.000 righe</text>
+  <text class="body" x="464" y="472">Autorizzazione e masking</text>
+  <text class="small" x="464" y="493">sessione · proprietario · dati sensibili</text>
+
+  <rect class="pool" x="824" y="202" width="252" height="304" rx="16"/>
+  <text class="heading" x="850" y="240">Pool connessioni</text>
+  <text class="small" x="850" y="274">Sequelize · in memoria</text>
+  <text class="body" x="850" y="316">Valida host e DNS</text>
+  <text class="body" x="850" y="353">Riusa connessioni calde</text>
+  <text class="body" x="850" y="390">Limita pool e concorrenza</text>
+  <text class="body" x="850" y="427">Rilascia al termine</text>
+  <text class="small" x="850" y="476">La cache è per processo server</text>
+
+  <rect class="external" x="1152" y="246" width="202" height="216" rx="16"/>
+  <text class="tag" x="1177" y="282">ESTERNO</text>
+  <text class="heading" x="1177" y="318">Database</text>
+  <text class="heading" x="1177" y="343">MySQL</text>
+  <text class="small" x="1177" y="382">Tabelle dell'utente</text>
+  <text class="small" x="1177" y="405">dati e metadati</text>
+
+  <path class="line-blue" d="M360 300 H430"/>
+  <text class="small" x="369" y="286">richiesta</text>
+  <path class="line-blue" d="M744 300 H816"/>
+  <text class="small" x="754" y="286">acquire</text>
+  <path class="line-blue" d="M1076 300 H1144"/>
+  <text class="small" x="1083" y="286">query</text>
+  <path class="line-gray" d="M1144 430 H1076"/>
+  <text class="small" x="1088" y="454">risultati</text>
+  <path class="line-gray" d="M816 430 H744"/>
+  <text class="small" x="757" y="454">righe</text>
+  <path class="line-gray" d="M430 430 H360"/>
+  <text class="small" x="371" y="454">render</text>
+
+  <!-- audit -->
+  <path class="line-violet" d="M590 506 V566 H914 V654"/>
+  <text class="small" x="610" y="552">eventi di lettura, query e modifiche</text>
+  <rect class="internal" x="774" y="662" width="316" height="138" rx="16"/>
+  <text class="tag-v" x="802" y="697">DATABASE INTERNO</text>
+  <text class="heading" x="802" y="733">Prisma · DatabaseAuditLog</text>
+  <text class="small" x="802" y="765">azione · query · tabella · stato · timestamp</text>
+
+  <rect class="client" x="78" y="684" width="282" height="116" rx="16"/>
+  <text class="heading" x="104" y="724">Activity history</text>
+  <text class="small" x="104" y="756">pagine di log · filtri · gruppi · export</text>
+  <path class="line-violet" d="M360 740 H512"/>
+  <text class="small" x="378" y="724">richiede log</text>
+  <rect class="api" x="520" y="684" width="206" height="116" rx="16"/>
+  <text class="heading" x="546" y="724">Audit API</text>
+  <text class="small" x="546" y="756">righe subito · count async</text>
+  <path class="line-violet" d="M726 740 H766"/>
+  <path class="line-violet" d="M774 774 H726"/>
+  <text class="small" x="733" y="720">Prisma</text>
+
+  <rect class="support" x="1132" y="662" width="222" height="138" rx="16"/>
+  <text class="heading" x="1156" y="698">Indice log</text>
+  <text class="small" x="1156" y="730">user_id + database_id</text>
+  <text class="small" x="1156" y="753">+ createdAt</text>
+  <text class="small" x="1156" y="780">lettura cronologica più rapida</text>
+  <path class="line-gray" d="M1090 732 H1124"/>
+
+  <rect class="support" x="44" y="840" width="1352" height="94" rx="16"/>
+  <text class="heading" x="72" y="877">Principio di caricamento</text>
+  <text class="body" x="72" y="908">Mostrare una pagina limitata di righe appena disponibile; recuperare i totali separatamente. I cursori evitano offset profondi quando è disponibile una chiave primaria.</text>
+</svg>
