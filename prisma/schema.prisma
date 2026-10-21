@@ -51,6 +51,7 @@ model User {
   Account       Account[]
   Database      Database[]
   DatabaseAuditLog DatabaseAuditLog[]
+  LegalAcceptance LegalAcceptance[]
 }
 
 model Database {
@@ -59,9 +60,23 @@ model Database {
   db_name           String
   db_url_connection String   @db.LongText
   preferences       Json?
+  authorizationConfirmedAt DateTime? @db.DateTime(3)
+  authorizationVersion String? @db.VarChar(32)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now())
   user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model LegalAcceptance {
+  id              String   @id @default(cuid())
+  userId          String
+  documentType    String   @db.VarChar(32)
+  documentVersion String   @db.VarChar(32)
+  acceptedAt      DateTime @default(now()) @db.DateTime(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, documentType, documentVersion])
+  @@index([userId, acceptedAt])
 }
 
 model DatabaseAuditLog {
@@ -92,6 +107,17 @@ model ExternalConnectionLease {
   expires_at DateTime? @db.DateTime(3)
 
   @@index([expires_at])
+}
+
+model TwoFactorIpAttempt {
+  ipHash          String    @id @db.VarChar(64)
+  failedAttempts  Int       @default(0)
+  windowStartedAt DateTime  @db.DateTime(3)
+  lockedUntil     DateTime? @db.DateTime(3)
+  updatedAt       DateTime  @updatedAt @db.DateTime(3)
+
+  @@index([lockedUntil])
+  @@index([updatedAt])
 }
 
 model VerificationToken {

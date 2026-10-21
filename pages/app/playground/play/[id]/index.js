@@ -1,23 +1,23 @@
 import LeftBar from "@/components/navigationBar/leftBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { connect } from "react-redux";
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import QueryResultsTable from "@/components/queryResults/table";
 import TableFilters from "@/components/queryResults/table/filters";
 import TableGrouping from "@/components/queryResults/table/grouping";
-import { Check, ChevronDown, ChevronsLeft, ChevronsRight, Clock, CodeXml, Columns3, Database as DatabaseIcon, Download, History, Info, Play, Plus, RefreshCcw, Search, Settings2, Table, Trash2, X} from "lucide-react";
+import { Check, ChevronDown, ChevronsLeft, ChevronsRight, ChevronsUpDown, Clock, CodeXml, Columns3, Download, History, Info, Play, Plus, RefreshCcw, Search, Settings2, Table, Trash2, X} from "lucide-react";
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { setDatabase, setQuery, setQueryResults, setQueryTabs, setTables } from "@/redux/actions/main";
-import MinimalEditor from "@/components/codeEditor";
 import axios from "axios";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/router";
@@ -25,11 +25,20 @@ import { ShowNavigationButton, useNavigationVisibility } from "@/components/navi
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import AddDatabase from "@/components/addDatabase";
+import DatabaseEngineIcon from "@/components/databaseEngineIcon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/base-toast";
+import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 
 const EMPTY_FILTER_RULES = Object.freeze([])
 const EMPTY_GROUPING = Object.freeze([])
 const EMPTY_COLUMNS = Object.freeze([])
 const EMPTY_COLUMN_VISIBILITY = Object.freeze({})
+
+const MinimalEditor = dynamic(() => import("@/components/codeEditor"), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[200px] w-full" />,
+});
 
 function PlaygroundPlayId(props) {
     const { queryTabs, setQueryTabs, database, setDatabase, databases, query, setQuery, setQueryResults, tables } = props;
@@ -43,16 +52,19 @@ function PlaygroundPlayId(props) {
     const tableSchemaRequestRef = useRef(0);
     const pendingTableSchemaDatabaseRef = useRef(null);
     const [queryTiming, setQueryTiming] = useState(null)
-    const [queryCount, setQueryCount] = useState(null)
-    const [queryErrorMessage, setQueryErrorMessage] = useState("")
+    const [, setQueryCount] = useState(null)
     const [queryError, setQueryError] = useState(false)
     const [loading, setLoading] = useState(false)
+    const refreshIconRef = useRef(null)
+    const refreshIconAnimationRef = useRef(null)
+    const schemaRefreshIconRef = useRef(null)
+    const schemaRefreshIconAnimationRef = useRef(null)
     const [isSheetOpen, setIsSheetOpen] = useState(false)
     const [modifiedRowsCount, setModifiedRowsCount] = useState(0)
     const [paginationLoading, setPaginationLoading] = useState(false)
-    const [paginationError, setPaginationError] = useState("")
+    const [, setPaginationError] = useState("")
     const [exportingTable, setExportingTable] = useState(false)
-    const [exportError, setExportError] = useState("")
+    const [, setExportError] = useState("")
     const [selectedRowsCount, setSelectedRowsCount] = useState(0)
     const [selectedRowsForExport, setSelectedRowsForExport] = useState([])
     const [insertRowRequest, setInsertRowRequest] = useState(0)
@@ -63,6 +75,7 @@ function PlaygroundPlayId(props) {
     const [columnSearch, setColumnSearch] = useState("")
     const [tableMenuOpen, setTableMenuOpen] = useState(false)
     const [tableMenuLoading, setTableMenuLoading] = useState(false)
+    const [schemaRefreshing, setSchemaRefreshing] = useState(false)
     const [tableMenuSearch, setTableMenuSearch] = useState("")
     const [hiddenNavigationSchema, setHiddenNavigationSchema] = useState({ databaseId: null, data: [] })
     const [tableMenuError, setTableMenuError] = useState("")
@@ -70,6 +83,7 @@ function PlaygroundPlayId(props) {
     const [databaseMenuSearch, setDatabaseMenuSearch] = useState("")
     const [addDatasetOpen, setAddDatasetOpen] = useState(false)
     const { navigationHidden } = useNavigationVisibility()
+    const showToolbarSkeleton = navigationHidden && !router.isReady
 
     const openOrFocusTab = (newTab) => {
         const currentTabs = queryTabs || [];
@@ -148,13 +162,19 @@ function PlaygroundPlayId(props) {
         }
     }
 
-    const loadHiddenNavigationTables = useCallback((databaseId, { force = false } = {}) => {
+    const loadHiddenNavigationTables = useCallback((databaseId, { force = false, showRefreshLoading = false } = {}) => {
         if (!databaseId) return Promise.resolve()
         if (!force && String(pendingTableSchemaDatabaseRef.current ?? "") === String(databaseId)) return Promise.resolve()
 
         const requestId = ++tableSchemaRequestRef.current
         pendingTableSchemaDatabaseRef.current = databaseId
         setTableMenuLoading(true)
+        if (showRefreshLoading) {
+            setSchemaRefreshing(true)
+            startRefreshIconAnimation(schemaRefreshIconRef.current, schemaRefreshIconAnimationRef)
+        } else {
+            setSchemaRefreshing(false)
+        }
         setTableMenuError("")
         setHiddenNavigationSchema({ databaseId, data: [] })
         setTables({ _databaseId: databaseId, data: [] })
@@ -164,7 +184,7 @@ function PlaygroundPlayId(props) {
                 if (String(activeDatabaseIdRef.current) !== String(databaseId) || requestId !== tableSchemaRequestRef.current) return
                 const schema = Array.isArray(data?.data) ? data.data : []
                 setHiddenNavigationSchema({ databaseId, data: schema })
-                setTables({ ...data, data: schema, _databaseId: databaseId })
+                setTables({ ...data, data: schema, _databaseId: databaseId, _dialect: data.dialect })
             })
             .catch((error) => {
                 if (requestId === tableSchemaRequestRef.current && String(activeDatabaseIdRef.current) === String(databaseId)) {
@@ -178,9 +198,11 @@ function PlaygroundPlayId(props) {
                 if (requestId === tableSchemaRequestRef.current) {
                     pendingTableSchemaDatabaseRef.current = null
                     setTableMenuLoading(false)
+                    setSchemaRefreshing(false)
+                    stopRefreshIconAnimation(schemaRefreshIconRef.current, schemaRefreshIconAnimationRef)
                 }
             })
-    }, [setTables])
+    }, [])
 
     useEffect(() => {
         if (!navigationHidden || !database?.db_id) return
@@ -194,8 +216,9 @@ function PlaygroundPlayId(props) {
         tableSchemaRequestRef.current += 1
         pendingTableSchemaDatabaseRef.current = null
         setTableMenuLoading(true)
+        setSchemaRefreshing(false)
         setHiddenNavigationSchema({ databaseId: selectedDatabase.id, data: [] })
-        setDatabase({ db_id: selectedDatabase.id, db_name: selectedDatabase.db_name })
+        setDatabase({ db_id: selectedDatabase.id, db_name: selectedDatabase.db_name, dialect: selectedDatabase.dialect })
         setQuery("")
         setQueryResults(null)
         setQueryTabs([])
@@ -240,10 +263,12 @@ function PlaygroundPlayId(props) {
                     setQueryTabs(updatedTabs);
                     setQueryTiming(data.duration_ms);
                     setQueryCount(data.count);
+                    toast.add({ title: "Query completed", description: `${data.count} rows returned.`, type: "success" });
                 })
                 .catch((error) => {
                     setQueryError(true);
-                    setQueryErrorMessage(error.response?.data?.error || "Unable to load table schema.");
+                    const message = error.response?.data?.error || "Unable to load table schema.";
+                    toast.add({ title: "Query failed", description: message, type: "error" });
                 })
                 .finally(() => setLoading(false));
         }
@@ -400,7 +425,21 @@ function PlaygroundPlayId(props) {
                 <div className="max-h-56 overflow-y-auto">
                     {filteredResultColumns.length > 0
                         ? filteredResultColumns.map((column) => (
-                            <DropdownMenuCheckboxItem key={column} checked={activeColumnVisibility[column] !== false} onCheckedChange={() => toggleColumnVisibility(column)} className="!py-1.5 !font-mono !text-xs !font-semibold">{column}</DropdownMenuCheckboxItem>
+                            <DropdownMenuItem
+                                key={column}
+                                onSelect={(event) => event.preventDefault()}
+                                onClick={() => toggleColumnVisibility(column)}
+                                className="gap-2 !py-1.5 !font-mono !text-xs !font-semibold"
+                            >
+                                <Checkbox
+                                    checked={activeColumnVisibility[column] !== false}
+                                    onCheckedChange={() => toggleColumnVisibility(column)}
+                                    onClick={(event) => event.stopPropagation()}
+                                    aria-label={`${activeColumnVisibility[column] !== false ? "Hide" : "Show"} ${column} column`}
+                                    className="h-4 w-4 border-zinc-400 bg-transparent text-zinc-900 data-[state=checked]:border-zinc-300 data-[state=checked]:bg-zinc-300 data-[state=checked]:text-zinc-950 dark:border-zinc-500 dark:data-[state=checked]:border-zinc-300 dark:data-[state=checked]:bg-zinc-300 dark:data-[state=checked]:text-zinc-950"
+                                />
+                                <span>{column}</span>
+                            </DropdownMenuItem>
                         ))
                         : <p className="px-2 py-4 text-center text-xs font-semibold text-zinc-500">No columns match.</p>}
                 </div>
@@ -570,7 +609,9 @@ function PlaygroundPlayId(props) {
                 setQueryTabs(failedTabs);
             });
         } catch (error) {
-            setPaginationError(error.response?.data?.error || "Unable to apply table filters.");
+            const message = error.response?.data?.error || "Unable to apply table filters.";
+            setPaginationError(message);
+            toast.add({ title: "Unable to apply table filters", description: message, type: "error" });
         } finally {
             setPaginationLoading(false);
         }
@@ -622,7 +663,9 @@ function PlaygroundPlayId(props) {
                 sensitiveColumns: response.data.sensitiveColumns || [],
             });
         } catch (error) {
-            setPaginationError(error.response?.data?.error || "Unable to load table page.");
+            const message = error.response?.data?.error || "Unable to load table page.";
+            setPaginationError(message);
+            toast.add({ title: "Unable to load table page", description: message, type: "error" });
         } finally {
             setPaginationLoading(false);
         }
@@ -679,7 +722,6 @@ function PlaygroundPlayId(props) {
             })
             .then((res) => {
                 setLoading(false)
-                console.log("SQL query response:", res.data);
                 setQueryError(false)
                 // Aggiorna SOLO la tab attiva (SQL) con i risultati
                 const updatedTabs = queryTabs.map((tab, index) => {
@@ -701,13 +743,15 @@ function PlaygroundPlayId(props) {
                 setLoading(false)
                 console.error(error.response.data.error || error.response.data.original?.sqlMessage);
                 setQueryError(true)
-                setQueryErrorMessage(error.response.data.error || error.response.data.original?.sqlMessage)
+                const message = error.response?.data?.error || error.response?.data?.original?.sqlMessage || "Unable to run query.";
+                toast.add({ title: "Query failed", description: message, type: "error" });
             });
     };
 
     const refreshActiveTable = async () => {
         if (activeTab?.type !== "table" || !database?.db_id || loading) return;
         const tableName = activeTab.name;
+        startRefreshIconAnimation(refreshIconRef.current, refreshIconAnimationRef)
         setLoading(true);
         setQueryError(false);
         try {
@@ -744,9 +788,11 @@ function PlaygroundPlayId(props) {
             setQueryTiming(response.data.duration_ms);
         } catch (error) {
             setQueryError(true);
-            setQueryErrorMessage(error.response?.data?.error || error.response?.data?.original?.sqlMessage || "Unable to refresh table");
+            const message = error.response?.data?.error || error.response?.data?.original?.sqlMessage || "Unable to refresh table";
+            toast.add({ title: "Unable to refresh table", description: message, type: "error" });
         } finally {
             setLoading(false);
+            stopRefreshIconAnimation(refreshIconRef.current, refreshIconAnimationRef)
         }
     };
 
@@ -785,7 +831,9 @@ function PlaygroundPlayId(props) {
                 }
             } catch (error) {
                 console.error("Unable to export all table rows", error);
-                setExportError(error.response?.data?.error || "Unable to export all table rows.");
+                const message = error.response?.data?.error || "Unable to export all table rows.";
+                setExportError(message);
+                toast.add({ title: "Unable to export table", description: message, type: "error" });
                 return;
             } finally {
                 setExportingTable(false);
@@ -854,12 +902,18 @@ function PlaygroundPlayId(props) {
         <div>
             {/* passiamo anche activeTabName */}
             <LeftBar openTab={openOrFocusTab} openSqlTab={openSqlTab} activeTabName={activeTab?.name ?? null} />
-            <div className={`${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 transition-[margin] duration-200`}>
+            <div className={`${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
                 <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
                     <div className="border-b h-[53px] flex items-center w-full justify-between bg-zinc-50 dark:bg-zinc-900/30">
-        <div className="flex items-center gap-2 p-3 px-4">
+                        <div className="flex items-center gap-2 p-3 px-4">
                             <ShowNavigationButton />
-                            {navigationHidden && <DropdownMenu open={databaseMenuOpen} onOpenChange={setDatabaseMenuOpen}>
+                            {showToolbarSkeleton && <div className="flex items-center gap-2" aria-label="Loading database toolbar" aria-busy="true">
+                                <Skeleton className="h-7 w-32" />
+                                <Skeleton className="h-6 w-6" />
+                                <Skeleton className="h-6 w-6" />
+                                <Skeleton className="h-6 w-10" />
+                            </div>}
+                            {navigationHidden && !showToolbarSkeleton && <DropdownMenu open={databaseMenuOpen} onOpenChange={setDatabaseMenuOpen}>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -869,8 +923,9 @@ function PlaygroundPlayId(props) {
                                                     title={database?.db_name || "Select database"}
                                                     className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                                 >
-                                                    <DatabaseIcon size={14} className="shrink-0" />
+                                                    <DatabaseEngineIcon dialect={database?.dialect || databases?.find((item) => item.id === database?.db_id)?.dialect} size={14} />
                                                     {database?.db_name && <span className="truncate text-xs font-semibold">{database.db_name}</span>}
+                                                    <ChevronsUpDown size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
@@ -899,7 +954,7 @@ function PlaygroundPlayId(props) {
                                                 onSelect={() => selectDatabaseFromHiddenNavigation(item)}
                                                 className="flex items-center gap-2 !text-xs !font-semibold"
                                             >
-                                                <DatabaseIcon size={12} />
+                                                <DatabaseEngineIcon dialect={item.dialect} size={12} />
                                                 <span className="min-w-0 flex-1 truncate">{item.db_name}</span>
                                                 {item.id === database?.db_id && <Check size={12} className="shrink-0" />}
                                             </DropdownMenuItem>)}
@@ -920,7 +975,24 @@ function PlaygroundPlayId(props) {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>}
-                            {navigationHidden && <DropdownMenu open={tableMenuOpen} onOpenChange={(open) => {
+                            {navigationHidden && !showToolbarSkeleton && <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            aria-label="Refresh schema"
+                                            disabled={!database?.db_id || schemaRefreshing}
+                                            onClick={() => loadHiddenNavigationTables(database?.db_id, { force: true, showRefreshLoading: true })}
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                        >
+                                            <RefreshCcw ref={schemaRefreshIconRef} size={14} />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <p>Refresh schema</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>}
+                            {navigationHidden && !showToolbarSkeleton && <DropdownMenu open={tableMenuOpen} onOpenChange={(open) => {
                                 setTableMenuOpen(open)
                                 if (open && database?.db_id && tableMenuError) {
                                     loadHiddenNavigationTables(database.db_id, { force: true })
@@ -972,31 +1044,36 @@ function PlaygroundPlayId(props) {
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>}
-                            <Button
+                            {showToolbarSkeleton ? null : <Button
                                 onClick={handleSqlClick}
                                 className="bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"
                             >
                                 SQL
-                            </Button>
+                            </Button>}
                         </div>
                         <AlertDialog open={addDatasetOpen} onOpenChange={setAddDatasetOpen}>
                             <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
+                                    <p className="text-xs font-semibold text-muted-foreground">
+                                        Connect a MySQL, MariaDB, PostgreSQL, or SQL Server database, or upload a SQLite file to browse tables and run queries.
+                                    </p>
                                     <AddDatabase onClose={() => setAddDatasetOpen(false)} onSuccess={() => setAddDatasetOpen(false)} />
                                 </AlertDialogHeader>
                             </AlertDialogContent>
                         </AlertDialog>
                         <div className="flex items-center gap-2 p-3 px-4">
+                            {showToolbarSkeleton ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-20" /></div> : <>
                             {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><History size={12} />History</Button>}
                             {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><Settings2 size={12} />Settings</Button>}
                             <Button
                                 disabled={modifiedRowsCount === 0}
-                                className={`flex flex-row gap-3 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold ${modifiedRowsCount > 0 ? 'dark:ring-orange-500' : 'dark:ring-zinc-700'}`}
+                                className={`flex flex-row gap-3 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold ring-1 ${modifiedRowsCount > 0 ? 'ring-orange-500 dark:ring-orange-500' : 'ring-zinc-300 dark:ring-zinc-700'}`}
                                 onClick={() => setIsSheetOpen(!isSheetOpen)}>
                                 <span>Changes</span>
                                 <span>{modifiedRowsCount > 0 ? modifiedRowsCount : 0}</span>
                             </Button>
+                            </>}
                         </div>
                     </div>
 
@@ -1005,6 +1082,15 @@ function PlaygroundPlayId(props) {
                             {queryTabs.map((tab, i) => (
                                 <div
                                     key={tab.name || i}
+                                    role="tab"
+                                    tabIndex={0}
+                                    aria-selected={activeTabIndex === i}
+                                    onKeyDown={(event) => {
+                                        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                                            event.preventDefault();
+                                            setActiveTabIndex(i);
+                                        }
+                                    }}
                                     className={`${
                                         activeTabIndex === i
                                             ? "!bg-zinc-100 dark:!bg-zinc-900"
@@ -1015,7 +1101,9 @@ function PlaygroundPlayId(props) {
                                     <div>{tab.type === "table" ? <Table size={12} /> : <CodeXml size={12}/>}</div>
                                     <p className="text-xs font-semibold">{tab.name}</p>
 
-                                    <div
+                                    <button
+                                        type="button"
+                                        aria-label={`Close ${tab.name || "tab"}`}
                                         className="hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-sm p-0.5"
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -1023,7 +1111,7 @@ function PlaygroundPlayId(props) {
                                         }}
                                     >
                                         <X size={14} />
-                                    </div>
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -1083,7 +1171,6 @@ function PlaygroundPlayId(props) {
                                                         <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("csv")}>CSV</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
-                                                {exportError && <span role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{exportError}</span>}
                                             </div>
                                         ) : (
                                             <>
@@ -1092,8 +1179,8 @@ function PlaygroundPlayId(props) {
                                                     Insert
                                                 </Button>
                                                 <Button disabled={loading} onClick={refreshActiveTable} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold">
-                                                    <RefreshCcw size={12} className={loading ? "animate-spin" : ""} />
-                                                    {loading ? "Refreshing..." : "Refresh"}
+                                                    <RefreshCcw ref={refreshIconRef} size={12} />
+                                                    Refresh
                                                 </Button>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -1112,7 +1199,6 @@ function PlaygroundPlayId(props) {
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
-                                                {exportError && <span role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{exportError}</span>}
                                                 {renderTableFilters()}
                                                 {renderTableGrouping()}
                                                 {renderColumnSelector()}
@@ -1181,7 +1267,6 @@ function PlaygroundPlayId(props) {
                                                             : `${activeTab.data?.count ?? activeTab.data?.data?.length ?? 0}${activeTab.data?.count === 1 ? " row" : " rows"}`}
                                                 </p>
                                             </div>
-                                            {paginationError && <p role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{paginationError}</p>}
                                         </div>
                                     }
                                 </div>
@@ -1191,6 +1276,7 @@ function PlaygroundPlayId(props) {
                 </div>
                 {hasTabs ? (
                     activeTab?.type === "table" ? (
+                        <div className="flex min-h-0 flex-1 flex-col">
                         <QueryResultsTable
                             response={activeTab.data?.data}
                             rowCount={activeTab.data?.count}
@@ -1222,6 +1308,7 @@ function PlaygroundPlayId(props) {
                             deleteRowsRequest={deleteRowsRequest}
                             onDeleteRowsRequestHandled={() => setDeleteRowsRequest(0)}
                         />
+                        </div>
                     ) : activeTab?.type === "sql" ? (
                         <div>
                             <div className="border-b">
@@ -1238,11 +1325,7 @@ function PlaygroundPlayId(props) {
                                     initialValue={activeSqlQuery}
                                 />
                             </div>
-                            {queryError === true ? (
-                                <div className="p-2 px-4">
-                                    <p className="text-xs font-semibold">{queryErrorMessage}</p>
-                                </div>
-                            ) : loading === true ? <div className="h-[calc(100vh-54px)] flex items-center justify-center">
+                            {queryError === true ? null : loading === true ? <div className="h-[calc(100vh-54px)] flex items-center justify-center">
                                 <p className="text-xs font-semibold">No rows for this table</p>
                             </div> : (
                                 <div>

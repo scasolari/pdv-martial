@@ -1,5 +1,7 @@
 import db from "@/lib/db";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
+import { parseStoredConnectionConfig } from "@/lib/databaseConnectionConfig";
+import { nullSafeEqualsSql, quoteSqlIdentifier } from "@/lib/sqlIdentifiers";
 import { decrypt } from "@/lib/crypto";
 import { acquireExternalConnectionSlot, acquireExternalSequelize, releaseExternalSequelize } from "@/lib/externalDatabase";
 import { finishDatabaseAudit, safeDatabaseErrorCode, startDatabaseAudit } from "@/lib/databaseAudit";
@@ -8,12 +10,12 @@ const isRecord = (value) => value !== null && typeof value === "object" && !Arra
 const conflict = (message) => Object.assign(new Error(message), { statusCode: 409 });
 const invalidInsert = (message) => Object.assign(new Error(message), { statusCode: 422 });
 const invalidValue = (message) => Object.assign(new Error(message), { statusCode: 422 });
-const NUMERIC_TYPES = /^(tinyint|smallint|mediumint|int|integer|bigint|year|decimal|numeric|float|double|real)$/;
+const NUMERIC_TYPES = /^(tinyint|smallint|mediumint|int|integer|bigint|year|decimal|numeric|float|double|real|smallserial|serial|bigserial|int2|int4|int8|float4|float8|double precision)$/;
 const NUMERIC_VALUE = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 function toSqlValue(value, dataType) {
     if (value && value.type === "Buffer" && Array.isArray(value.data)) return Buffer.from(value.data);
-    if (dataType === "json" && value !== null && typeof value === "object") return JSON.stringify(value);
+    if (["json", "jsonb"].includes(dataType) && value !== null && typeof value === "object") return JSON.stringify(value);
     return value;
 }
 
@@ -49,31 +51,37 @@ export default async function handler(req, res) {
         if (!savedDatabase) return res.status(404).json({ error: "Database not found." });
 
         releaseConnectionSlot = await acquireExternalConnectionSlot();
-        const connectionString = decrypt(savedDatabase.db_url_connection);
-        sequelize = await acquireExternalSequelize(connectionString);
+        const connectionConfig = parseStoredConnectionConfig(decrypt(savedDatabase.db_url_connection));
+        const { connectionString } = connectionConfig;
+        sequelize = await acquireExternalSequelize(connectionString, session.id, connectionConfig);
 
-        if (sequelize.getDialect() !== "mysql") {
-            return res.status(400).json({ error: "Bulk edits currently require a MySQL database." });
+        const dialect = sequelize.getDialect();
+        const isPostgres = dialect === "postgres";
+        let columns;
+        if (dialect === "sqlite") {
+            const [pragmaColumns] = await sequelize.query(`PRAGMA table_info(${quoteSqlIdentifier(sequelize, table)})`);
+            columns = pragmaColumns.map((column) => ({ field: column.name, columnKey: column.pk ? "PRI" : "", dataType: String(column.type || "").toLowerCase(), columnType: column.type, isNullable: column.notnull ? "NO" : "YES", defaultValue: column.dflt_value, extra: "" }));
+        } else if (dialect === "mssql") {
+            [columns] = await sequelize.query(`SELECT c.COLUMN_NAME AS field, CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 'PRI' ELSE '' END AS columnKey, c.DATA_TYPE AS dataType, c.DATA_TYPE AS columnType, c.IS_NULLABLE AS isNullable, c.COLUMN_DEFAULT AS defaultValue, CASE WHEN c.IS_IDENTITY = 'YES' THEN 'identity' ELSE '' END AS extra FROM INFORMATION_SCHEMA.COLUMNS c LEFT JOIN (SELECT ku.TABLE_NAME, ku.COLUMN_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE ku ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME AND tc.TABLE_SCHEMA = ku.TABLE_SCHEMA WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY') pk ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME WHERE c.TABLE_NAME = ?`, { replacements: [table] });
+        } else {
+            [columns] = await sequelize.query(isPostgres
+            ? `SELECT c.column_name AS field, CASE WHEN EXISTS (SELECT 1 FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = c.table_schema AND tc.table_name = c.table_name AND kcu.column_name = c.column_name) THEN 'PRI' ELSE '' END AS "columnKey", c.data_type AS "dataType", c.udt_name AS "columnType", c.is_nullable AS "isNullable", c.column_default AS "defaultValue", CASE WHEN c.is_identity = 'YES' OR c.column_default LIKE 'nextval(%' THEN 'auto_increment' ELSE '' END AS extra FROM information_schema.columns c WHERE c.table_schema = current_schema() AND c.table_name = ?`
+            : "SELECT COLUMN_NAME AS field, COLUMN_KEY AS columnKey, DATA_TYPE AS dataType, COLUMN_TYPE AS columnType, IS_NULLABLE AS isNullable, COLUMN_DEFAULT AS defaultValue, EXTRA AS extra FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+            { replacements: [table] });
         }
-
-        const [columns] = await sequelize.query(
-            "SELECT COLUMN_NAME AS field, COLUMN_KEY AS columnKey, DATA_TYPE AS dataType, COLUMN_TYPE AS columnType, IS_NULLABLE AS isNullable, COLUMN_DEFAULT AS defaultValue, EXTRA AS extra FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
-            { replacements: [table] }
-        );
         if (!columns.length) return res.status(404).json({ error: "Table not found." });
-        const quoteAuditIdentifier = (identifier) => `\`${String(identifier).replace(/`/g, "``")}\``;
         const updatedColumns = [...new Set(rows.flatMap((row) => isRecord(row?.changes) ? Object.keys(row.changes) : []))];
         const insertedColumns = [...new Set(inserts.flatMap((row) => isRecord(row) ? Object.keys(row) : []))];
         const auditQueries = [];
         if (rows.length) {
             auditQueries.push(updatedColumns.length
-                ? `UPDATE ${quoteAuditIdentifier(table)} SET ${updatedColumns.map((field) => `${quoteAuditIdentifier(field)} = ?`).join(", ")} WHERE ${quoteAuditIdentifier(pkField)} <=> ?`
-                : `UPDATE ${quoteAuditIdentifier(table)} SET <edited columns> WHERE ${quoteAuditIdentifier(pkField)} <=> ?`);
+                ? `UPDATE ${quoteSqlIdentifier(sequelize, table)} SET ${updatedColumns.map((field) => `${quoteSqlIdentifier(sequelize, field)} = ?`).join(", ")} WHERE ${nullSafeEqualsSql(dialect, quoteSqlIdentifier(sequelize, pkField), "?")}`
+                : `UPDATE ${quoteSqlIdentifier(sequelize, table)} SET <edited columns> WHERE ${nullSafeEqualsSql(dialect, quoteSqlIdentifier(sequelize, pkField), "?")}`);
         }
         if (inserts.length) {
             auditQueries.push(insertedColumns.length
-                ? `INSERT INTO ${quoteAuditIdentifier(table)} (${insertedColumns.map(quoteAuditIdentifier).join(", ")}) VALUES (${insertedColumns.map(() => "?").join(", ")})`
-                : `INSERT INTO ${quoteAuditIdentifier(table)} (<columns>) VALUES (<values>)`);
+                ? `INSERT INTO ${quoteSqlIdentifier(sequelize, table)} (${insertedColumns.map((field) => quoteSqlIdentifier(sequelize, field)).join(", ")}) VALUES (${insertedColumns.map(() => "?").join(", ")})`
+                : `INSERT INTO ${quoteSqlIdentifier(sequelize, table)} (<columns>) VALUES (<values>)`);
         }
         const audit = await startDatabaseAudit({
             userId: session.id,
@@ -85,14 +93,25 @@ export default async function handler(req, res) {
         });
         auditId = audit.id;
 
-        const [uniqueKeyRows] = await sequelize.query(
-            "SELECT MIN(COLUMN_NAME) AS field FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND NON_UNIQUE = 0 GROUP BY INDEX_NAME HAVING COUNT(*) = 1",
-            { replacements: [table] }
-        );
+        let uniqueKeyRows;
+        if (dialect === "sqlite") {
+            uniqueKeyRows = [];
+            const [indexes] = await sequelize.query(`PRAGMA index_list(${quoteSqlIdentifier(sequelize, table)})`);
+            for (const index of indexes.filter((item) => item.unique)) {
+                const [indexColumns] = await sequelize.query(`PRAGMA index_info('${String(index.name).replace(/'/g, "''")}')`);
+                if (indexColumns.length === 1) uniqueKeyRows.push({ field: indexColumns[0].name });
+            }
+        } else if (dialect === "mssql") {
+            [uniqueKeyRows] = await sequelize.query(`SELECT MIN(c.name) AS field FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id WHERE i.object_id = OBJECT_ID(?) AND i.is_unique = 1 GROUP BY i.index_id HAVING COUNT(*) = 1`, { replacements: [table] });
+        } else {
+            [uniqueKeyRows] = await sequelize.query(isPostgres
+            ? `SELECT kcu.column_name AS field FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema WHERE tc.table_schema = current_schema() AND tc.table_name = ? AND tc.constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND (SELECT COUNT(*) FROM information_schema.key_column_usage k2 WHERE k2.constraint_name = tc.constraint_name AND k2.table_schema = tc.table_schema) = 1`
+            : "SELECT MIN(COLUMN_NAME) AS field FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND NON_UNIQUE = 0 GROUP BY INDEX_NAME HAVING COUNT(*) = 1",
+            { replacements: [table] });
+        }
         const allowedColumns = new Set(columns.map((column) => column.field));
         const columnByName = new Map(columns.map((column) => [column.field, column]));
-        const quoteIdentifier = (identifier) => `\`${String(identifier).replace(/`/g, "``")}\``;
-        const tableSql = quoteIdentifier(table);
+        const tableSql = quoteSqlIdentifier(sequelize, table);
 
         const result = await sequelize.transaction(async (transaction) => {
             let updatedRows = 0;
@@ -165,12 +184,12 @@ export default async function handler(req, res) {
                     if (["datetime", "timestamp"].includes(dataType) && typeof sqlValue === "string") {
                         sqlValue = sqlValue.replace("T", " ");
                     }
-                    if (dataType === "json" && typeof sqlValue === "string") {
+                    if (["json", "jsonb"].includes(dataType) && typeof sqlValue === "string") {
                         try { JSON.parse(sqlValue); } catch { throw invalidValue(`Column ${field} requires valid JSON.`); }
                     }
 
                     const replacement = `value${index}`;
-                    assignments.push(`${quoteIdentifier(field)} = :${replacement}`);
+                    assignments.push(`${quoteSqlIdentifier(sequelize, field)} = :${replacement}`);
                     replacements[replacement] = toSqlValue(sqlValue, dataType);
                 });
 
@@ -178,24 +197,25 @@ export default async function handler(req, res) {
                 const originalPk = pkField && (rowIdentity ? rowIdentity.value : original[pkField]);
                 const canUseUniqueKey = uniqueKeyRows.some((key) => key.field === pkField) && originalPk !== null && originalPk !== undefined;
                 if (canUseUniqueKey) {
-                    where.push(`${quoteIdentifier(pkField)} <=> :originalKey`);
+                    where.push(nullSafeEqualsSql(dialect, quoteSqlIdentifier(sequelize, pkField), ":originalKey"));
                     replacements.originalKey = toSqlValue(originalPk, columnByName.get(pkField).dataType);
                     for (const [field, diff] of fields) {
                         const oldName = `original${where.length}`;
-                        where.push(`${quoteIdentifier(field)} <=> :${oldName}`);
+                        where.push(nullSafeEqualsSql(dialect, quoteSqlIdentifier(sequelize, field), `:${oldName}`));
                         replacements[oldName] = toSqlValue(diff.before, columnByName.get(field).dataType);
                     }
                 } else {
                     columns.forEach((column, index) => {
                         const oldName = `original${index}`;
-                        where.push(`${quoteIdentifier(column.field)} <=> :${oldName}`);
+                        where.push(nullSafeEqualsSql(dialect, quoteSqlIdentifier(sequelize, column.field), `:${oldName}`));
                         replacements[oldName] = toSqlValue(original[column.field], column.dataType);
                     });
                 }
 
                 const whereSql = where.join(" AND ");
+                const lockHint = dialect === "mssql" ? " WITH (UPDLOCK, HOLDLOCK)" : "";
                 const [matchingRows] = await sequelize.query(
-                    `SELECT 1 AS matched FROM ${tableSql} WHERE ${whereSql} LIMIT 2 FOR UPDATE`,
+                    `${dialect === "mssql" ? "SELECT TOP (2) 1 AS matched" : "SELECT 1 AS matched"} FROM ${tableSql}${lockHint} WHERE ${whereSql}${dialect === "mssql" ? "" : dialect === "postgres" ? " FOR UPDATE" : " LIMIT 2"}`,
                     { replacements, transaction }
                 );
                 if (matchingRows.length === 0) throw conflict("The row no longer matches its original values. Reload the table and retry.");
@@ -236,19 +256,19 @@ export default async function handler(req, res) {
 
                     let sqlValue = value === "" && isNullable ? null : value;
                     if (sqlValue !== null && typeof sqlValue === "string" &&
-                        /^(tinyint|smallint|mediumint|int|integer|bigint|year|decimal|numeric|float|double|real)$/.test(column.dataType) &&
+                        NUMERIC_TYPES.test(column.dataType) &&
                         !/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(sqlValue)) {
                         throw invalidInsert(`Column ${field} requires a valid number.`);
                     }
                     if (["datetime", "timestamp"].includes(column.dataType) && typeof sqlValue === "string") {
                         sqlValue = sqlValue.replace("T", " ");
                     }
-                    if (column.dataType === "json" && typeof sqlValue === "string") {
+                    if (["json", "jsonb"].includes(column.dataType) && typeof sqlValue === "string") {
                         try { JSON.parse(sqlValue); } catch { throw invalidInsert(`Column ${field} requires valid JSON.`); }
                     }
 
                     const replacement = `insert${insertedRows}_${fields.length}`;
-                    fields.push(quoteIdentifier(field));
+                    fields.push(quoteSqlIdentifier(sequelize, field));
                     placeholders.push(`:${replacement}`);
                     replacements[replacement] = toSqlValue(sqlValue, column.dataType);
                 }
@@ -266,8 +286,8 @@ export default async function handler(req, res) {
 
                 const insertSql = fields.length
                     ? `INSERT INTO ${tableSql} (${fields.join(", ")}) VALUES (${placeholders.join(", ")})`
-                    : `INSERT INTO ${tableSql} () VALUES ()`;
-                const [insertResult] = await sequelize.query(insertSql, { replacements, transaction });
+                    : (isPostgres || dialect === "sqlite" || dialect === "mssql" ? `INSERT INTO ${tableSql} DEFAULT VALUES` : `INSERT INTO ${tableSql} () VALUES ()`);
+                const [insertResult] = await sequelize.query(isPostgres ? `${insertSql} RETURNING *` : insertSql, { replacements, transaction });
                 insertedIds.push(insertResult?.insertId ?? null);
                 insertedRows += 1;
             }
@@ -282,7 +302,7 @@ export default async function handler(req, res) {
         return res.status(200).json(result);
     } catch (error) {
         if (auditId) {
-            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch {}
+            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         console.error("Bulk database update failed", safeDatabaseErrorCode(error));
         return res.status(error.statusCode || 400).json({ error: error.statusCode ? error.message : "Bulk update failed. Check the values and database permissions." });

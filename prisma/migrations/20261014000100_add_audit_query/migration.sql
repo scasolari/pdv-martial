@@ -1,0 +1,2 @@
+ALTER TABLE `DatabaseAuditLog`
+ADD COLUMN `query` LONGTEXT NULL;

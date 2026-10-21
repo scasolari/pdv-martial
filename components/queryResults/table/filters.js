@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ListFilter, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -108,7 +108,7 @@ function TableFilters({ columns = [], rules = [], onChange, disabled = false, se
                         <Plus size={12} /> Add filter
                     </Button>
                     <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => { updateRules([]); onChange?.([]) }} disabled={disabled || (draftRules.length === 0 && safeRules.length === 0)} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                        <Button type="button" onClick={() => { updateRules([]); onChange?.([]) }} disabled={disabled || (draftRules.length === 0 && safeRules.length === 0)} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
                             Clear all filters
                         </Button>
                         <Button type="button" onClick={() => { onChange?.(draftRules); setOpen(false) }} disabled={disabled || !hasUnappliedChanges} className="h-6 border-0 bg-blue-600 p-1 px-2 text-white shadow-none hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">

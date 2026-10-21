@@ -7,6 +7,9 @@ export default async function handler(req, res) {
     const { form } = req.body || {};
 
     if (!session) return;
+    if (form?.authorizationConfirmed !== true) {
+        return res.status(400).json({ message: "Confirm that you are authorised to connect this database." });
+    }
     if (typeof form?.url_connection !== "string" || form.url_connection.length > 4096) {
         return res.status(400).json({ error: "Invalid connection string." });
     }
@@ -15,7 +18,7 @@ export default async function handler(req, res) {
     let releaseConnectionSlot;
     try {
         releaseConnectionSlot = await acquireExternalConnectionSlot();
-        sequelize = await acquireExternalSequelize(form.url_connection);
+        sequelize = await acquireExternalSequelize(form.url_connection, session.id, { ssh: form.ssh, ssl: form.ssl });
         await sequelize.authenticate();
         return res.status(200).json({message: 'Connection has been established successfully.'})
     } catch (error) {

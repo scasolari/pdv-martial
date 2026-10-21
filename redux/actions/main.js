@@ -42,13 +42,6 @@ export const setTables = (tables) => dispatch => {
     });
 }
 
-export const setQueryTable = (queryTable) => dispatch => {
-    dispatch({
-        type: t.SET_QUERY_TABLE,
-        payload: queryTable
-    });
-}
-
 export const setQueryTabs = (queryTabs) => dispatch => {
     dispatch({
         type: t.SET_QUERY_TABS,

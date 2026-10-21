@@ -19,6 +19,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import {Button} from "@/components/ui/button";
+import { toast } from "@/components/ui/base-toast";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -28,20 +29,53 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 
-const cellInputClassName = 'disabled:opacity-100 disabled:cursor-text p-2 px-3 rounded-none h-fit !border-0 !shadow-none !font-semibold !text-xs focus-visible:ring-blue-500 focus-visible:bg-blue-50 focus-visible:dark:bg-blue-950/20'
+const cellInputClassName = 'disabled:opacity-100 disabled:cursor-text p-2 px-3 rounded-none h-8 !border-0 !shadow-none !font-semibold !text-xs focus:relative focus:z-[6] focus-visible:ring-blue-500 focus-visible:bg-blue-50 focus-visible:dark:bg-blue-950/20'
 const CELL_EDIT_EVENT = 'database-table:edit-cell'
 const EMPTY_FILTER_RULES = Object.freeze([])
 const EMPTY_GROUPING = Object.freeze([])
 const EMPTY_SCHEMA = Object.freeze([])
 const EMPTY_COLUMN_VISIBILITY = Object.freeze({})
+
+function positionCellEditor(editor, rect) {
+    const margin = 8
+    const width = Math.min(400, Math.max(160, window.innerWidth - margin * 2))
+    const maxHeight = Math.max(40, window.innerHeight - margin * 2)
+
+    editor.style.width = `${width}px`
+    editor.style.maxHeight = `${maxHeight}px`
+    editor.style.height = 'auto'
+    editor.style.height = `${Math.min(Math.max(editor.scrollHeight, 40), maxHeight)}px`
+    editor.style.overflowY = editor.scrollHeight > maxHeight ? 'auto' : 'hidden'
+
+    const height = editor.getBoundingClientRect().height
+    const left = Math.min(
+        Math.max(margin, rect.left),
+        Math.max(margin, window.innerWidth - width - margin),
+    )
+    const preferredTop = rect.top + height <= window.innerHeight - margin
+        ? rect.top
+        : rect.bottom - height
+    const top = Math.min(
+        Math.max(margin, preferredTop),
+        Math.max(margin, window.innerHeight - height - margin),
+    )
+
+    editor.style.left = `${left}px`
+    editor.style.top = `${top}px`
+}
+
+function formatCommitValue(value) {
+    if (value == null) return "NULL"
+    if (typeof value === "object") {
+        try {
+            return JSON.stringify(value)
+        } catch {
+            return String(value)
+        }
+    }
+    return String(value)
+}
 const TABLE_DEFAULT_COLUMN = Object.freeze({
     minSize: 60,
     maxSize: 800,
@@ -74,7 +108,7 @@ const TABLE_DEFAULT_COLUMN = Object.freeze({
     },
 })
 
-const EditableTableCell = React.memo(function EditableTableCell({ row, colId, value, editable, isDirtyCell, isPinnedLeft, editorId, onStartEdit, onInlineBlur }) {
+const EditableTableCell = React.memo(function EditableTableCell({ row, colId, value, editable, isDirtyCell, editorId, onStartEdit, onInlineBlur }) {
     const [draft, setDraft] = useState(String(value ?? ''))
 
     useEffect(() => {
@@ -88,7 +122,7 @@ const EditableTableCell = React.memo(function EditableTableCell({ row, colId, va
             onChange={editable ? (event) => setDraft(event.target.value) : undefined}
             onBlur={editable ? (event) => onInlineBlur(row, colId, event.currentTarget.value) : undefined}
             onDoubleClick={(event) => editable && onStartEdit(editorId, row, colId, event.currentTarget.value, event.currentTarget.getBoundingClientRect())}
-            className={`${cellInputClassName} ${isPinnedLeft ? 'focus-visible:!ring-0 focus-visible:outline focus-visible:outline-1 focus-visible:!outline-blue-500 focus-visible:outline-offset-[-1px]' : ''} ${isDirtyCell ? 'focus-visible:!bg-orange-50 focus-visible:!ring-orange-400 dark:!bg-orange-950' : ''}`}
+            className={`${cellInputClassName} ${isDirtyCell ? 'focus-visible:!bg-orange-50 focus-visible:!ring-orange-400 dark:!bg-orange-950' : ''}`}
         />
     )
 })
@@ -112,8 +146,7 @@ const CellEditorOverlay = React.memo(function CellEditorOverlay({ editorId, edit
     useEffect(() => {
         if (!edit || !editorRef.current) return
         const editor = editorRef.current
-        editor.style.height = 'auto'
-        editor.style.height = `${Math.max(editor.scrollHeight, 40)}px`
+        positionCellEditor(editor, edit.rect)
         editor.focus()
         editor.select()
     }, [edit])
@@ -124,8 +157,7 @@ const CellEditorOverlay = React.memo(function CellEditorOverlay({ editorId, edit
 
     const resizeEditor = (event) => {
         const editor = event.currentTarget
-        editor.style.height = 'auto'
-        editor.style.height = `${Math.max(editor.scrollHeight, 40)}px`
+        positionCellEditor(editor, edit.rect)
         setDraft(event.target.value)
     }
 
@@ -154,12 +186,12 @@ const CellEditorOverlay = React.memo(function CellEditorOverlay({ editorId, edit
                 editorRef.current?.blur()
             }
         }}
-        style={{ position: 'fixed', left: edit.rect.left, top: edit.rect.top, width: '400px', zIndex: 99999, overflowWrap: 'anywhere' }}
+        style={{ position: 'fixed', zIndex: 99999, overflowWrap: 'anywhere' }}
         className="!box-border min-h-10 resize-none overflow-hidden whitespace-pre-wrap break-words rounded-none border-0 !px-3 !py-2 !text-xs !font-semibold !leading-normal text-zinc-800 outline-none ring-1 ring-blue-500 dark:bg-zinc-950 dark:text-zinc-100"
     />
 })
 
-function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = EMPTY_SCHEMA, databaseId, sensitiveColumns = [], primaryKeyField, canSave, editable = false, showSelection = false, openSheet, onOpenChange, onChangesCountChange, onSelectionCountChange, onSelectedRowsChange, insertRowRequest = 0, onInsertRowRequestHandled, deleteRowsRequest = 0, onDeleteRowsRequestHandled, onSaved, database, serverPaginated = false, pageIndex: initialPageIndex = 0, pageSize = 50, cursorSupported = false, requestCursor = null, requestDirection = "next", columnVisibility = EMPTY_COLUMN_VISIBILITY, filterRules = EMPTY_FILTER_RULES, grouping = EMPTY_GROUPING }) {
+function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHEMA, databaseId, sensitiveColumns = [], primaryKeyField, canSave, editable = false, showSelection = false, openSheet, onOpenChange, onChangesCountChange, onSelectionCountChange, onSelectedRowsChange, insertRowRequest = 0, onInsertRowRequestHandled, deleteRowsRequest = 0, onDeleteRowsRequestHandled, onSaved, database, serverPaginated = false, pageIndex: initialPageIndex = 0, pageSize = 50, cursorSupported = false, requestCursor = null, requestDirection = "next", columnVisibility = EMPTY_COLUMN_VISIBILITY, filterRules = EMPTY_FILTER_RULES, grouping = EMPTY_GROUPING }) {
     const activeSensitiveColumns = database?.preferences?.sensitiveColumns || sensitiveColumns
     const rawData = response
 
@@ -240,7 +272,7 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
     const [selectedRows, setSelectedRows] = useState({})
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingRows, setDeletingRows] = useState(false)
-    const [deleteError, setDeleteError] = useState('')
+    const [, setDeleteError] = useState('')
     const selectedRowsCount = Object.values(selectedRows).filter(Boolean).length
     const selectionColumnWidth = showSelection ? 36 : 0
     const [hasHorizontalScroll, setHasHorizontalScroll] = useState(false)
@@ -422,8 +454,8 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
 
     const hasChanges = Object.keys(editedCells).length > 0 || insertRows.length > 0
     const [saving, setSaving] = useState(false)
-    const [saveError, setSaveError] = useState('')
-    const [saveSuccess, setSaveSuccess] = useState('')
+    const [, setSaveError] = useState('')
+    const [, setSaveSuccess] = useState('')
 
     useEffect(() => {
         setDisplayData(data)
@@ -478,14 +510,6 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
     }, [payload.meta.modifiedRows, onChangesCountChange])
 
     useEffect(() => {
-        const selectedIds = Object.entries(selectedRows).filter(([, selected]) => selected).map(([rowId]) => rowId)
-        onSelectionCountChange?.(selectedIds.length)
-        onSelectedRowsChange?.(selectedIds
-            .map((rowId) => table.getCoreRowModel().rowsById[rowId]?.original)
-            .filter(Boolean))
-    }, [selectedRows, onSelectionCountChange, onSelectedRowsChange])
-
-    useEffect(() => {
         setCurrentPage(initialPageIndex)
         setCurrentPageSize(pageSize)
     }, [initialPageIndex, pageSize])
@@ -538,14 +562,18 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                 .map(([rowId]) => displayData[Number(rowId)])
                 .filter((row) => row && !row.__insertDraft)
             if (persistedRows.length) {
+                const databaseRows = persistedRows.map((row) => Object.fromEntries(
+                    Object.entries(row).filter(([field]) => !field.startsWith('__'))
+                ))
                 const res = await fetch('/api/db/bulk-delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ db_id: databaseId, table: tableName || queryTabs?.name, rows: persistedRows }),
+                    body: JSON.stringify({ db_id: databaseId, table: tableName || queryTabs?.name, rows: databaseRows }),
                 })
                 const result = await res.json().catch(() => ({}))
                 if (!res.ok) throw new Error(result.error || 'Delete failed')
             }
+            toast.add({ title: "Rows deleted", description: `${selectedEntries.length} row${selectedEntries.length === 1 ? "" : "s"} removed.`, type: "success" });
             const remainingRows = displayData.filter((_, index) => !selectedIndexes.has(index))
             setDisplayData(remainingRows)
             setEditedCells((current) => Object.fromEntries(Object.entries(current).filter(([rowIndex]) => !selectedIndexes.has(Number(rowIndex)))))
@@ -587,7 +615,9 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                 console.error('Deleted table refresh failed', refreshError)
             }
         } catch (error) {
-            setDeleteError(error.message || 'Delete failed')
+            const message = error.message || 'Delete failed';
+            setDeleteError(message)
+            toast.add({ title: "Delete failed", description: message, type: "error" });
         } finally {
             setDeletingRows(false)
         }
@@ -676,10 +706,13 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
             if (result.updatedRows > 0) savedMessages.push(`${result.updatedRows} row${result.updatedRows === 1 ? '' : 's'} updated`)
             if (result.insertedRows > 0) savedMessages.push(`${result.insertedRows} row${result.insertedRows === 1 ? '' : 's'} inserted`)
             setSaveSuccess(savedMessages.length ? `${savedMessages.join(', ')}.` : 'Saved.')
+            toast.add({ title: "Changes saved", description: savedMessages.join(", ") || "Your changes were saved.", type: "success" });
             setEditedCells({})
             onOpenChange?.(false)
         } catch (err) {
-            setSaveError(err.message || 'Save failed')
+            const message = err.message || 'Save failed';
+            setSaveError(message)
+            toast.add({ title: "Save failed", description: message, type: "error" });
         } finally {
             setSaving(false)
         }
@@ -715,6 +748,14 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
     })
+    useEffect(() => {
+        const selectedIds = Object.entries(selectedRows).filter(([, selected]) => selected).map(([rowId]) => rowId)
+        onSelectionCountChange?.(selectedIds.length)
+        onSelectedRowsChange?.(selectedIds
+            .map((rowId) => table.getCoreRowModel().rowsById[rowId]?.original)
+            .filter(Boolean))
+    }, [selectedRows, onSelectionCountChange, onSelectedRowsChange, table])
+
     useEffect(() => {
         if (!groupingColumns.length) {
             setExpanded((current) => Object.keys(current).length === 0 ? current : {})
@@ -770,7 +811,6 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                         This will permanently delete {selectedRowsCount} {selectedRowsCount === 1 ? 'row' : 'rows'} from the table.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                {deleteError && <div role="alert" className="rounded border border-red-300 bg-red-50 p-2 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{deleteError}</div>}
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={deletingRows} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
                     <Button onClick={handleDeleteSelectedRows} disabled={deletingRows || selectedRowsCount === 0} className="flex h-6 items-center gap-1 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 !text-xs !font-semibold">
@@ -779,69 +819,122 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-        {saveSuccess && <div role="status" className="border-b bg-green-50 px-3 py-2 text-xs text-green-700 dark:bg-green-950/40 dark:text-green-300">{saveSuccess}</div>}
         <Sheet open={openSheet} onOpenChange={onOpenChange}>
-            <SheetContent className="min-w-[500px] overflow-y-auto bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-                <SheetHeader><SheetTitle className="text-sm font-semibold">Pending changes</SheetTitle></SheetHeader>
-                <div className="mt-4 space-y-4 text-xs font-semibold">
-                    {saveError && <div role="alert" className="rounded border border-red-300 bg-red-50 p-2 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{saveError}</div>}
-                    {canSave && !primaryKeyField && <div className="text-xs font-semibold text-zinc-500">Without a unique key, saving works only when the original values identify exactly one row.</div>}
-                    {payload.meta.modifiedRows === 0 && <div className="text-xs font-semibold text-zinc-500">No changes to review</div>}
-                    {Object.entries(editedCells).map(([rowKey, entry]) => (
-                        <div key={rowKey} className="p-3 border bg-zinc-100 dark:bg-zinc-900 rounded-md dark:border-zinc-800">
-                            {Object.entries(entry.changes).map(([col, diff]) => (
-                                <div key={col}>
-                                    <Breadcrumb className="mb-2">
-                                        <BreadcrumbList className="!text-xs !font-semibold">
-                                            <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">{database?.db_name}</BreadcrumbPage></BreadcrumbItem>
-                                            <BreadcrumbSeparator />
-                                            <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">{entry.original?.[pkField] ?? `row ${Number(rowKey) + 1}`}</BreadcrumbPage></BreadcrumbItem>
-                                            <BreadcrumbSeparator />
-                                            <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">{col}</BreadcrumbPage></BreadcrumbItem>
-                                        </BreadcrumbList>
-                                    </Breadcrumb>
-                                    <div className="mt-1 space-y-2">
-                                        <div className="bg-red-50 ring-1 ring-red-950 dark:bg-red-700/20 text-red-700 px-2 py-1 rounded text-xs font-semibold">− {activeSensitiveColumns.some((column) => String(column).toLowerCase() === col.toLowerCase()) ? "••••••••" : String(diff.before)}</div>
-                                        <div className="bg-green-50 ring-1 ring-green-950 dark:bg-green-950/30 text-green-700 px-2 py-1 rounded text-xs font-semibold">+ {activeSensitiveColumns.some((column) => String(column).toLowerCase() === col.toLowerCase()) ? "••••••••" : String(diff.after)}</div>
+            <SheetContent className="flex w-full min-w-0 max-w-none flex-col gap-0 overflow-hidden border-l border-zinc-200 bg-white p-0 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 sm:w-[520px] sm:max-w-[520px]">
+                <SheetHeader className="space-y-1 border-b border-zinc-200 px-5 pb-4 pt-5 text-left dark:border-zinc-800">
+                    <div className="flex items-center gap-2 pr-7">
+                        <SheetTitle className="!text-base !font-semibold">Pending changes</SheetTitle>
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            {payload.meta.modifiedRows} {payload.meta.modifiedRows === 1 ? "row" : "rows"}
+                        </span>
+                    </div>
+                    <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                        {database?.db_name} <span className="px-1 text-zinc-300 dark:text-zinc-600">/</span> {tableName}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                        <span className="size-1.5 shrink-0 rounded-full bg-blue-500" />
+                        {payload.meta.modifiedRows > 0
+                            ? "Review the diff before committing " + payload.meta.modifiedRows + (payload.meta.modifiedRows === 1 ? " row." : " rows.")
+                            : "No pending changes"}
+                    </div>
+                </SheetHeader>
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+                    {canSave && !primaryKeyField && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                            No unique key is available. A change is saved only if the original values match exactly one row.
+                        </div>
+                    )}
+                    {payload.meta.modifiedRows === 0 && (
+                        <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                            No changes to review.
+                        </div>
+                    )}
+                    {Object.entries(editedCells).map(([rowKey, entry]) => {
+                        const rowLabel = entry.original?.[pkField] ?? "Row " + (Number(rowKey) + 1)
+                        const changes = Object.entries(entry.changes)
+                        return (
+                            <section key={rowKey} className="overflow-hidden rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+                                <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900">
+                                    <div className="min-w-0">
+                                        <p className="font-mono text-[11px] font-semibold text-zinc-700 dark:text-zinc-200">{tableName} <span className="text-zinc-400">·</span> row {formatCommitValue(rowLabel)}</p>
                                     </div>
+                                    <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
+                                        {changes.length} {changes.length === 1 ? "field" : "fields"}
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
-                    ))}
+                                <div className="space-y-2 p-2">
+                                    {changes.map(([column, diff]) => {
+                                        const isSensitive = activeSensitiveColumns.some((field) => String(field).toLowerCase() === column.toLowerCase())
+                                        const before = isSensitive ? "••••••••" : formatCommitValue(diff.before)
+                                        const after = isSensitive ? "••••••••" : formatCommitValue(diff.after)
+                                        return (
+                                            <div key={column} className="overflow-hidden rounded border border-zinc-200 dark:border-zinc-800">
+                                                <div className="border-b border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">{column}</div>
+                                                <div className="grid grid-cols-[26px_minmax(0,1fr)] border-b border-red-200 bg-red-50 text-red-800 dark:border-red-950 dark:bg-red-950/40 dark:text-red-200">
+                                                    <span className="border-r border-red-200 py-1.5 text-center font-mono text-xs font-semibold dark:border-red-950">−</span>
+                                                    <pre title={before} className="m-0 max-h-24 overflow-auto whitespace-pre-wrap break-all px-2 py-1.5 font-mono text-xs font-semibold">{before}</pre>
+                                                </div>
+                                                <div className="grid grid-cols-[26px_minmax(0,1fr)] bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                                    <span className="border-r border-emerald-200 py-1.5 text-center font-mono text-xs font-semibold dark:border-emerald-950">+</span>
+                                                    <pre title={after} className="m-0 max-h-24 overflow-auto whitespace-pre-wrap break-all px-2 py-1.5 font-mono text-xs font-semibold">{after}</pre>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </section>
+                        )
+                    })}
                     {payload.inserts.map((insert, index) => (
-                        <div key={`insert-${index}`} className="rounded-md border bg-zinc-100 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                            <Breadcrumb className="mb-2">
-                                <BreadcrumbList className="!text-xs !font-semibold">
-                                    <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">{database?.db_name}</BreadcrumbPage></BreadcrumbItem>
-                                    <BreadcrumbSeparator />
-                                    <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">{tableName}</BreadcrumbPage></BreadcrumbItem>
-                                    <BreadcrumbSeparator />
-                                    <BreadcrumbItem><BreadcrumbPage className="!text-xs !font-semibold">New row {index + 1}</BreadcrumbPage></BreadcrumbItem>
-                                </BreadcrumbList>
-                            </Breadcrumb>
-                            {Object.entries(insert.values).map(([field, value]) => (
-                                <div key={field} className="mt-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">{field}: {activeSensitiveColumns.some((column) => String(column).toLowerCase() === field.toLowerCase()) ? "••••••••" : String(value)}</div>
-                            ))}
-                        </div>
+                        <section key={"insert-" + index} className="overflow-hidden rounded-md border border-emerald-200 bg-white dark:border-emerald-950 dark:bg-zinc-950">
+                            <div className="border-b border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-950 dark:bg-emerald-950/40">
+                                <p className="font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">{tableName} · new row {index + 1}</p>
+                            </div>
+                            <div className="divide-y divide-emerald-100 dark:divide-emerald-950">
+                                {Object.entries(insert.values).map(([field, value]) => {
+                                    const isSensitive = activeSensitiveColumns.some((column) => String(column).toLowerCase() === field.toLowerCase())
+                                    const displayValue = isSensitive ? "••••••••" : formatCommitValue(value)
+                                    return (
+                                        <div key={field} className="grid grid-cols-[26px_minmax(0,1fr)] bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                            <span className="border-r border-emerald-200 py-1.5 text-center font-mono text-xs font-semibold dark:border-emerald-950">+</span>
+                                            <div className="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3 px-2 py-1.5">
+                                                <span className="truncate font-mono text-xs font-semibold">{field}</span>
+                                                <span title={displayValue} className="max-h-20 overflow-auto break-words font-mono text-xs font-semibold">{displayValue}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </section>
                     ))}
                 </div>
-                {payload.meta.modifiedRows > 0 && canSave && (
-                    <div className="mt-6 flex items-center justify-end gap-2">
-                        <Button onClick={() => onOpenChange(false)} className="bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold">Cancel</Button>
-                        <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold">{saving ? 'Saving…' : `Commit All (${payload?.meta?.modifiedRows})`}</Button>
+                <div className="border-t border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                            {hasChanges ? "Review these values before applying them." : "Nothing to commit."}
+                        </p>
+                        <div className="flex shrink-0 items-center gap-2">
+                            <Button onClick={() => onOpenChange(false)} disabled={saving} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</Button>
+                            {payload.meta.modifiedRows > 0 && canSave && (
+                                <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex h-7 items-center gap-1.5 border-0 bg-blue-600 px-3 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">
+                                    {saving ? "Committing…" : "Commit changes"}
+                                    {!saving && <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[10px]">{payload.meta.modifiedRows}</span>}
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
             </SheetContent>
         </Sheet>
         <div
-            className="overflow-x-auto bg-white dark:border-zinc-800 dark:bg-zinc-950"
+            className="min-h-0 flex-1 overflow-auto bg-white dark:border-zinc-800 dark:bg-zinc-950"
             onScroll={(event) => setHasHorizontalScroll(event.currentTarget.scrollLeft > 0)}
         >
             <table ref={tableElementRef} className="resizable-table border-collapse text-xs font-mono w-full">
                 <thead className="bg-zinc-100 dark:bg-zinc-900">
                     {table.getHeaderGroups().map((headerGroup, headerGroupIndex) => (
-                        <tr key={headerGroup.id} className="border-b dark:border-zinc-800">
-                            {showSelection && <th className="group/selection sticky left-0 z-[4] w-9 min-w-9 border-r-0 bg-zinc-100 dark:bg-zinc-900" aria-label="Row selection">
+                        <tr key={headerGroup.id}>
+                            {showSelection && <th className="group/selection sticky left-0 top-0 z-[7] w-9 min-w-9 border-r-0 bg-zinc-100 align-middle shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]" aria-label="Row selection">
                                 {headerGroupIndex === 0 && selectablePageRows.length > 0 && (
                                     <Checkbox
                                         checked={pageSelectionState}
@@ -857,17 +950,18 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                                 const isPinnedLeft = header.column.getIsPinned?.() === 'left'
                                 const left = isPinnedLeft ? header.column.getStart('left') + selectionColumnWidth : undefined
                                 return (
-                                    <th key={header.id} data-column-id={header.column.id} className={`relative ${isPinnedLeft ? 'border-r-0' : 'border-r'} p-2 px-3 text-left font-semibold !text-xs text-zinc-700 dark:border-zinc-800 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-900`} style={{ width: `${header.getSize()}px`, position: isPinnedLeft ? 'sticky' : 'relative', left, zIndex: isPinnedLeft ? 3 : 1 }}>
+                                    <th key={header.id} data-column-id={header.column.id} className={`sticky top-0 ${isPinnedLeft ? 'border-r-0' : 'border-r'} p-2 px-3 text-left font-semibold !text-xs text-zinc-700 shadow-[inset_0_-1px_0_0_#e4e4e7] dark:border-zinc-800 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]`} style={{ width: `${header.getSize()}px`, left, zIndex: isPinnedLeft ? 6 : 5 }}>
                                         {!header.isPlaceholder && (
-                                            <div className={header.column.getCanSort() ? 'cursor-pointer select-none flex items-center gap-1' : ''} onClick={header.column.getToggleSortingHandler()}>
+                                            <button type="button" className={header.column.getCanSort() ? 'cursor-pointer select-none flex items-center gap-1 bg-transparent p-0 text-left !text-xs !font-semibold' : 'flex items-center gap-1 bg-transparent p-0 text-left !text-xs !font-semibold'} onClick={header.column.getToggleSortingHandler()}>
                                                 <div className={header.column.getIsSorted() ? 'text-blue-600 flex items-center gap-2' : 'flex items-center gap-2'}>
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
                                                     {{ asc: <ArrowUp size={12} />, desc: <ArrowDown size={12} /> }[header.column.getIsSorted()] ?? null}
                                                 </div>
-                                            </div>
+                                            </button>
                                         )}
                                         {header.column.getCanResize() && (
-                                            <div
+                                            <button
+                                                type="button"
                                                 onPointerDown={(event) => startColumnResize(event, header.column, event.currentTarget.firstElementChild)}
                                                 onClick={(event) => event.stopPropagation()}
                                                 onDoubleClick={(event) => {
@@ -876,11 +970,10 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                                                 }}
                                                 className="group/resize absolute inset-y-0 right-[-4px] z-[40] w-2 cursor-col-resize select-none touch-none"
                                                 aria-label={`Resize ${header.column.id} column`}
-                                                role="separator"
-                                                aria-orientation="vertical"
+                                                title={`Resize ${header.column.id} column`}
                                             >
                                                 <span className={`pointer-events-none absolute inset-y-0 left-[3px] w-px ${header.column.getIsResizing() ? 'bg-blue-500' : 'bg-transparent group-hover/resize:bg-blue-500'}`} />
-                                            </div>
+                                            </button>
                                         )}
                                         {isPinnedLeft && <>
                                             <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[31] w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -895,7 +988,7 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                 <tbody>
                     {rowsToRender.map((row) => row.getIsGrouped() ? (
                         <tr key={row.id} className="border-b bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/70">
-                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-zinc-50 dark:bg-zinc-900">
+                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-zinc-50 align-middle dark:bg-zinc-900">
                                 <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
                             </td>}
                             <td colSpan={Math.max(row.getVisibleCells().length, 1)} className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
@@ -913,12 +1006,12 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                         </tr>
                     ) : (
                         <tr key={row.id} className="border-b group dark:border-zinc-800">
-                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-white p-2 text-center dark:bg-zinc-950">
+                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-white p-2 text-center align-middle dark:bg-zinc-950">
                                 <Checkbox
                                     checked={Boolean(selectedRows[row.id])}
                                     onCheckedChange={(checked) => setSelectedRows((current) => ({ ...current, [row.id]: checked === true }))}
                                     aria-label={`Select row ${Number(row.id) + 1}`}
-                                    className="block h-4 w-4"
+                                    className="mx-auto block h-4 w-4"
                                 />
                                 <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
                             </td>}
@@ -930,7 +1023,7 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                                 const cellValue = getCellValue(row, colId)
                                 const isSensitive = activeSensitiveColumns.some((column) => String(column).toLowerCase() === String(colId).toLowerCase())
                                 return (
-                                    <td key={cell.id} data-column-id={cell.column.id} className={['relative bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-800 dark:border-zinc-800 dark:text-zinc-100 shadow-none', isPinnedLeft ? 'border-r-0' : 'border-r', isDirtyCell ? '!bg-orange-50 dark:!bg-orange-950 !text-orange-400' : ''].join(' ')} style={{ width: `${cell.column.getSize()}px`, position: isPinnedLeft ? 'sticky' : 'relative', left, zIndex: isPinnedLeft ? 2 : 1 }}>
+                                    <td key={cell.id} data-column-id={cell.column.id} className={['relative !text-xs !font-semibold bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-800 dark:border-zinc-800 dark:text-zinc-100 shadow-none', isPinnedLeft ? 'border-r-0' : 'border-r', isDirtyCell ? '!bg-orange-50 dark:!bg-orange-950 !text-orange-400' : ''].join(' ')} style={{ width: `${cell.column.getSize()}px`, position: isPinnedLeft ? 'sticky' : 'relative', left, zIndex: isPinnedLeft ? 2 : 1 }}>
                                         {isSensitive ? (
                                             <div aria-label="Sensitive value masked" className="block w-full overflow-hidden text-ellipsis whitespace-nowrap p-2 px-3 !text-xs !font-semibold">••••••••</div>
                                         ) : row.original?.__insertDraft ? renderInsertCell(row, colId) : editable ? (
@@ -940,7 +1033,6 @@ function QueryResultsTable({ response, rowCount, queryTabs, tableName, schema = 
                                                 value={cellValue}
                                                 editable
                                                 isDirtyCell={isDirtyCell}
-                                                isPinnedLeft={isPinnedLeft}
                                                 editorId={editorIdRef.current}
                                                 onStartEdit={startCellEdit}
                                                 onInlineBlur={commitInlineCell}

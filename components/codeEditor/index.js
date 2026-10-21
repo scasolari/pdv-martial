@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { EditorState, Compartment } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from '@codemirror/basic-setup'
@@ -15,7 +15,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
     const lastValueRef = useRef('')
     const onChangeRef = useRef(onChange)
     onChangeRef.current = onChange
-    const { theme, setTheme } = useTheme();
+    const { theme } = useTheme();
 
     const themeCompartment = useRef(new Compartment()).current
     const highlightCompartment = useRef(new Compartment()).current
@@ -26,7 +26,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
         tables: tables.map((tableName) => ({ label: tableName, type: 'namespace' })),
     }), [schema, tables])
 
-    const createTheme = (isDark) =>
+    const createTheme = useCallback(() =>
         EditorView.theme(
             {
                 '&': {
@@ -66,9 +66,9 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
                 },
             },
             { dark: theme === "dark" }
-        )
+        ), [theme])
 
-    const createHighlight = (isDark) =>
+    const createHighlight = useCallback(() =>
         HighlightStyle.define([
             { tag: t.keyword, color: theme === "dark" ? '#93c5fd' : '#2563eb', fontWeight: 'bold' },
             { tag: t.operator, color: theme === "dark" ? '#ffcb6b' : '#6a1b9a', fontWeight: 'bold' },
@@ -77,7 +77,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
             { tag: t.literal, color: theme === "dark" ? '#ff5370' : '#c62828', fontWeight: 'bold' },
             { tag: t.comment, color: theme === "dark" ? '#999999' : '#757575', fontStyle: 'italic', fontWeight: 'bold' },
             { tag: t.number, fontWeight: 'bold' },
-        ])
+        ]), [theme])
 
     // Init una sola volta
     useEffect(() => {
@@ -98,9 +98,9 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
                 sqlCompartment.of(sqlExtension),
                 updateListener,
                 // prima l'highlight…
-                highlightCompartment.of(createHighlight(theme === 'dark')),
+                highlightCompartment.of(createHighlight()),
                 // …poi il tema, così vince su tutto (anche sul default)
-                themeCompartment.of(createTheme(theme === 'dark')),
+                themeCompartment.of(createTheme()),
             ],
         })
 
@@ -147,11 +147,11 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
 
         viewRef.current.dispatch({
             effects: [
-                highlightCompartment.reconfigure(createHighlight(theme === 'dark')),
-                themeCompartment.reconfigure(createTheme(theme === 'dark')),
+                highlightCompartment.reconfigure(createHighlight()),
+                themeCompartment.reconfigure(createTheme()),
             ],
         })
-    }, [theme])
+    }, [theme, createHighlight, createTheme, highlightCompartment, themeCompartment])
 
     return (
         <div

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { GripVertical, Layers, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -100,7 +100,7 @@ function TableGrouping({ columns = [], grouping = [], onChange }) {
                         <Plus size={12} /> Add group
                     </Button>
                     <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => { updateGroups([]); onChange?.([]) }} disabled={draftGroups.length === 0 && groups.length === 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                        <Button type="button" onClick={() => { updateGroups([]); onChange?.([]) }} disabled={draftGroups.length === 0 && groups.length === 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
                             Clear all groups
                         </Button>
                         <Button type="button" onClick={() => { onChange?.(draftGroups); setOpen(false) }} disabled={!hasUnappliedChanges} className="h-6 border-0 bg-blue-600 p-1 px-2 text-white shadow-none hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">

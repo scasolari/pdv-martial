@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import db from "@/lib/db";
 
-const DELETE_BATCH_SIZE = 5_000;
+const INACTIVE_DATABASE_BATCH_SIZE = 50;
 const MAX_BATCHES_PER_REQUEST = 5;
 
 function hasValidSecret(req) {
@@ -20,25 +20,40 @@ export default async function handler(req, res) {
     }
     if (!hasValidSecret(req)) return res.status(401).json({ error: "Unauthorized." });
 
-    const retentionDays = Number.parseInt(process.env.DATABASE_AUDIT_RETENTION_DAYS || "", 10);
+    const retentionDays = Number.parseInt(process.env.DATABASE_AUDIT_RETENTION_DAYS || "90", 10);
     if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
         return res.status(503).json({ error: "Configure DATABASE_AUDIT_RETENTION_DAYS (1–3650) to enable cleanup." });
     }
 
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
     let deleted = 0;
+    let moreMayRemain = false;
     try {
         for (let batch = 0; batch < MAX_BATCHES_PER_REQUEST; batch += 1) {
-            const batchDeleted = await db.$executeRaw`
-                DELETE FROM DatabaseAuditLog
-                WHERE createdAt < ${cutoff}
-                ORDER BY createdAt ASC
-                LIMIT ${DELETE_BATCH_SIZE}
+            const inactiveDatabases = await db.$queryRaw`
+                SELECT user_id, database_id
+                FROM DatabaseAuditLog
+                GROUP BY user_id, database_id
+                HAVING MAX(createdAt) < ${cutoff}
+                ORDER BY MAX(createdAt) ASC
+                LIMIT ${INACTIVE_DATABASE_BATCH_SIZE}
             `;
-            deleted += batchDeleted;
-            if (batchDeleted < DELETE_BATCH_SIZE) break;
+            moreMayRemain = inactiveDatabases.length === INACTIVE_DATABASE_BATCH_SIZE;
+            if (inactiveDatabases.length === 0) break;
+
+            for (const database of inactiveDatabases) {
+                const result = await db.databaseAuditLog.deleteMany({
+                    where: {
+                        user_id: database.user_id,
+                        database_id: database.database_id,
+                    },
+                });
+                deleted += result.count;
+            }
+
+            if (!moreMayRemain) break;
         }
-        return res.status(200).json({ deleted, cutoff, moreMayRemain: deleted === DELETE_BATCH_SIZE * MAX_BATCHES_PER_REQUEST });
+        return res.status(200).json({ deleted, cutoff, moreMayRemain });
     } catch (error) {
         console.error("Unable to prune old database audit events", error?.code || "AUDIT_CLEANUP_FAILED");
         return res.status(500).json({ error: "Unable to prune audit history." });

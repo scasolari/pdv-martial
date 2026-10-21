@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useSession } from "next-auth/react";
 import useLogout from "@/lib/logout";
 import { setNavigationHidden as setNavigationHiddenAction } from "@/redux/actions/main";
+import Image from "next/image";
 
 const NavigationVisibilityContext = createContext(null);
 
@@ -38,11 +39,27 @@ export function ShowNavigationButton() {
 
     return (
         <div className="flex items-center gap-2">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            onClick={() => setNavigationHidden(false)}
+                            aria-label="Show navigation"
+                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        >
+                            <PanelLeftOpen size={14} />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                        <p>Show navigator</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <Popover>
                 <PopoverTrigger asChild>
                     <Button aria-label="Open account menu" className="h-7 w-7 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
                         {session?.user?.image
-                            ? <img src={session.user.image} alt={session.user.name || "Account"} className="h-7 w-7 rounded-full border border-zinc-200 bg-zinc-100 object-cover dark:border-zinc-700 dark:bg-zinc-900" />
+                            ? <Image src={session.user.image} alt={session.user.name || "Account"} width={28} height={28} unoptimized className="h-7 w-7 rounded-full border border-zinc-200 bg-zinc-100 object-cover dark:border-zinc-700 dark:bg-zinc-900" />
                             : <CircleUserRound size={20} className="text-zinc-700 dark:text-zinc-300" />}
                     </Button>
                 </PopoverTrigger>
@@ -64,22 +81,6 @@ export function ShowNavigationButton() {
                     </ul>
                 </PopoverContent>
             </Popover>
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            onClick={() => setNavigationHidden(false)}
-                            aria-label="Show navigation"
-                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        >
-                            <PanelLeftOpen size={14} />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-                        <p>Show navigator</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
         </div>
     );
 }

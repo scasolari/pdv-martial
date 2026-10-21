@@ -69,14 +69,6 @@
     }
 }
 
-input,
-textarea,
-button,
-select {
-    font-weight: 500 !important;
-    font-size: 16px !important;
-}
-
 /* CodeMirror editor base */
 .cm-editor {
     font-family: monospace;

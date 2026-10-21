@@ -5,6 +5,7 @@ import { finishDatabaseAudit, safeDatabaseErrorCode, startDatabaseAudit } from "
 import { maskSensitiveRows, normalizeDatabasePreferences } from "@/lib/databasePreferences";
 import { databasePerformanceNow, markDatabasePerformance, recordDatabasePerformance, startDatabasePerformance } from "@/lib/databasePerformance";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
+import { parseStoredConnectionConfig } from "@/lib/databaseConnectionConfig";
 
 const MAX_PAGE_SIZE = 100;
 const MAX_EXPORT_PAGE_SIZE = 5_000;
@@ -26,7 +27,7 @@ function parseFilters(rawFilters, availableColumns) {
     return filters.filter((filter) => ["isEmpty", "isNotEmpty"].includes(filter.operator) || filter.value.trim() !== "");
 }
 
-function buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveTextColumns) {
+function buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveTextColumns, dialect) {
     if (!filters.length) return { sql: "", replacements: [] };
     const groups = [[]];
     filters.forEach((filter, index) => {
@@ -40,12 +41,15 @@ function buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveT
         const isCaseInsensitiveTextColumn = caseInsensitiveTextColumns.has(filter.column);
         // Avoid casting character columns on every row. CAST(... AS CHAR) is
         // only needed for non-text values to preserve the filter's string semantics.
-        const caseInsensitiveColumn = isCaseInsensitiveTextColumn
+        const caseInsensitiveColumn = dialect === "postgres"
+            ? (isTextColumn ? column : `CAST(${column} AS TEXT)`)
+            : isCaseInsensitiveTextColumn
             ? column
             : isTextColumn
                 ? `LOWER(${column})`
-                : `LOWER(CAST(${column} AS CHAR))`;
-        const caseInsensitiveValue = isCaseInsensitiveTextColumn ? "?" : "LOWER(?)";
+                : `LOWER(CAST(${column} AS ${dialect === "mssql" ? "NVARCHAR(MAX)" : dialect === "sqlite" ? "TEXT" : "CHAR"}))`;
+        const caseInsensitiveValue = dialect === "postgres" || isCaseInsensitiveTextColumn ? "?" : "LOWER(?)";
+        const likeOperator = dialect === "postgres" ? (isTextColumn ? "ILIKE" : "ILIKE") : "LIKE";
         switch (filter.operator) {
             case "equals":
                 replacements.push(filter.value);
@@ -60,20 +64,20 @@ function buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveT
             case "startsWith": {
                 const value = filter.value.replace(/!/g, "!!").replace(/%/g, "!%").replace(/_/g, "!_");
                 replacements.push(`${value}%`);
-                return `${caseInsensitiveColumn} LIKE ${caseInsensitiveValue} ESCAPE '!'`;
+                return `${caseInsensitiveColumn} ${likeOperator} ${caseInsensitiveValue} ESCAPE '!'`;
             }
             case "endsWith": {
                 const value = filter.value.replace(/!/g, "!!").replace(/%/g, "!%").replace(/_/g, "!_");
                 replacements.push(`%${value}`);
-                return `${caseInsensitiveColumn} LIKE ${caseInsensitiveValue} ESCAPE '!'`;
+                return `${caseInsensitiveColumn} ${likeOperator} ${caseInsensitiveValue} ESCAPE '!'`;
             }
-            case "isEmpty": return `(${column} IS NULL OR TRIM(CAST(${column} AS CHAR)) = '')`;
-            case "isNotEmpty": return `(${column} IS NOT NULL AND TRIM(CAST(${column} AS CHAR)) <> '')`;
+            case "isEmpty": return `(${column} IS NULL OR TRIM(CAST(${column} AS ${dialect === "mssql" ? "NVARCHAR(MAX)" : dialect === "mysql" || dialect === "mariadb" ? "CHAR" : "TEXT"})) = '')`;
+            case "isNotEmpty": return `(${column} IS NOT NULL AND TRIM(CAST(${column} AS ${dialect === "mssql" ? "NVARCHAR(MAX)" : dialect === "mysql" || dialect === "mariadb" ? "CHAR" : "TEXT"})) <> '')`;
             case "contains":
             default: {
                 const value = filter.value.replace(/!/g, "!!").replace(/%/g, "!%").replace(/_/g, "!_");
                 replacements.push(`%${value}%`);
-                return `${caseInsensitiveColumn} LIKE ${caseInsensitiveValue} ESCAPE '!'`;
+                return `${caseInsensitiveColumn} ${likeOperator} ${caseInsensitiveValue} ESCAPE '!'`;
             }
         }
     }).join(" AND ")})`);
@@ -174,21 +178,34 @@ export default async function handler(req, res) {
         phaseStartedAt = databasePerformanceNow();
         releaseConnectionSlot = await acquireExternalConnectionSlot();
         markDatabasePerformance(performanceContext, "connection_slot_wait", phaseStartedAt);
-        const connectionString = decrypt(savedDatabase.db_url_connection);
+        const connectionConfig = parseStoredConnectionConfig(decrypt(savedDatabase.db_url_connection));
+        const { connectionString } = connectionConfig;
         phaseStartedAt = databasePerformanceNow();
-        sequelize = await acquireExternalSequelize(connectionString);
+        sequelize = await acquireExternalSequelize(connectionString, session.id, connectionConfig);
         markDatabasePerformance(performanceContext, "external_connection_acquire", phaseStartedAt);
 
         const queryGenerator = sequelize.getQueryInterface().queryGenerator;
         const quotedTable = queryGenerator.quoteTable(table);
         phaseStartedAt = databasePerformanceNow();
-        const [columnMetadata] = await sequelize.query(
-            `SELECT COLUMN_NAME AS field, COLUMN_KEY AS columnKey, COLLATION_NAME AS collationName FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
-            { replacements: [table] }
-        );
+        const dialect = sequelize.getDialect();
+        const isPostgres = dialect === "postgres";
+        let columnMetadata;
+        if (dialect === "sqlite") {
+            const [pragmaColumns] = await sequelize.query(`PRAGMA table_info(${queryGenerator.quoteIdentifier(table)})`);
+            columnMetadata = pragmaColumns.map((column) => ({ field: column.name, columnKey: column.pk ? "PRI" : "", collationName: null, dataType: column.type || "" }));
+        } else if (dialect === "mssql") {
+            [columnMetadata] = await sequelize.query(`SELECT c.COLUMN_NAME AS field, CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 'PRI' ELSE '' END AS columnKey, c.COLLATION_NAME AS collationName, c.DATA_TYPE AS dataType FROM INFORMATION_SCHEMA.COLUMNS c LEFT JOIN (SELECT ku.TABLE_NAME, ku.COLUMN_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE ku ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME AND tc.TABLE_SCHEMA = ku.TABLE_SCHEMA WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY') pk ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME WHERE c.TABLE_NAME = ? ORDER BY c.ORDINAL_POSITION`, { replacements: [table] });
+        } else {
+            [columnMetadata] = await sequelize.query(isPostgres
+            ? `SELECT c.column_name AS field, CASE WHEN EXISTS (SELECT 1 FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = c.table_schema AND tc.table_name = c.table_name AND kcu.column_name = c.column_name) THEN 'PRI' ELSE '' END AS "columnKey", c.collation_name AS "collationName", c.data_type AS "dataType" FROM information_schema.columns c WHERE c.table_schema = current_schema() AND c.table_name = ? ORDER BY c.ordinal_position`
+            : `SELECT COLUMN_NAME AS field, COLUMN_KEY AS columnKey, COLLATION_NAME AS collationName, DATA_TYPE AS dataType FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
+            { replacements: [table] });
+        }
         markDatabasePerformance(performanceContext, "schema_metadata_query", phaseStartedAt);
         const availableColumns = new Set(columnMetadata.map(({ field }) => field));
-        const textColumns = new Set(columnMetadata.map(({ field, collationName }) => collationName ? field : null).filter(Boolean));
+        const textColumns = new Set(columnMetadata.filter(({ collationName, dataType }) => isPostgres || dialect === "sqlite" || dialect === "mssql"
+            ? /char|text|citext|name/i.test(String(dataType))
+            : Boolean(collationName)).map(({ field }) => field));
         const caseInsensitiveTextColumns = new Set(columnMetadata
             .filter(({ collationName }) => typeof collationName === "string" && /_ci$/i.test(collationName))
             .map(({ field }) => field));
@@ -198,7 +215,7 @@ export default async function handler(req, res) {
             error.statusCode = 400;
             throw error;
         }
-        const filterWhere = buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveTextColumns);
+        const filterWhere = buildFilterWhere(filters, queryGenerator, textColumns, caseInsensitiveTextColumns, dialect);
         const audit = await startDatabaseAudit({
             userId: session.id,
             databaseId: db_id,
@@ -259,9 +276,11 @@ export default async function handler(req, res) {
             : "";
         const conditions = [filterWhere.sql, cursorWhere?.sql.replace(/^\s*WHERE\s*/i, "")].filter(Boolean);
         const whereClause = conditions.length ? ` WHERE ${conditions.map((condition) => `(${condition})`).join(" AND ")}` : "";
-        const paginationClause = cursorWhere
-            ? `${whereClause}${orderedKeys} LIMIT ${pageSize + 1}`
-            : `${whereClause}${orderBy} LIMIT ${pageSize + 1} OFFSET ${offset}`;
+        const paginationClause = dialect === "mssql"
+            ? `${whereClause}${orderedKeys || " ORDER BY (SELECT NULL)"} OFFSET ${cursorWhere ? 0 : offset} ROWS FETCH NEXT ${pageSize + 1} ROWS ONLY`
+            : cursorWhere
+                ? `${whereClause}${orderedKeys} LIMIT ${pageSize + 1}`
+                : `${whereClause}${orderBy} LIMIT ${pageSize + 1} OFFSET ${offset}`;
         phaseStartedAt = databasePerformanceNow();
         const [rows] = await sequelize.query(
             `SELECT /*+ MAX_EXECUTION_TIME(${MAX_TABLE_QUERY_TIME_MS}) */ * FROM ${quotedTable}${paginationClause}`,
@@ -306,7 +325,7 @@ export default async function handler(req, res) {
         performanceStatus = error.statusCode === 400 ? "rejected" : "error";
         performanceErrorCode = safeDatabaseErrorCode(error);
         if (auditId) {
-            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch {}
+            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         console.error("Unable to fetch database table page", error?.original?.code || error?.name || "unknown");
         return res.status(error.statusCode || 400).json({ error: "Unable to load table rows." });
@@ -314,7 +333,7 @@ export default async function handler(req, res) {
         if (sequelize) {
             try {
                 releaseExternalSequelize(sequelize);
-            } catch {}
+            } catch (releaseError) { console.error("Unable to release database connection", releaseError?.code || "RELEASE_FAILED"); }
         }
         await releaseConnectionSlot?.();
         recordDatabasePerformance(performanceContext, {

@@ -1,10 +1,12 @@
 import { getToken } from "next-auth/jwt";
 import db from "@/lib/db";
+import { clearTwoFactorIpAttempts, consumeTwoFactorIpAttempt } from "@/lib/twoFactorIpRateLimit";
 import {
     consumeTotpStep,
     decryptTwoFactorSecret,
     encryptTwoFactorSecret,
     getVerifiedTotpStep,
+    isTwoFactorSecretCurrent,
     isTwoFactorLocked,
     recordTwoFactorFailure,
 } from "@/lib/twoFactor";
@@ -24,6 +26,9 @@ export default async function handler(req, res) {
     }
 
     try {
+        if (await consumeTwoFactorIpAttempt(req)) {
+            return res.status(429).json({ message: "Too many attempts from this IP. Try again in 15 minutes." });
+        }
         const user = await db.user.findUnique({
             where: { id: session.id },
             select: {
@@ -41,14 +46,14 @@ export default async function handler(req, res) {
         if (isTwoFactorLocked(user)) return res.status(429).json({ message: "Too many attempts. Try again later." });
 
         let secret = "";
-        try { secret = decryptTwoFactorSecret(user.twoFASecret); } catch {}
+        try { secret = decryptTwoFactorSecret(user.twoFASecret); } catch { secret = ""; }
         const step = secret ? getVerifiedTotpStep(token, secret) : null;
         if (step === null) {
             await recordTwoFactorFailure(session.id);
             return res.status(401).json({ message: "Invalid code." });
         }
 
-        const upgradedSecret = user.twoFASecret.startsWith("v1:") ? undefined : encryptTwoFactorSecret(secret);
+        const upgradedSecret = isTwoFactorSecretCurrent(user.twoFASecret) ? undefined : encryptTwoFactorSecret(secret);
         const consumed = await consumeTotpStep(session.id, step, upgradedSecret);
         if (!consumed) {
             await recordTwoFactorFailure(session.id);
@@ -56,6 +61,7 @@ export default async function handler(req, res) {
         }
 
         await db.user.update({ where: { id: session.id }, data: { is2FAEnabled: status } });
+        await clearTwoFactorIpAttempts(req);
         const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
         res.setHeader("Set-Cookie", `2fa_session=; Path=/; HttpOnly; SameSite=Strict${secure}; Max-Age=0`);
         return res.status(200).json({ is2FAEnabled: status });

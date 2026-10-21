@@ -10,7 +10,8 @@ import {
 import { connect } from "react-redux";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useLogout from "@/lib/logout";
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import axios from "axios";
 import {
@@ -24,11 +25,12 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { BiExpandVertical } from "react-icons/bi";
-import { FiDatabase } from "react-icons/fi";
+import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { PanelRightOpen, RefreshCcw, Search, Plus, Trash2 } from "lucide-react";
+import { CircleUserRound, PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -50,6 +52,7 @@ import {
 import AddDatabase from "@/components/addDatabase";
 import useClear from "@/lib/clear";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
+import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 
 function LeftBar(props) {
     const {
@@ -75,22 +78,25 @@ function LeftBar(props) {
     const [openDb, setOpenDb] = React.useState(false);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
     const [refreshingSchema, setRefreshingSchema] = useState(false);
+    const schemaRefreshIconRef = useRef(null);
+    const schemaRefreshIconAnimationRef = useRef(null);
     const [datasetToDelete, setDatasetToDelete] = useState(null);
     const [deleteDatasetOpen, setDeleteDatasetOpen] = useState(false);
     const [deletingDataset, setDeletingDataset] = useState(false);
-    const [deleteDatasetError, setDeleteDatasetError] = useState("");
+    const [, setDeleteDatasetError] = useState("");
     const [value, setValue] = React.useState("");
     const frameworks = databases;
     const clearDatabaseState = useClear();
 
-    const fetchDatabases = () => {
+    const fetchDatabases = useCallback(() => {
         axios.get("/api/database").then((response) => {
             setDatabases(response.data);
         });
-    };
+    }, [setDatabases]);
 
     const refreshDatabaseSchema = async () => {
         if (!database?.db_id || refreshingSchema) return;
+        startRefreshIconAnimation(schemaRefreshIconRef.current, schemaRefreshIconAnimationRef);
         setRefreshingSchema(true);
         try {
             const response = await axios.get(
@@ -101,6 +107,7 @@ function LeftBar(props) {
             console.error("Unable to refresh database schema", error);
         } finally {
             setRefreshingSchema(false);
+            stopRefreshIconAnimation(schemaRefreshIconRef.current, schemaRefreshIconAnimationRef);
         }
     };
 
@@ -110,6 +117,7 @@ function LeftBar(props) {
         setDeleteDatasetError("");
         try {
             await axios.delete(`/api/database/${encodeURIComponent(datasetToDelete.id)}`);
+            toast.add({ title: "Dataset deleted", description: "The database was removed.", type: "success" });
             setDatabases(frameworks.filter((dataset) => dataset.id !== datasetToDelete.id));
             setDeleteDatasetOpen(false);
             setDatasetToDelete(null);
@@ -119,7 +127,9 @@ function LeftBar(props) {
                 router.push("/app/playground/play");
             }
         } catch (error) {
-            setDeleteDatasetError(error.response?.data?.error || "Unable to delete dataset.");
+            const message = error.response?.data?.error || "Unable to delete dataset.";
+            setDeleteDatasetError(message);
+            toast.add({ title: "Unable to delete dataset", description: message, type: "error" });
         } finally {
             setDeletingDataset(false);
         }
@@ -128,7 +138,7 @@ function LeftBar(props) {
     useEffect(() => {
         fetchDatabases();
         setProfile(session);
-    }, [session]);
+    }, [fetchDatabases, session, setProfile]);
 
     if (navigationHidden) return null;
 
@@ -139,14 +149,7 @@ function LeftBar(props) {
                     <div className="grid gap-1 grid-cols-[26px_1fr_auto_auto] p-3 px-4">
                         <Popover>
                             <PopoverTrigger>
-                                <img
-                                    className="bg-zinc-100 dark:bg-zinc-900 rounded-full border"
-                                    src={profile?.user?.image}
-                                    height={30}
-                                    width={30}
-                                    alt={profile?.user?.name}
-                                    onClick={() => setOpen(true)}
-                                />
+                                {profile?.user?.image ? <Image className="bg-zinc-100 dark:bg-zinc-900 rounded-full border object-cover" src={profile.user.image} height={30} width={30} alt={profile?.user?.name || "Account"} unoptimized /> : <span className="flex h-[30px] w-[30px] items-center justify-center"><CircleUserRound size={20} /></span>}
                             </PopoverTrigger>
                             <PopoverContent
                                 align="start"
@@ -168,12 +171,7 @@ function LeftBar(props) {
                                             Settings
                                         </button>
                                     </li>
-                                    <li
-                                        className="!text-xs hover:cursor-pointer  dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md font-semibold"
-                                        onClick={logout}
-                                    >
-                                        Logout
-                                    </li>
+                                    <li><button type="button" className="w-full text-left !text-xs dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md font-semibold" onClick={logout}>Logout</button></li>
                                 </ul>
                             </PopoverContent>
                         </Popover>
@@ -221,6 +219,7 @@ function LeftBar(props) {
                                                                 setDatabase({
                                                                     db_id: selectedFramework.id,
                                                                     db_name: selectedFramework.db_name,
+                                                                    dialect: selectedFramework.dialect,
                                                                 });
                                                                 setQuery("");
                                                                 setQueryResults(null);
@@ -232,7 +231,7 @@ function LeftBar(props) {
                                                         }}
                                                     >
                                                         <div className="!text-xs !font-semibold flex items-center gap-2">
-                                                            <FiDatabase size={14} />
+                                                            <DatabaseEngineIcon dialect={framework.dialect} size={14} />
                                                             {framework.db_name}
                                                         </div>
                                                         <FaCheck
@@ -291,7 +290,7 @@ function LeftBar(props) {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <span>
-                                            <RefreshCcw size={16} className={refreshingSchema ? "animate-spin" : ""} />
+                                            <RefreshCcw ref={schemaRefreshIconRef} size={16} />
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
@@ -333,7 +332,6 @@ function LeftBar(props) {
                             This removes “{datasetToDelete?.db_name}” and its saved connection from the workspace. The database and its data will not be deleted.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    {deleteDatasetError && <div role="alert" className="rounded border border-red-300 bg-red-50 p-2 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{deleteDatasetError}</div>}
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletingDataset} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
                         <Button onClick={deleteDataset} disabled={deletingDataset} className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 !text-xs !font-semibold">

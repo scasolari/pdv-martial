@@ -9,9 +9,9 @@ import {
     setTables,
 } from "@/redux/actions/main";
 import { connect } from "react-redux";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useStore } from "react-redux";
-import { LoaderCircle, EllipsisVertical, Table } from "lucide-react";
+import { EllipsisVertical, Table } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,6 +21,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/router";
 import {Skeleton} from "@/components/ui/skeleton";
+
+function quoteSqlTable(name, dialect) {
+    if (dialect === "postgres" || dialect === "sqlite") return `"${String(name).replace(/"/g, '""')}"`;
+    if (dialect === "mssql") return "[" + String(name).replace(/]/g, "]]" ) + "]";
+    return `\`${String(name).replace(/`/g, "``")}\``;
+}
 
 function TablesV2(props) {
     const {
@@ -51,7 +57,7 @@ function TablesV2(props) {
         axios
             .get(`/api/playground/db/table?db_id=${database?.db_id}`)
             .then((response) => {
-                setTables({ ...response.data, _databaseId: database.db_id });
+                setTables({ ...response.data, _databaseId: database.db_id, _dialect: response.data.dialect });
                 setLoading(false);
             })
             .catch(() => setLoading(false));
@@ -59,6 +65,7 @@ function TablesV2(props) {
 
     const fetchQuery = async (tableName) => {
         const table = tables?.data?.find((item) => item.tableName === tableName);
+        const quotedTableName = quoteSqlTable(tableName, tables?._dialect);
         const primaryKeys = table?.details?.columns?.filter((column) => column.key === "PRI") || [];
         const primaryKeyField = primaryKeys.length === 1 ? primaryKeys[0].field : undefined;
         axios
@@ -72,7 +79,7 @@ function TablesV2(props) {
                     type: "table",
                     primaryKeyField,
                     schema: table?.details?.columns || [],
-                    query: `SELECT * FROM \`${tableName}\``,
+                    query: `SELECT * FROM ${quotedTableName}`,
                     data: { data: res.data.data, count: null },
                     count: null,
                     countPending: true,
@@ -177,6 +184,15 @@ function TablesV2(props) {
                 return (
                     <div
                         key={index}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                                event.preventDefault();
+                                router.push(`/app/playground/play/${database?.db_id}`);
+                                fetchQuery(data.tableName);
+                            }
+                        }}
                         onClick={() => {
                             router.push(`/app/playground/play/${database?.db_id}`);
                             fetchQuery(data.tableName);
@@ -184,18 +200,18 @@ function TablesV2(props) {
                         className={cn(
                             "group flex flex-row items-center justify-between px-2.5 py-1 rounded-md text-xs font-semibold transition hover:cursor-pointer",
                             // stile hover base
-                            "hover:ring-1 ring-zinc-200 hover:bg-zinc-100 dark:hover:ring-zinc-800 dark:hover:bg-zinc-900",
+                            "hover:bg-zinc-100 dark:hover:bg-zinc-900",
                             // menu aperto
                             isOpen &&
-                            "ring-1 ring-zinc-200 dark:ring-zinc-800 bg-zinc-100 dark:bg-zinc-900",
+                            "bg-zinc-100 dark:bg-zinc-900",
                             // 🔥 tabella attiva evidenziata
                             isActive &&
-                            "ring-1 !ring-blue-500/60 bg-blue-50 dark:!bg-blue-950/30 text-blue-700 dark:text-blue-200"
+                            "bg-blue-50 dark:!bg-blue-950/30 text-blue-700 dark:text-blue-200"
                         )}
                     >
                         <div className="flex flex-row items-center gap-3">
                             <Table size={12} />
-                            <p>{data.tableName}</p>
+                            <p className="!text-xs !font-semibold">{data.tableName}</p>
                         </div>
                         <div>
                             <DropdownMenu
@@ -222,7 +238,8 @@ function TablesV2(props) {
                                         className="text-xs font-semibold hover:cursor-pointer"
                                         onClick={(event) => {
                                             event.stopPropagation()
-                                            const sql = `SELECT * FROM \`${data.tableName.replace(/`/g, "``")}\``
+                                            const quotedTableName = quoteSqlTable(data.tableName, tables?._dialect);
+                                            const sql = `SELECT * FROM ${quotedTableName}`
                                             if (typeof openSqlTab === "function") openSqlTab(sql)
                                         }}
                                     >
@@ -232,7 +249,13 @@ function TablesV2(props) {
                                         className="text-xs font-semibold hover:cursor-pointer"
                                         onClick={(event) => {
                                             event.stopPropagation()
-                                            const sql = `DESCRIBE \`${data.tableName.replace(/`/g, "``")}\``
+                                            const sql = tables?._dialect === "postgres"
+                                                ? `SELECT * FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = '${data.tableName.replace(/'/g, "''")}' ORDER BY ordinal_position`
+                                                : tables?._dialect === "sqlite"
+                                                    ? `PRAGMA table_info(${quoteSqlTable(data.tableName, "sqlite")})`
+                                                    : tables?._dialect === "mssql"
+                                                        ? `SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${data.tableName.replace(/'/g, "''")}' ORDER BY ORDINAL_POSITION`
+                                                        : `DESCRIBE \`${data.tableName.replace(/`/g, "``")}\``
                                             if (typeof openSqlTab === "function") openSqlTab(sql, true)
                                         }}
                                     >

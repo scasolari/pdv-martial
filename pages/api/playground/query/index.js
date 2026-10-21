@@ -5,6 +5,7 @@ import { classifySqlOperation, extractSqlTableName, finishDatabaseAudit, safeDat
 import { maskSensitiveRows, normalizeDatabasePreferences } from "@/lib/databasePreferences";
 import { databasePerformanceNow, markDatabasePerformance, recordDatabasePerformance, startDatabasePerformance } from "@/lib/databasePerformance";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
+import { parseStoredConnectionConfig } from "@/lib/databaseConnectionConfig";
 
 export default async function handler(req, res) {
     const performanceContext = startDatabasePerformance("/api/playground/query", "sql_query");
@@ -43,9 +44,10 @@ export default async function handler(req, res) {
         phaseStartedAt = databasePerformanceNow();
         releaseConnectionSlot = await acquireExternalConnectionSlot();
         markDatabasePerformance(performanceContext, "connection_slot_wait", phaseStartedAt);
-        const connectionString = decrypt(fetchDatabase.db_url_connection);
+        const connectionConfig = parseStoredConnectionConfig(decrypt(fetchDatabase.db_url_connection));
+        const { connectionString } = connectionConfig;
         phaseStartedAt = databasePerformanceNow();
-        sequelize = await acquireExternalSequelize(connectionString);
+        sequelize = await acquireExternalSequelize(connectionString, session.id, connectionConfig);
         markDatabasePerformance(performanceContext, "external_connection_acquire", phaseStartedAt);
 
         const operation = classifySqlOperation(query);
@@ -86,7 +88,7 @@ export default async function handler(req, res) {
         performanceStatus = error.statusCode === 429 ? "throttled" : "error";
         performanceErrorCode = safeDatabaseErrorCode(error);
         if (auditId) {
-            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch {}
+            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         console.error("Database query failed", safeDatabaseErrorCode(error));
         return res.status(error.statusCode || 400).json({ error: "Database query failed or exceeded its execution limit." });
@@ -94,7 +96,7 @@ export default async function handler(req, res) {
         if (sequelize) {
             try {
                 releaseExternalSequelize(sequelize);
-            } catch {}
+            } catch (releaseError) { console.error("Unable to release database connection", releaseError?.code || "RELEASE_FAILED"); }
         }
         await releaseConnectionSlot?.();
         recordDatabasePerformance(performanceContext, {

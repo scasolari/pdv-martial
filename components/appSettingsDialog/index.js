@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { ChevronDown, Database, Download, EyeOff, Languages, Menu, Moon, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { toast } from "@/components/ui/base-toast";
 
 function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables, queryTabs = [], open = false, onOpenChange = () => {} }) {
     const databaseId = database?.db_id;
@@ -32,18 +33,18 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [loading, setLoading] = useState(false);
     const [twoFAAction, setTwoFAAction] = useState(null);
     const [twoFACode, setTwoFACode] = useState("");
-    const [twoFAError, setTwoFAError] = useState("");
+    const [, setTwoFAError] = useState("");
     const [databasePreferences, setDatabasePreferences] = useState({ pageSize: 50, sensitiveColumns: [] });
     const [loadedSchema, setLoadedSchema] = useState({ databaseId: null, data: [] });
     const [schemaLoading, setSchemaLoading] = useState(false);
     const [schemaError, setSchemaError] = useState("");
     const [sensitiveColumnSearch, setSensitiveColumnSearch] = useState("");
     const [preferencesLoading, setPreferencesLoading] = useState(false);
-    const [preferencesError, setPreferencesError] = useState("");
+    const [, setPreferencesError] = useState("");
     const [accountDeleteOpen, setAccountDeleteOpen] = useState(false);
     const [accountConfirmation, setAccountConfirmation] = useState("");
     const [accountDeleteCode, setAccountDeleteCode] = useState("");
-    const [accountDeleteError, setAccountDeleteError] = useState("");
+    const [, setAccountDeleteError] = useState("");
     const [accountDeleteLoading, setAccountDeleteLoading] = useState(false);
     const preferencesRef = useRef(databasePreferences);
     const sections = [
@@ -97,7 +98,11 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                 setDatabase({ db_id: databaseId, preferences: data });
             })
             .catch((error) => {
-                if (!cancelled) setPreferencesError(error.response?.data?.error || "Unable to load database preferences.");
+                if (!cancelled) {
+                    const message = error.response?.data?.error || "Unable to load database preferences.";
+                    setPreferencesError(message);
+                    toast.add({ title: "Unable to load database preferences", description: message, type: "error" });
+                }
             })
             .finally(() => { if (!cancelled) setPreferencesLoading(false); });
         return () => { cancelled = true; };
@@ -141,6 +146,7 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                 setDatabasePreferences(previousPreferences);
                 setDatabase({ db_id: databaseId, preferences: previousPreferences });
                 setPreferencesError(error.response?.data?.error || "Unable to save database preferences.");
+                toast.add({ title: "Unable to save database preferences", description: error.response?.data?.error || "Unable to save database preferences.", type: "error" });
             });
     };
 
@@ -149,13 +155,16 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
         setTwoFAError("");
         try {
             await axios.post("/api/2fa/status", { status: newStatus, token: twoFACode });
+            toast.add({ title: newStatus ? "Two-factor authentication enabled" : "Two-factor authentication disabled", type: "success" });
             setStatus(newStatus);
             setProfile({ ...profile, user: { ...profile.user, is2FAEnabled: newStatus } });
             setTwoFAAction(null);
             setTwoFACode("");
             await logout();
         } catch (error) {
-            setTwoFAError(error.response?.data?.message || "Unable to update two-factor authentication.");
+            const message = error.response?.data?.message || "Unable to update two-factor authentication.";
+            setTwoFAError(message);
+            toast.add({ title: "Unable to update two-factor authentication", description: message, type: "error" });
         } finally {
             setLoading(false);
         }
@@ -165,7 +174,9 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
         setQrcode({});
         setValue("");
         axios.post("/api/2fa/setup").then((res) => setQrcode(res.data)).catch((error) => {
-            setTwoFAError(error.response?.data?.message || "Unable to start two-factor setup.");
+            const message = error.response?.data?.message || "Unable to start two-factor setup.";
+            setTwoFAError(message);
+            toast.add({ title: "Unable to start setup", description: message, type: "error" });
         });
     };
 
@@ -173,7 +184,11 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
         setLoading(true);
         axios.post("/api/2fa/verify", { token: value })
             .then(() => logout())
-            .catch((error) => setTwoFAError(error.response?.data?.message || "Unable to verify the code."))
+            .catch((error) => {
+                const message = error.response?.data?.message || "Unable to verify the code.";
+                setTwoFAError(message);
+                toast.add({ title: "Code verification failed", description: message, type: "error" });
+            })
             .finally(() => setLoading(false));
     };
 
@@ -187,10 +202,13 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                     code: accountDeleteCode,
                 },
             });
+            toast.add({ title: "Account deleted", description: "Your account was deleted.", type: "success" });
             setAccountDeleteOpen(false);
             await logout();
         } catch (error) {
-            setAccountDeleteError(error.response?.data?.error || "Unable to delete account.");
+            const message = error.response?.data?.error || "Unable to delete account.";
+            setAccountDeleteError(message);
+            toast.add({ title: "Unable to delete account", description: message, type: "error" });
         } finally {
             setAccountDeleteLoading(false);
         }
@@ -199,6 +217,10 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="grid h-[500px] w-[800px] max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] grid-cols-[255px_minmax(0,1fr)] gap-0 overflow-hidden p-0">
+                <DialogTitle className="sr-only">Application settings</DialogTitle>
+                <DialogDescription className="sr-only">
+                    Manage database preferences, account settings, and navigation options.
+                </DialogDescription>
                 <aside className="h-full bg-neutral-100 p-2 dark:bg-neutral-900">
                     <nav aria-label="Settings sections" className="space-y-1">
                         {sections.map(({ id, label, icon: Icon }) => (
@@ -216,7 +238,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                     </nav>
                 </aside>
                 <main className="h-full overflow-y-auto p-6 text-left">
-                    {preferencesError && <p role="alert" className="mb-4 text-xs font-semibold text-red-600 dark:text-red-400">{preferencesError}</p>}
                     {activeSection === "database" ? (
                         <section className="space-y-4 text-left">
                             <div className="space-y-1">
@@ -342,7 +363,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                                             </div>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel className="text-xs font-semibold">Cancel</AlertDialogCancel>
-                                                {twoFAError && <p role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{twoFAError}</p>}
                                                 <Button onClick={verifyCode2fa} disabled={loading || value.length !== 6} className="bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Continue</Button>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
@@ -367,7 +387,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                                                 {[0, 1, 2, 3, 4, 5].map((index) => <InputOTPSlot key={index} index={index} />)}
                                             </InputOTPGroup>
                                         </InputOTP>
-                                        {twoFAError && <p role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{twoFAError}</p>}
                                     </div>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
@@ -382,9 +401,9 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                             <div className="flex items-center justify-between gap-4">
                                 <div className="min-w-0 space-y-1">
                                     <p className="text-xs font-semibold">Download account data</p>
-                                    <p className="text-xs font-semibold text-muted-foreground">Profile and saved database settings. Credentials are excluded.</p>
+                                    <p className="text-xs font-semibold text-muted-foreground">Profile, saved database settings, and retained activity history. Credentials are excluded.</p>
                                 </div>
-                                <Button type="button" onClick={() => window.location.assign("/api/user/export")} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">
+                                <Button type="button" onClick={() => window.open("/api/user/export", "_self")} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">
                                     <Download size={14} />Download
                                 </Button>
                             </div>
@@ -436,7 +455,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                                                         </InputOTPGroup>
                                                     </InputOTP>
                                                 </div>
-                                                {accountDeleteError && <p role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{accountDeleteError}</p>}
                                             </div>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel disabled={accountDeleteLoading} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>

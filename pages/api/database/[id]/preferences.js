@@ -1,18 +1,8 @@
 import db from "@/lib/db";
+import { normalizeDatabasePreferences } from "@/lib/databasePreferences";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
 
-const DEFAULT_PREFERENCES = { pageSize: 50, sensitiveColumns: [] };
 const ALLOWED_PAGE_SIZES = new Set([10, 25, 50, 100]);
-
-function normalizePreferences(value) {
-    const preferences = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-    return {
-        pageSize: ALLOWED_PAGE_SIZES.has(Number(preferences.pageSize)) ? Number(preferences.pageSize) : DEFAULT_PREFERENCES.pageSize,
-        sensitiveColumns: Array.isArray(preferences.sensitiveColumns)
-            ? [...new Set(preferences.sensitiveColumns.filter((column) => typeof column === "string" && column.length > 0 && column.length <= 255))].slice(0, 500)
-            : [],
-    };
-}
 
 export default async function handler(req, res) {
     const session = await requireTwoFactorApi(req, res);
@@ -30,7 +20,7 @@ export default async function handler(req, res) {
                 select: { preferences: true },
             });
             if (!dataset) return res.status(404).json({ error: "Dataset not found." });
-            return res.status(200).json(normalizePreferences(dataset.preferences));
+            return res.status(200).json(normalizeDatabasePreferences(dataset.preferences));
         } catch (error) {
             console.error("Unable to load database preferences", error?.code || error?.name || "unknown");
             return res.status(500).json({ error: "Unable to load database preferences." });
@@ -50,10 +40,10 @@ export default async function handler(req, res) {
         try {
             const updated = await db.database.updateMany({
                 where: { id, user_id: session.id },
-                data: { preferences: normalizePreferences(preferences) },
+                data: { preferences: normalizeDatabasePreferences(preferences) },
             });
             if (!updated.count) return res.status(404).json({ error: "Dataset not found." });
-            return res.status(200).json(normalizePreferences(preferences));
+            return res.status(200).json(normalizeDatabasePreferences(preferences));
         } catch (error) {
             console.error("Unable to save database preferences", error?.code || error?.name || "unknown");
             return res.status(500).json({ error: "Unable to save database preferences." });

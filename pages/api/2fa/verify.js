@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import db from "@/lib/db";
+import { clearTwoFactorIpAttempts, consumeTwoFactorIpAttempt } from "@/lib/twoFactorIpRateLimit";
 import {
     decryptTwoFactorSecret,
     encryptTwoFactorSecret,
@@ -24,6 +25,9 @@ export default async function handler(req, res) {
     }
 
     try {
+        if (await consumeTwoFactorIpAttempt(req)) {
+            return res.status(429).json({ message: "Too many attempts from this IP. Try again in 15 minutes." });
+        }
         const user = await db.user.findUnique({
             where: { id: session.id },
             select: {
@@ -40,7 +44,7 @@ export default async function handler(req, res) {
         if (isTwoFactorLocked(user)) return res.status(429).json({ message: "Too many attempts. Try again later." });
 
         let secret = "";
-        try { secret = decryptTwoFactorSecret(user.twoFAPendingSecret); } catch {}
+        try { secret = decryptTwoFactorSecret(user.twoFAPendingSecret); } catch { secret = ""; }
         const step = secret ? getVerifiedTotpStep(token, secret) : null;
         if (step === null) {
             await recordTwoFactorFailure(session.id);
@@ -55,7 +59,7 @@ export default async function handler(req, res) {
                 twoFAPendingExpiresAt: { gt: new Date() },
             },
             data: {
-                twoFASecret: user.twoFAPendingSecret,
+                twoFASecret: encryptTwoFactorSecret(secret),
                 twoFAPendingSecret: null,
                 twoFAPendingExpiresAt: null,
                 is2FAActive: true,
@@ -67,6 +71,7 @@ export default async function handler(req, res) {
         });
         if (result.count !== 1) return res.status(409).json({ message: "2FA setup expired. Start setup again." });
 
+        await clearTwoFactorIpAttempts(req);
         return res.status(200).json({ verified: true });
     } catch (error) {
         console.error("Unable to verify 2FA setup", error?.code || error?.name || "unknown");

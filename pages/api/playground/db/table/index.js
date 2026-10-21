@@ -4,6 +4,7 @@ import { acquireExternalConnectionSlot, acquireExternalSequelize, releaseExterna
 import { finishDatabaseAudit, safeDatabaseErrorCode, startDatabaseAudit } from "@/lib/databaseAudit";
 import { databasePerformanceNow, markDatabasePerformance, recordDatabasePerformance, startDatabasePerformance } from "@/lib/databasePerformance";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
+import { parseStoredConnectionConfig } from "@/lib/databaseConnectionConfig";
 
 export default async function handler(req, res) {
     const performanceContext = startDatabasePerformance("/api/playground/db/table", "schema_load");
@@ -39,9 +40,10 @@ export default async function handler(req, res) {
         phaseStartedAt = databasePerformanceNow();
         releaseConnectionSlot = await acquireExternalConnectionSlot();
         markDatabasePerformance(performanceContext, "connection_slot_wait", phaseStartedAt);
-        const connectionString = decrypt(fetchDatabase.db_url_connection);
+        const connectionConfig = parseStoredConnectionConfig(decrypt(fetchDatabase.db_url_connection));
+        const { connectionString } = connectionConfig;
         phaseStartedAt = databasePerformanceNow();
-        sequelize = await acquireExternalSequelize(connectionString);
+        sequelize = await acquireExternalSequelize(connectionString, session.id, connectionConfig);
         markDatabasePerformance(performanceContext, "external_connection_acquire", phaseStartedAt);
 
         const audit = await startDatabaseAudit({
@@ -53,24 +55,60 @@ export default async function handler(req, res) {
         });
         auditId = audit.id;
 
-        // Ottieni l'elenco delle tabelle
         phaseStartedAt = databasePerformanceNow();
-        const fetch_query = await sequelize.query("SHOW tables;");
-        const tables = fetch_query[0];
-
-        // Fetch all table and column metadata in two round trips instead of one
-        // DESCRIBE and one exact COUNT(*) query for every table.
-        let tableInfoByName = new Map();
+        const dialect = sequelize.getDialect();
+        const isPostgres = dialect === "postgres";
+        let tables;
+        let tableInfoByName;
         let columnsByTableName = new Map();
-        const [tableInfoRows] = await sequelize.query(`
+        let columnRows;
+        if (isPostgres) {
+            const [tableRows] = await sequelize.query(`SELECT table_name AS "tableName" FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE' ORDER BY table_name`);
+            tables = tableRows.map((row) => ({ tableName: row.tableName }));
+            const [tableInfoRows] = await sequelize.query(`SELECT c.relname AS "tableName", c.reltuples::bigint AS "estimatedRows", pg_total_relation_size(c.oid) AS "totalBytes", obj_description(c.oid) AS "tableComment" FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = current_schema() AND c.relkind IN ('r', 'p')`);
+            tableInfoByName = new Map(tableInfoRows.map((info) => [info.tableName, info]));
+            [columnRows] = await sequelize.query(`
+                SELECT c.table_name AS "tableName", c.column_name AS field,
+                       COALESCE(c.udt_name, c.data_type) AS type, c.is_nullable AS nullable,
+                       CASE WHEN EXISTS (
+                           SELECT 1 FROM information_schema.table_constraints tc
+                           JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+                           WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = c.table_schema AND tc.table_name = c.table_name AND kcu.column_name = c.column_name
+                       ) THEN 'PRI' ELSE '' END AS "columnKey",
+                       c.column_default AS "columnDefault", c.is_identity AS "isIdentity"
+                FROM information_schema.columns c WHERE c.table_schema = current_schema() ORDER BY c.table_name, c.ordinal_position
+            `);
+            columnRows = columnRows.map((column) => ({ ...column, extra: column.isIdentity === 'YES' ? 'identity' : '' }));
+        } else if (dialect === "sqlite") {
+            const [tableRows] = await sequelize.query("SELECT name AS tableName FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+            tables = tableRows;
+            tableInfoByName = new Map(tableRows.map((row) => [row.tableName, { estimatedRows: null }]));
+            columnRows = [];
+            for (const { tableName } of tableRows) {
+                const safeName = String(tableName).replace(/'/g, "''");
+                const [columns] = await sequelize.query(`PRAGMA table_info('${safeName}')`);
+                columnRows.push(...columns.map((column) => ({
+                    tableName, field: column.name, type: column.type, nullable: column.notnull ? "NO" : "YES",
+                    columnKey: column.pk ? "PRI" : "", columnDefault: column.dflt_value, extra: "",
+                })));
+            }
+        } else if (dialect === "mssql") {
+            const [tableRows] = await sequelize.query("SELECT TABLE_NAME AS tableName FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME");
+            tables = tableRows;
+            const [columnMetadata] = await sequelize.query(`SELECT c.TABLE_NAME AS tableName, c.COLUMN_NAME AS field, c.DATA_TYPE AS type, c.IS_NULLABLE AS nullable, CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 'PRI' ELSE '' END AS columnKey, c.COLUMN_DEFAULT AS columnDefault, CASE WHEN c.IS_IDENTITY = 'YES' THEN 'identity' ELSE '' END AS extra FROM INFORMATION_SCHEMA.COLUMNS c LEFT JOIN (SELECT ku.TABLE_NAME, ku.COLUMN_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE ku ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME AND tc.TABLE_SCHEMA = ku.TABLE_SCHEMA WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY') pk ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION`);
+            columnRows = columnMetadata;
+            tableInfoByName = new Map(tableRows.map((row) => [row.tableName, {}]));
+        } else {
+            const [tableRows] = await sequelize.query("SHOW tables;");
+            tables = tableRows;
+            const [tableInfoRows] = await sequelize.query(`
             SELECT TABLE_NAME, ENGINE, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH,
                    TABLE_COLLATION, CREATE_TIME, UPDATE_TIME, TABLE_COMMENT
             FROM information_schema.TABLES
             WHERE TABLE_SCHEMA = DATABASE();
         `);
-        tableInfoByName = new Map(tableInfoRows.map((info) => [info.TABLE_NAME, info]));
-
-        const [columnRows] = await sequelize.query(`
+            tableInfoByName = new Map(tableInfoRows.map((info) => [info.TABLE_NAME, info]));
+            [columnRows] = await sequelize.query(`
             SELECT TABLE_NAME, COLUMN_NAME AS field, COLUMN_TYPE AS type,
                    IS_NULLABLE AS nullable, COLUMN_KEY AS columnKey,
                    COLUMN_DEFAULT AS columnDefault, EXTRA AS extra
@@ -78,15 +116,17 @@ export default async function handler(req, res) {
             WHERE TABLE_SCHEMA = DATABASE()
             ORDER BY TABLE_NAME, ORDINAL_POSITION;
         `);
+        }
         markDatabasePerformance(performanceContext, "external_schema_queries", phaseStartedAt);
         for (const column of columnRows) {
-            const tableColumns = columnsByTableName.get(column.TABLE_NAME) || [];
+            const tableName = column.TABLE_NAME || column.tableName;
+            const tableColumns = columnsByTableName.get(tableName) || [];
             tableColumns.push(column);
-            columnsByTableName.set(column.TABLE_NAME, tableColumns);
+            columnsByTableName.set(tableName, tableColumns);
         }
 
         const tablesWithDetails = tables.map((tableObj) => {
-            const tableKey = Object.keys(tableObj).find(
+            const tableKey = tableObj.tableName ? "tableName" : Object.keys(tableObj).find(
                 (key) => key.startsWith("Tables_in_") || key.toLowerCase().includes("table")
             );
             const tableName = tableObj[tableKey] || Object.values(tableObj)[0];
@@ -107,7 +147,7 @@ export default async function handler(req, res) {
                             default: col.columnDefault,
                             extra: col.extra,
                         })),
-                        rowCount: tableInfo.TABLE_ROWS == null ? null : Number(tableInfo.TABLE_ROWS),
+                        rowCount: (tableInfo.TABLE_ROWS ?? tableInfo.estimatedRows) == null ? null : Number(tableInfo.TABLE_ROWS ?? tableInfo.estimatedRows),
                         tableInfo,
                         statistics: {
                             totalColumns: columns.length,
@@ -137,6 +177,7 @@ export default async function handler(req, res) {
         performanceStatus = "success";
         return res.status(200).json({
             data: tablesWithDetails,
+            dialect: sequelize.getDialect(),
             summary: {
                 totalTables: tablesWithDetails.length,
                 tablesWithErrors: tablesWithDetails.filter((t) => t.error).length,
@@ -146,7 +187,7 @@ export default async function handler(req, res) {
     } catch (error) {
         performanceErrorCode = safeDatabaseErrorCode(error);
         if (auditId) {
-            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch {}
+            try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         return res.status(error.statusCode || 400).json({
             message: "Database connection failed",
@@ -156,7 +197,7 @@ export default async function handler(req, res) {
         if (sequelize) {
             try {
                 releaseExternalSequelize(sequelize);
-            } catch {}
+            } catch (releaseError) { console.error("Unable to release database connection", releaseError?.code || "RELEASE_FAILED"); }
         }
         await releaseConnectionSlot?.();
         recordDatabasePerformance(performanceContext, {

@@ -111,7 +111,7 @@ L'endpoint `GET /api/database/[id]/audit` legge i log dal database interno con P
 
 La tabella `DatabaseAuditLog` registra azione, query, nome tabella, righe coinvolte, stato, codice errore e timestamp. La pagina restituisce un'anteprima query massima di 4.000 caratteri per evento, per limitare il payload, senza modificare il log memorizzato. Gli indici su utente + dataset + data e sulla data supportano rispettivamente la lettura cronologica per dataset e la pulizia per retention.
 
-La retention resta disattivata finché non viene configurata. Per abilitarla, impostare `DATABASE_AUDIT_RETENTION_DAYS` (1–3650) e `DATABASE_AUDIT_CLEANUP_SECRET`, quindi pianificare una chiamata `POST /api/internal/maintenance/prune-audit` con `Authorization: Bearer <secret>`. Ogni chiamata elimina al massimo 25.000 eventi scaduti; ripeterla finché `moreMayRemain` è false. Politica e calendario sono così decisi dalla configurazione dell'ambiente.
+La history mantiene al massimo i 100 eventi più recenti per database. Se un database non registra attività per 90 giorni (configurabili con `DATABASE_AUDIT_RETENTION_DAYS`, da 1 a 3650), tutti i suoi eventi vengono eliminati al successivo accesso al database o alla sua history. Per eliminare anche le history dei database inattivi che non vengono più aperti, impostare `DATABASE_AUDIT_CLEANUP_SECRET` e pianificare una chiamata giornaliera `POST /api/internal/maintenance/prune-audit` con `Authorization: Bearer <secret>`. Ogni chiamata esamina al massimo 250 database inattivi e restituisce `moreMayRemain` per indicare se ripetere la pulizia. Senza il task pianificato, la pulizia differita avviene al successivo accesso.
 
 ## Riferimenti nel codice
 

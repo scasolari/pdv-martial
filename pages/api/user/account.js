@@ -1,8 +1,11 @@
 import db from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import { invalidateExternalSequelize } from "@/lib/externalDatabase";
+import { parseStoredConnectionConfig } from "@/lib/databaseConnectionConfig";
+import { clearTwoFactorIpAttempts, consumeTwoFactorIpAttempt } from "@/lib/twoFactorIpRateLimit";
 import { decryptTwoFactorSecret, getVerifiedTotpStep, isTwoFactorLocked, recordTwoFactorFailure, consumeTotpStep } from "@/lib/twoFactor";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
+import { removeSqliteUserDirectory } from "@/lib/sqliteStorage";
 
 export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
@@ -18,6 +21,9 @@ export default async function handler(req, res) {
     const code = typeof req.body?.code === "string" ? req.body.code : "";
 
     try {
+        if (await consumeTwoFactorIpAttempt(req)) {
+            return res.status(429).json({ error: "Too many attempts from this IP. Try again in 15 minutes." });
+        }
         const user = await db.user.findUnique({
             where: { id: session.id },
             select: {
@@ -48,7 +54,7 @@ export default async function handler(req, res) {
             return res.status(429).json({ error: "Too many attempts. Try again later." });
         }
         let secret = "";
-        try { secret = decryptTwoFactorSecret(user.twoFASecret); } catch {}
+        try { secret = decryptTwoFactorSecret(user.twoFASecret); } catch { secret = ""; }
         const step = secret ? getVerifiedTotpStep(code, secret) : null;
         if (step === null) {
             await recordTwoFactorFailure(session.id);
@@ -59,15 +65,21 @@ export default async function handler(req, res) {
             await recordTwoFactorFailure(session.id);
             return res.status(401).json({ error: "This authenticator code has already been used." });
         }
+        await clearTwoFactorIpAttempts(req);
 
         for (const savedDatabase of user.Database) {
             try {
-                invalidateExternalSequelize(decrypt(savedDatabase.db_url_connection));
+                invalidateExternalSequelize(parseStoredConnectionConfig(decrypt(savedDatabase.db_url_connection)).connectionString);
             } catch {
                 // Account deletion must still remove saved data if a legacy
                 // connection string cannot be decrypted for pool cleanup.
             }
         }
+
+        // Do not report account deletion as complete if uploaded SQLite files
+        // could not be removed. A retry remains possible because the account
+        // records have not been deleted yet.
+        await removeSqliteUserDirectory(user.id);
 
         await db.$transaction(async (tx) => {
             if (user.email) {

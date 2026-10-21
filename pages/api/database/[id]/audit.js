@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
 import { databasePerformanceNow, markDatabasePerformance, recordDatabasePerformance, startDatabasePerformance } from "@/lib/databasePerformance";
+import { clearInactiveDatabaseAuditHistory, decryptAuditQuery } from "@/lib/databaseAudit";
 
 const FILTER_FIELDS = {
     Database: "database_name",
@@ -12,6 +13,19 @@ const FILTER_FIELDS = {
 };
 const FILTER_OPERATORS = new Set(["contains", "equals", "notEquals", "startsWith", "endsWith", "isEmpty", "isNotEmpty"]);
 const QUERY_PREVIEW_LENGTH = 4_000;
+const FILTER_SCAN_BATCH_SIZE = 500;
+const AUDIT_EVENT_SELECT = {
+    id: true,
+    database_name: true,
+    action: true,
+    query: true,
+    table_name: true,
+    affected_rows: true,
+    status: true,
+    error_code: true,
+    createdAt: true,
+    updatedAt: true,
+};
 
 function parseFilters(rawFilters) {
     if (rawFilters === undefined) return [];
@@ -40,6 +54,32 @@ function filterCondition(filter) {
         case "contains":
         default: return { [field]: { contains: value } };
     }
+}
+
+function matchesFilter(event, filter) {
+    const value = event[FILTER_FIELDS[filter.column]];
+    const expected = filter.value;
+    const actualText = value == null ? "" : String(value).toLocaleLowerCase();
+    const expectedText = String(expected ?? "").toLocaleLowerCase();
+    switch (filter.operator) {
+        case "equals": return actualText === expectedText;
+        case "notEquals": return value == null || actualText !== expectedText;
+        case "startsWith": return actualText.startsWith(expectedText);
+        case "endsWith": return actualText.endsWith(expectedText);
+        case "isEmpty": return value == null || value === "";
+        case "isNotEmpty": return value != null && value !== "";
+        case "contains":
+        default: return actualText.includes(expectedText);
+    }
+}
+
+function matchesFilters(event, filters) {
+    const groups = [[]];
+    filters.forEach((filter, index) => {
+        if (index > 0 && filter.conjunction === "or") groups.push([]);
+        groups[groups.length - 1].push(filter);
+    });
+    return groups.some((group) => group.every((filter) => matchesFilter(event, filter)));
 }
 
 export default async function handler(req, res) {
@@ -73,13 +113,16 @@ export default async function handler(req, res) {
     }
 
     try {
-        const where = {
+        await clearInactiveDatabaseAuditHistory({ userId: session.id, databaseId: id });
+        const baseWhere = {
             user_id: session.id,
             database_id: id,
             ...(category === "system" ? { action: { startsWith: "SYSTEM_" } } : {}),
             ...(category === "user" ? { NOT: { action: { startsWith: "SYSTEM_" } } } : {}),
         };
-        if (filters.length) {
+        const hasQueryFilter = filters.some((filter) => filter.column === "Query");
+        const where = { ...baseWhere };
+        if (filters.length && !hasQueryFilter) {
             const groups = [[]];
             filters.forEach((filter, index) => {
                 if (index > 0 && filter.conjunction === "or") groups.push([]);
@@ -89,7 +132,24 @@ export default async function handler(req, res) {
         }
         if (countOnly) {
             const queryStartedAt = databasePerformanceNow();
-            const count = await db.databaseAuditLog.count({ where });
+            let count;
+            if (hasQueryFilter) {
+                count = 0;
+                for (let scanOffset = 0; ; scanOffset += FILTER_SCAN_BATCH_SIZE) {
+                    const batch = await db.databaseAuditLog.findMany({
+                        where: baseWhere,
+                        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                        skip: scanOffset,
+                        take: FILTER_SCAN_BATCH_SIZE,
+                        select: AUDIT_EVENT_SELECT,
+                    });
+                    count += batch.map((event) => ({ ...event, query: decryptAuditQuery(event.query) }))
+                        .filter((event) => matchesFilters(event, filters)).length;
+                    if (batch.length < FILTER_SCAN_BATCH_SIZE) break;
+                }
+            } else {
+                count = await db.databaseAuditLog.count({ where });
+            }
             markDatabasePerformance(performanceContext, "internal_count_query", queryStartedAt);
             performanceRows = count;
             performanceStatus = "success";
@@ -98,24 +158,33 @@ export default async function handler(req, res) {
 
         // Return the visible page immediately; exact totals are fetched separately by the client.
         const queryStartedAt = databasePerformanceNow();
-        const events = await db.databaseAuditLog.findMany({
+        let events;
+        if (hasQueryFilter) {
+            const matchingEvents = [];
+            const needed = offset + limit + 1;
+            for (let scanOffset = 0; matchingEvents.length < needed; scanOffset += FILTER_SCAN_BATCH_SIZE) {
+                const batch = await db.databaseAuditLog.findMany({
+                    where: baseWhere,
+                    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                    skip: scanOffset,
+                    take: FILTER_SCAN_BATCH_SIZE,
+                    select: AUDIT_EVENT_SELECT,
+                });
+                matchingEvents.push(...batch.map((event) => ({ ...event, query: decryptAuditQuery(event.query) }))
+                    .filter((event) => matchesFilters(event, filters)));
+                if (batch.length < FILTER_SCAN_BATCH_SIZE) break;
+            }
+            events = matchingEvents.slice(offset, needed);
+        } else {
+            events = await db.databaseAuditLog.findMany({
                 where,
-                orderBy: { createdAt: "desc" },
+                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
                 skip: offset,
                 take: limit + 1,
-                select: {
-                    id: true,
-                    database_name: true,
-                    action: true,
-                    query: true,
-                    table_name: true,
-                    affected_rows: true,
-                    status: true,
-                    error_code: true,
-                    createdAt: true,
-                    updatedAt: true,
-            },
-        });
+                select: AUDIT_EVENT_SELECT,
+            });
+            events = events.map((event) => ({ ...event, query: decryptAuditQuery(event.query) }));
+        }
         markDatabasePerformance(performanceContext, "internal_page_query", queryStartedAt);
         const hasMore = events.length > limit;
         if (hasMore) events.pop();

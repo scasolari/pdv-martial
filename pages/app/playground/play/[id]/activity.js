@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { connect } from "react-redux";
 import axios from "axios";
@@ -13,6 +13,7 @@ import { setQueryTabs } from "@/redux/actions/main";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ShowNavigationButton, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
+import { toast } from "@/components/ui/base-toast";
 
 const ACTIVITY_FILTER_COLUMNS = Object.freeze(["Database", "Action", "Query", "Table", "Status", "Error code"]);
 const ACTIVITY_GROUP_COLUMNS = Object.freeze(["Date and time", "Database", "Action", "Query", "Table", "Rows", "Status", "Error code", "Finished at", "Duration"]);
@@ -32,12 +33,12 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
     const [hasMore, setHasMore] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const hasLoadedRef = useRef(false);
 
     useEffect(() => {
         if (!router.isReady || typeof databaseId !== "string") return;
         let cancelled = false;
-        setLoading(!hasLoadedRef.current);
+        // Hide the previous page while the active filters/page are being fetched.
+        setLoading(true);
         setError("");
         axios.get(`/api/database/${encodeURIComponent(databaseId)}/audit`, {
             params: {
@@ -64,11 +65,14 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
                             ? "—"
                             : `${Math.max(0, new Date(event.updatedAt).getTime() - new Date(event.createdAt).getTime())} ms`,
                     })));
-                    hasLoadedRef.current = true;
                 }
             })
             .catch((requestError) => {
-                if (!cancelled) setError(requestError.response?.data?.error || "Unable to load activity history.");
+                if (!cancelled) {
+                    const message = requestError.response?.data?.error || "Unable to load activity history.";
+                    setError(message);
+                    toast.add({ title: "Unable to load activity history", description: message, type: "error" });
+                }
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
@@ -147,8 +151,8 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
                         <History size={13} /> Activity history
                     </div>
                 </div>
-                <section className="px-0">
-                    <div className="mt-3 mb-3 flex items-center justify-between px-4">
+                <section className="flex h-[calc(100vh-53px)] min-h-0 flex-col overflow-hidden px-0">
+                    <div className="sticky top-0 z-30 mt-3 mb-3 flex shrink-0 items-center justify-between bg-white px-4 dark:bg-zinc-950">
                         <div className="flex items-center gap-2">
                             <Tabs value={activityFilter} onValueChange={(value) => {
                                 setPageIndex(0);
@@ -244,11 +248,11 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
                     {loading ? (
                         <p className="px-4 text-xs font-semibold text-zinc-500">Loading activity...</p>
                     ) : error ? (
-                        <p role="alert" className="px-4 text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>
+                        null
                     ) : filteredEvents.length === 0 ? (
                         <p className="px-4 text-xs font-semibold text-zinc-500">No activity recorded yet.</p>
                     ) : (
-                        <div className="border-t border-zinc-200 dark:border-zinc-800">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-zinc-200 dark:border-zinc-800">
                             <QueryResultsTable
                                 response={filteredEvents}
                                 databaseId={databaseId}
