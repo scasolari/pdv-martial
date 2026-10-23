@@ -821,7 +821,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
         </AlertDialog>
         <Sheet open={openSheet} onOpenChange={onOpenChange}>
             <SheetContent className="flex w-full min-w-0 max-w-none flex-col gap-0 overflow-hidden border-l border-zinc-200 bg-white p-0 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 sm:w-[520px] sm:max-w-[520px]">
-                <SheetHeader className="space-y-1 border-b border-zinc-200 px-5 pb-4 pt-5 text-left dark:border-zinc-800">
+                <SheetHeader className="space-y-1 px-5 pb-4 pt-5 text-left">
                     <div className="flex items-center gap-2 pr-7">
                         <SheetTitle className="!text-base !font-semibold">Pending changes</SheetTitle>
                         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
