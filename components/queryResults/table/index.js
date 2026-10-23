@@ -862,13 +862,13 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                         {changes.length} {changes.length === 1 ? "field" : "fields"}
                                     </span>
                                 </div>
-                                <div className="space-y-2 p-2">
+                                <div className="space-y-2">
                                     {changes.map(([column, diff]) => {
                                         const isSensitive = activeSensitiveColumns.some((field) => String(field).toLowerCase() === column.toLowerCase())
                                         const before = isSensitive ? "••••••••" : formatCommitValue(diff.before)
                                         const after = isSensitive ? "••••••••" : formatCommitValue(diff.after)
                                         return (
-                                            <div key={column} className="overflow-hidden rounded border border-zinc-200 dark:border-zinc-800">
+                                            <div key={column} className="overflow-hidden">
                                                 <div className="border-b border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">{column}</div>
                                                 <div className="grid grid-cols-[26px_minmax(0,1fr)] border-b border-red-200 bg-red-50 text-red-800 dark:border-red-950 dark:bg-red-950/40 dark:text-red-200">
                                                     <span className="border-r border-red-200 py-1.5 text-center font-mono text-xs font-semibold dark:border-red-950">−</span>
