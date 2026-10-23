@@ -907,9 +907,8 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                         <div className="flex shrink-0 items-center gap-2">
                             <Button onClick={() => onOpenChange(false)} disabled={saving} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</Button>
                             {payload.meta.modifiedRows > 0 && canSave && (
-                                <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex h-7 items-center gap-1.5 border-0 bg-blue-600 px-3 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">
+                                <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex h-7 items-center border-0 bg-blue-600 px-3 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">
                                     {saving ? "Committing…" : "Commit changes"}
-                                    {!saving && <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[10px]">{payload.meta.modifiedRows}</span>}
                                 </Button>
                             )}
                         </div>
