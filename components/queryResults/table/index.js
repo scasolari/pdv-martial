@@ -899,7 +899,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                         </section>
                     ))}
                 </div>
-                <div className="border-t border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="bg-white px-5 py-4 dark:bg-zinc-950">
                     <div className="flex items-center justify-between gap-3">
                         <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
                             {hasChanges ? "Review these values before applying them." : "Nothing to commit."}
