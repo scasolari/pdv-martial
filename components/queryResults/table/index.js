@@ -828,15 +828,6 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                             {payload.meta.modifiedRows} {payload.meta.modifiedRows === 1 ? "row" : "rows"}
                         </span>
                     </div>
-                    <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                        {database?.db_name} <span className="px-1 text-zinc-300 dark:text-zinc-600">/</span> {tableName}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                        <span className="size-1.5 shrink-0 rounded-full bg-blue-500" />
-                        {payload.meta.modifiedRows > 0
-                            ? "Review the diff before committing " + payload.meta.modifiedRows + (payload.meta.modifiedRows === 1 ? " row." : " rows.")
-                            : "No pending changes"}
-                    </div>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
                     {canSave && !primaryKeyField && (
