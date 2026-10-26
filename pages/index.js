@@ -66,7 +66,7 @@ export default function Home() {
                     </div>
                     <p className="-mt-4 text-xs text-zinc-500 dark:text-zinc-400">Version 0.0.1</p>
                     <a
-                        href="https://github.com/scasolari/pdv-martial/tree/public-release"
+                        href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
