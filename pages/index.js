@@ -5,11 +5,11 @@ import { Check } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const appFeatures = [
-    "Connect to MySQL, MariaDB, PostgreSQL, SQL Server, and SQLite.",
-    "Browse, filter, group, sort, edit, insert, and export table data.",
-    "Run SQL queries and inspect their results.",
-    "Review database changes and activity history.",
-    "Protect accounts with two-factor authentication and sensitive-column masking.",
+    "Opens as a native Electron app in its own macOS window.",
+    "Runs its application services locally on this Mac.",
+    "Stores the workspace database and SQLite uploads in local app storage.",
+    "Protects the encryption key with macOS secure storage.",
+    "Connects directly from this Mac to MySQL, MariaDB, PostgreSQL, SQL Server, and SQLite.",
 ];
 
 function ThemeSelector() {
@@ -47,7 +47,7 @@ export default function Home() {
                 </a>
                 <section aria-labelledby="features-title" className="w-80 max-w-[calc(100vw-2rem)]">
                     <h1 id="features-title" className="mb-3 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        Features
+                        macOS desktop
                     </h1>
                     <ul className="space-y-2.5">
                         {appFeatures.map((feature) => (
