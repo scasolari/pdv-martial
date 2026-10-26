@@ -69,6 +69,67 @@
     }
 }
 
+html[data-electron-platform="darwin"] .electron-titlebar-safe-left {
+    padding-left: 64px !important;
+}
+
+html[data-electron-platform="darwin"] .electron-titlebar-safe-left-controls {
+    padding-left: 80px !important;
+}
+
+html[data-electron-platform="darwin"] .electron-titlebar-drag-region {
+    -webkit-app-region: drag;
+}
+
+:root {
+    --electron-sidebar-width: 240px;
+    --electron-sidebar-min-width: 220px;
+    --electron-sidebar-max-width: 340px;
+}
+
+html[data-electron-platform="darwin"] {
+    --electron-sidebar-width: 340px;
+    --electron-sidebar-min-width: 240px;
+}
+
+.electron-sidebar {
+    width: var(--electron-sidebar-width) !important;
+}
+
+.electron-main-with-sidebar:not(.ml-0) {
+    margin-left: var(--electron-sidebar-width) !important;
+}
+
+.electron-sidebar-resizing .electron-main-with-sidebar {
+    transition: none !important;
+}
+
+.electron-sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    z-index: 50;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.electron-sidebar-resize-handle::after {
+    position: absolute;
+    top: 0;
+    right: 3px;
+    width: 2px;
+    height: 100%;
+    content: "";
+    transition: background-color 120ms ease;
+}
+
+.electron-sidebar-resize-handle:hover::after,
+.electron-sidebar-resize-handle:focus-visible::after {
+    background-color: rgb(59 130 246 / 0.95);
+}
+
 /* CodeMirror editor base */
 .cm-editor {
     font-family: monospace;

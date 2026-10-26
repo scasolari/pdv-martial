@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { connect } from "react-redux";
 import axios from "axios";
 import LeftBar from "@/components/navigationBar/leftBar";
+import ElectronTitlebarSpacer from "@/components/electronTitlebarSpacer";
 import QueryResultsTable from "@/components/queryResults/table";
 import TableFilters from "@/components/queryResults/table/filters";
 import TableGrouping from "@/components/queryResults/table/grouping";
@@ -136,9 +137,9 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
     return (
         <>
             <LeftBar openTab={openTable} openSqlTab={openSql} />
-            <main className={`${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
-                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 px-4 dark:bg-zinc-950">
-                    <div className="flex items-center gap-2">
+            <main className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
+                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 dark:bg-zinc-950">
+                    <div className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 px-4`}>
                         <ShowNavigationButton />
                         <Button
                             onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
@@ -147,7 +148,8 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
                             <ArrowLeft size={12} className="mr-1" /> Back to database
                         </Button>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    <ElectronTitlebarSpacer />
+                    <div className="flex items-center gap-1 px-4 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
                         <History size={13} /> Activity history
                     </div>
                 </div>

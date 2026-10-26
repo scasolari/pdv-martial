@@ -5,7 +5,6 @@ import { connect } from "react-redux";
 import {useCallback, useEffect} from "react";
 import Image from "next/image";
 import {setDatabase, setDatabases, setProfile, setQuery, setTables} from "@/redux/actions/main";
-import {useSession} from "next-auth/react";
 import {
     Popover,
     PopoverContent,
@@ -18,16 +17,14 @@ import {
     TooltipContent, TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import useLogout from "@/lib/logout";
 import {LuCircleUserRound} from "react-icons/lu";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
+import LocalAvatar from "@/components/localAvatar";
 
 
 
 function NavigationBar(props) {
-    const logout = useLogout()
     const { profile, setProfile, setDatabases } = props;
-    const { data: session } = useSession();
     const router = useRouter();
     const {theme, setTheme} = useTheme()
     const {setAppSettingsOpen} = useNavigationVisibility();
@@ -45,16 +42,16 @@ function NavigationBar(props) {
 
     useEffect(() => {
         fetchDatabases()
-        setProfile(session);
-    }, [fetchDatabases, session, setProfile]);
-
-    if(!session) return null;
+        setProfile({ user: { id: "placedv-local-user", name: "Local user", email: "Local desktop" } });
+    }, [fetchDatabases, setProfile]);
 
     return <div className="h-[100vh] fixed top-0 px-3 py-4 border-r">
         <div className="flex flex-col items-center gap-3">
             <Popover>
-                <PopoverTrigger>
-                    {profile?.user?.image ? <Image className="bg-neutral-100 dark:bg-neutral-800 rounded-full border object-cover" src={profile.user.image} height={36} width={36} alt={profile?.user?.name || "Account"} unoptimized /> : <LuCircleUserRound size={30} />}
+                <PopoverTrigger asChild>
+                    <button type="button" aria-label="Open local profile menu" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                        {profile?.user?.image ? <Image className="h-6 w-6 rounded-full border object-cover" src={profile.user.image} height={24} width={24} alt={profile?.user?.name || "Account"} unoptimized /> : <LocalAvatar size={24} />}
+                    </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" side="right" className="w-[276px] p-0 rounded-lg">
                     <div className="p-3 pb-0 pt-2">
@@ -71,7 +68,6 @@ function NavigationBar(props) {
                                 {theme === "light" ? "Dark theme" : "Light theme"}
                             </button>
                         </li>
-                        <li><button type="button" className="w-full text-left !text-sm dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded-lg font-semibold" onClick={logout}>Logout</button></li>
                     </ul>
                 </PopoverContent>
             </Popover>

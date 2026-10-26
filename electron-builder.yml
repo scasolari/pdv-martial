@@ -1,0 +1,24 @@
+appId: com.placedv.query
+productName: Placedv Query
+asar: false
+directories:
+  app: .desktop-package
+  output: ../pdv-martial-desktop-builds
+files:
+  - "**/*"
+  - from: "node_modules/.prisma"
+    to: "node_modules/.prisma"
+    filter: ["**/*"]
+mac:
+  icon: assets/icons/placedv-query.icns
+  category: public.app-category.developer-tools
+  electronLanguages:
+    - en
+    - it
+  target: dmg
+win:
+  icon: assets/icons/placedv-query.ico
+  target: nsis
+linux:
+  icon: assets/icons/placedv-query.png
+  target: AppImage

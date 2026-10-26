@@ -9,10 +9,7 @@ import {
 } from "@/redux/actions/main";
 import { connect } from "react-redux";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import useLogout from "@/lib/logout";
 import {useCallback, useEffect, useRef, useState} from "react";
-import Image from "next/image";
-import { useSession } from "next-auth/react";
 import axios from "axios";
 import {
     Command,
@@ -24,13 +21,15 @@ import {
     CommandSeparator,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { BiExpandVertical } from "react-icons/bi";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { CircleUserRound, PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
+import { PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
+import LocalAvatar from "@/components/localAvatar";
 import {
     Tooltip,
     TooltipContent,
@@ -70,9 +69,7 @@ function LeftBar(props) {
         activeTabName,
     } = props;
 
-    const logout = useLogout();
     const router = useRouter();
-    const { data: session } = useSession();
     const { navigationHidden, setNavigationHidden, setAppSettingsOpen } = useNavigationVisibility();
     const [open, setOpen] = React.useState(false);
     const [openDb, setOpenDb] = React.useState(false);
@@ -84,6 +81,9 @@ function LeftBar(props) {
     const [deleteDatasetOpen, setDeleteDatasetOpen] = useState(false);
     const [deletingDataset, setDeletingDataset] = useState(false);
     const [, setDeleteDatasetError] = useState("");
+    const sidebarRef = useRef(null);
+    const resizeDragRef = useRef(null);
+    const [sidebarWidth, setSidebarWidth] = useState(null);
     const [value, setValue] = React.useState("");
     const frameworks = databases;
     const clearDatabaseState = useClear();
@@ -137,19 +137,112 @@ function LeftBar(props) {
 
     useEffect(() => {
         fetchDatabases();
-        setProfile(session);
-    }, [fetchDatabases, session, setProfile]);
+        setProfile({ user: { id: "placedv-local-user", name: "Local user", email: "Local desktop" } });
+    }, [fetchDatabases, setProfile]);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const minWidth = Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-min-width")) || 220;
+        const maxWidth = Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-max-width")) || 340;
+        const defaultWidth = sidebarRef.current?.getBoundingClientRect().width || maxWidth;
+        const storedWidth = Number.parseFloat(localStorage.getItem("placedv-query-sidebar-width"));
+        const width = Number.isFinite(storedWidth)
+            ? Math.min(maxWidth, Math.max(minWidth, storedWidth))
+            : defaultWidth;
+
+        root.style.setProperty("--electron-sidebar-width", `${width}px`);
+        setSidebarWidth(width);
+    }, []);
+
+    const getSidebarWidthLimits = () => {
+        const root = document.documentElement;
+        return {
+            min: Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-min-width")) || 220,
+            max: Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-max-width")) || 340,
+        };
+    };
+
+    const updateSidebarWidth = (width, persist = false) => {
+        const { min, max } = getSidebarWidthLimits();
+        const nextWidth = Math.min(max, Math.max(min, width));
+        document.documentElement.style.setProperty("--electron-sidebar-width", `${nextWidth}px`);
+        setSidebarWidth(nextWidth);
+        if (persist) localStorage.setItem("placedv-query-sidebar-width", String(nextWidth));
+    };
+
+    const handleResizePointerDown = (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        document.documentElement.classList.add("electron-sidebar-resizing");
+        resizeDragRef.current = { pointerId: event.pointerId };
+    };
+
+    const handleResizePointerMove = (event) => {
+        if (resizeDragRef.current?.pointerId !== event.pointerId) return;
+        const { min, max } = getSidebarWidthLimits();
+        if (event.clientX <= 32) {
+            resizeDragRef.current = null;
+            document.documentElement.classList.remove("electron-sidebar-resizing");
+            updateSidebarWidth(min, true);
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+            setNavigationHidden(true);
+            return;
+        }
+        updateSidebarWidth(Math.min(max, Math.max(min, event.clientX)));
+    };
+
+    const handleResizePointerUp = (event) => {
+        if (resizeDragRef.current?.pointerId !== event.pointerId) return;
+        resizeDragRef.current = null;
+        document.documentElement.classList.remove("electron-sidebar-resizing");
+        const width = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--electron-sidebar-width"));
+        if (Number.isFinite(width)) localStorage.setItem("placedv-query-sidebar-width", String(width));
+        setSidebarWidth(width);
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    };
+
+    const handleResizeKeyDown = (event) => {
+        const { min, max } = getSidebarWidthLimits();
+        const currentWidth = sidebarWidth || sidebarRef.current?.getBoundingClientRect().width || max;
+        const step = event.shiftKey ? 32 : 12;
+        const nextWidth = event.key === "ArrowLeft" ? currentWidth - step
+            : event.key === "ArrowRight" ? currentWidth + step
+                : event.key === "Home" ? min
+                    : event.key === "End" ? max
+                        : null;
+        if (nextWidth === null) return;
+        event.preventDefault();
+        updateSidebarWidth(nextWidth, true);
+    };
 
     if (navigationHidden) return null;
 
     return (
         <>
-            <div className="h-[100vh] w-[240px] fixed top-0 border-r bg-zinc-50 dark:bg-zinc-900/30">
+            <div ref={sidebarRef} className="electron-sidebar fixed top-0 h-[100vh] w-[240px] border-r bg-zinc-50 dark:bg-zinc-900/30">
+                <div
+                    className="electron-sidebar-resize-handle"
+                    role="separator"
+                    aria-label="Resize navigation sidebar"
+                    aria-orientation="vertical"
+                    aria-valuemin={getSidebarWidthLimits().min}
+                    aria-valuemax={getSidebarWidthLimits().max}
+                    aria-valuenow={sidebarWidth || undefined}
+                    tabIndex={0}
+                    onPointerDown={handleResizePointerDown}
+                    onPointerMove={handleResizePointerMove}
+                    onPointerUp={handleResizePointerUp}
+                    onPointerCancel={handleResizePointerUp}
+                    onKeyDown={handleResizeKeyDown}
+                />
                 <div className="flex flex-col gap-2">
-                    <div className="grid gap-1 grid-cols-[26px_1fr_auto_auto] p-3 px-4">
+                    <div className="electron-titlebar-safe-left grid items-center gap-1 grid-cols-[46px_1fr_auto_auto] p-3 px-4">
                         <Popover>
-                            <PopoverTrigger>
-                                {profile?.user?.image ? <Image className="bg-zinc-100 dark:bg-zinc-900 rounded-full border object-cover" src={profile.user.image} height={30} width={30} alt={profile?.user?.name || "Account"} unoptimized /> : <span className="flex h-[30px] w-[30px] items-center justify-center"><CircleUserRound size={20} /></span>}
+                            <PopoverTrigger asChild>
+                                <Button aria-label="Open local profile menu" className="translate-x-5 h-6 w-6 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                                    {profile?.user?.image ? <Image className="h-6 w-6 rounded-full border object-cover" src={profile.user.image} height={24} width={24} alt={profile?.user?.name || "Account"} unoptimized /> : <LocalAvatar size={24} />}
+                                </Button>
                             </PopoverTrigger>
                             <PopoverContent
                                 align="start"
@@ -171,7 +264,6 @@ function LeftBar(props) {
                                             Settings
                                         </button>
                                     </li>
-                                    <li><button type="button" className="w-full text-left !text-xs dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md font-semibold" onClick={logout}>Logout</button></li>
                                 </ul>
                             </PopoverContent>
                         </Popover>
@@ -275,6 +367,9 @@ function LeftBar(props) {
                                                     <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
+                                                            <AlertDialogDescription className="text-xs font-semibold text-muted-foreground">
+                                                                Connect to a database or upload a SQLite file.
+                                                            </AlertDialogDescription>
                                                             <AddDatabase onClose={() => setOpenAdDataSet(false)} onSuccess={() => setOpenAdDataSet(false)}/>
                                                         </AlertDialogHeader>
                                                     </AlertDialogContent>
@@ -300,16 +395,16 @@ function LeftBar(props) {
                             </Button>
                         </TooltipProvider>
                         <TooltipProvider>
-                            <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 w-fit shadow-none h-7 p-1.5 bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
-                                <Tooltip>
-                                    <TooltipTrigger className="z-[10000]">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 w-fit shadow-none h-7 p-1.5 bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
                                         <PanelRightOpen size={16} />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="z-[99999999] mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-                                        <p>Hide navigator</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </Button>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="z-[99999999] mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <p>Hide navigator</p>
+                                </TooltipContent>
+                            </Tooltip>
                         </TooltipProvider>
                     </div>
                     <div className="overflow-x-scroll flex flex-col h-[100vh]">

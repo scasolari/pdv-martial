@@ -15,14 +15,26 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
-import { ChevronDown, Database, Download, EyeOff, Languages, Menu, Moon, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { ChevronDown, Computer, Copy, Database, Download, EyeOff, Languages, Menu, Moon, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { toast } from "@/components/ui/base-toast";
+
+function formatByteSize(bytes) {
+    if (!Number.isFinite(bytes)) return "Unknown";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let size = bytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(size)} ${units[unitIndex]}`;
+}
 
 function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables, queryTabs = [], open = false, onOpenChange = () => {} }) {
     const databaseId = database?.db_id;
+    const logout = useLogout();
     const currentDatabaseId = useRef(databaseId);
     currentDatabaseId.current = databaseId;
-    const logout = useLogout();
     const { theme, setTheme } = useTheme();
     const { navigationHidden, setNavigationHidden } = useNavigationVisibility();
     const [activeSection, setActiveSection] = useState("appearance");
@@ -41,20 +53,43 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [sensitiveColumnSearch, setSensitiveColumnSearch] = useState("");
     const [preferencesLoading, setPreferencesLoading] = useState(false);
     const [, setPreferencesError] = useState("");
+    const [computerInfo, setComputerInfo] = useState(null);
+    const [computerInfoLoading, setComputerInfoLoading] = useState(false);
+    const [computerInfoError, setComputerInfoError] = useState("");
     const [accountDeleteOpen, setAccountDeleteOpen] = useState(false);
     const [accountConfirmation, setAccountConfirmation] = useState("");
     const [accountDeleteCode, setAccountDeleteCode] = useState("");
     const [, setAccountDeleteError] = useState("");
     const [accountDeleteLoading, setAccountDeleteLoading] = useState(false);
     const preferencesRef = useRef(databasePreferences);
+    const copySqlitePath = async (sqlitePath) => {
+        if (!sqlitePath) return;
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(sqlitePath);
+            } else {
+                const temporaryInput = document.createElement("textarea");
+                temporaryInput.value = sqlitePath;
+                temporaryInput.style.position = "fixed";
+                temporaryInput.style.opacity = "0";
+                document.body.appendChild(temporaryInput);
+                temporaryInput.select();
+                const copied = document.execCommand("copy");
+                temporaryInput.remove();
+                if (!copied) throw new Error("Clipboard access is unavailable.");
+            }
+            toast.add({ title: "SQLite path copied", type: "success" });
+        } catch {
+            toast.add({ title: "Unable to copy SQLite path", type: "error" });
+        }
+    };
     const sections = [
-        { id: "account", label: "Account", icon: UserRound },
         { id: "appearance", label: "Appearance", icon: Moon },
         { id: "language", label: "Language & region", icon: Languages },
         { id: "navigation", label: "Navigation & Accessibility", icon: Menu },
         { id: "sensitive", label: "Sensitive data", icon: EyeOff },
         { id: "database", label: "Database preferences", icon: Database },
-        { id: "security", label: "Security", icon: ShieldCheck },
+        { id: "computer", label: "Computer", icon: Computer },
     ];
     const reduxSchemaIsCurrent = String(tables?._databaseId ?? "") === String(databaseId ?? "") && Array.isArray(tables?.data);
     const queryTabSchemaTables = (queryTabs || [])
@@ -80,6 +115,20 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
             setBrowserLocale(navigator.language || "en-US");
         }
     }, []);
+
+    useEffect(() => {
+        if (!open || activeSection !== "computer") return undefined;
+        let cancelled = false;
+        setComputerInfoLoading(true);
+        setComputerInfoError("");
+        axios.get("/api/desktop/info")
+            .then(({ data }) => { if (!cancelled) setComputerInfo(data); })
+            .catch((error) => {
+                if (!cancelled) setComputerInfoError(error.response?.data?.error || "Unable to load computer information.");
+            })
+            .finally(() => { if (!cancelled) setComputerInfoLoading(false); });
+        return () => { cancelled = true; };
+    }, [open, activeSection]);
 
     useEffect(() => {
         let cancelled = false;
@@ -238,7 +287,42 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                     </nav>
                 </aside>
                 <main className="h-full overflow-y-auto p-6 text-left">
-                    {activeSection === "database" ? (
+                    {activeSection === "computer" ? (
+                        <section className="space-y-4 text-left">
+                            <div className="space-y-1">
+                                <h2 className="text-sm font-semibold">Computer information</h2>
+                                <p className="text-xs font-semibold text-muted-foreground">System details for this local installation.</p>
+                            </div>
+                            {computerInfoLoading ? (
+                                <p className="text-xs font-semibold text-muted-foreground">Loading computer information...</p>
+                            ) : computerInfoError ? (
+                                <p role="alert" className="text-xs font-semibold text-red-600">{computerInfoError}</p>
+                            ) : computerInfo ? (
+                                <dl className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+                                    {[
+                                        ["Operating system", computerInfo.operatingSystem],
+                                        ["Version", computerInfo.osVersion],
+                                        ["Architecture", computerInfo.architecture],
+                                        ["Computer name", computerInfo.computerName],
+                                        ["Application", computerInfo.appVersion],
+                                        ["Available storage", formatByteSize(computerInfo.availableDiskBytes)],
+                                        ["SQLite database size", formatByteSize(computerInfo.sqliteFileSizeBytes)],
+                                        ["SQLite database path", computerInfo.sqlitePath],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="flex items-start justify-between gap-4 px-3 py-2">
+                                            <dt className="shrink-0 text-xs font-semibold text-muted-foreground">{label}</dt>
+                                            <dd className={`${label === "SQLite database path" ? "flex min-w-0 items-start gap-2" : "truncate text-right"} text-xs font-semibold`} title={value || "Unknown"}>
+                                                <span className={label === "SQLite database path" ? "min-w-0 flex-1 break-all text-right" : ""}>{value || "Unknown"}</span>
+                                                {label === "SQLite database path" && value && <Button type="button" variant="outline" size="sm" className="h-6 shrink-0 gap-1 px-2 !text-xs" onClick={() => copySqlitePath(value)} aria-label="Copy SQLite database path">
+                                                    <Copy size={12} /> Copy
+                                                </Button>}
+                                            </dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            ) : null}
+                        </section>
+                    ) : activeSection === "database" ? (
                         <section className="space-y-4 text-left">
                             <div className="space-y-1">
                                 <h2 className="text-sm font-semibold">Database preferences</h2>

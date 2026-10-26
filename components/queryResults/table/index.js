@@ -200,6 +200,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
         return Array.isArray(rawData) ? rawData : [rawData]
     }, [rawData])
     const [displayData, setDisplayData] = useState(data)
+    const previousDataRef = useRef(data)
     const caseInsensitiveGroupingColumns = useMemo(() => new Set(
         (Array.isArray(grouping) ? grouping : EMPTY_GROUPING)
             .filter((group) => typeof group !== 'string' && group.mode === 'caseInsensitive')
@@ -270,11 +271,20 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
 
     const [editedCells, setEditedCells] = useState({})
     const [selectedRows, setSelectedRows] = useState({})
+    const lastNotifiedChangesCountRef = useRef(0)
+    const lastNotifiedSelectionCountRef = useRef(0)
+    const lastNotifiedSelectionIdsRef = useRef('[]')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingRows, setDeletingRows] = useState(false)
     const [, setDeleteError] = useState('')
     const selectedRowsCount = Object.values(selectedRows).filter(Boolean).length
     const selectionColumnWidth = showSelection ? 36 : 0
+    const selectionColumnStyle = {
+        width: `${selectionColumnWidth}px`,
+        minWidth: `${selectionColumnWidth}px`,
+        maxWidth: `${selectionColumnWidth}px`,
+        boxSizing: 'border-box',
+    }
     const [hasHorizontalScroll, setHasHorizontalScroll] = useState(false)
     const [currentPage, setCurrentPage] = useState(initialPageIndex)
     const [currentPageSize, setCurrentPageSize] = useState(pageSize)
@@ -290,6 +300,10 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
         cells.forEach((cell) => {
             if (cell.dataset.columnId === resize.columnId) cell.style.width = `${width}px`
         })
+        if (resize.tableElement) {
+            const delta = width - resize.startSize
+            resize.tableElement.style.width = `${Math.max(resize.minTableWidth, resize.startTableWidth + delta)}px`
+        }
     }
 
     useEffect(() => {
@@ -345,6 +359,8 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
             startSize: column.getSize(),
             minSize: column.columnDef.minSize ?? TABLE_DEFAULT_COLUMN.minSize,
             maxSize: column.columnDef.maxSize ?? TABLE_DEFAULT_COLUMN.maxSize,
+            startTableWidth: tableElementRef.current?.getBoundingClientRect().width ?? 0,
+            minTableWidth: tableElementRef.current?.parentElement?.clientWidth ?? 0,
             delta: 0,
             previewSize: column.getSize(),
             indicator,
@@ -458,6 +474,8 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
     const [, setSaveSuccess] = useState('')
 
     useEffect(() => {
+        if (previousDataRef.current === data) return
+        previousDataRef.current = data
         setDisplayData(data)
         setEditedCells({})
         setSelectedRows({})
@@ -506,7 +524,10 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
     }, [deleteRowsRequest, onDeleteRowsRequestHandled])
 
     useEffect(() => {
-        onChangesCountChange?.(payload.meta.modifiedRows)
+        const count = payload.meta.modifiedRows
+        if (lastNotifiedChangesCountRef.current === count) return
+        lastNotifiedChangesCountRef.current = count
+        onChangesCountChange?.(count)
     }, [payload.meta.modifiedRows, onChangesCountChange])
 
     useEffect(() => {
@@ -750,10 +771,19 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
     })
     useEffect(() => {
         const selectedIds = Object.entries(selectedRows).filter(([, selected]) => selected).map(([rowId]) => rowId)
-        onSelectionCountChange?.(selectedIds.length)
-        onSelectedRowsChange?.(selectedIds
+        const selectedRowsForCallback = selectedIds
             .map((rowId) => table.getCoreRowModel().rowsById[rowId]?.original)
-            .filter(Boolean))
+            .filter(Boolean)
+        const selectionIds = JSON.stringify(selectedIds)
+
+        if (lastNotifiedSelectionCountRef.current !== selectedIds.length) {
+            lastNotifiedSelectionCountRef.current = selectedIds.length
+            onSelectionCountChange?.(selectedIds.length)
+        }
+        if (lastNotifiedSelectionIdsRef.current !== selectionIds) {
+            lastNotifiedSelectionIdsRef.current = selectionIds
+            onSelectedRowsChange?.(selectedRowsForCallback)
+        }
     }, [selectedRows, onSelectionCountChange, onSelectedRowsChange, table])
 
     useEffect(() => {
@@ -920,11 +950,19 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
             className="min-h-0 flex-1 overflow-auto bg-white dark:border-zinc-800 dark:bg-zinc-950"
             onScroll={(event) => setHasHorizontalScroll(event.currentTarget.scrollLeft > 0)}
         >
-            <table ref={tableElementRef} className="resizable-table border-collapse text-xs font-mono w-full">
+            <table
+                ref={tableElementRef}
+                style={{
+                    tableLayout: 'fixed',
+                    width: `${table.getTotalSize() + selectionColumnWidth}px`,
+                    minWidth: '100%',
+                }}
+                className="resizable-table border-collapse text-xs font-mono"
+            >
                 <thead className="bg-zinc-100 dark:bg-zinc-900">
                     {table.getHeaderGroups().map((headerGroup, headerGroupIndex) => (
                         <tr key={headerGroup.id}>
-                            {showSelection && <th className="group/selection sticky left-0 top-0 z-[7] w-9 min-w-9 border-r-0 bg-zinc-100 align-middle shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]" aria-label="Row selection">
+                            {showSelection && <th style={selectionColumnStyle} className="group/selection sticky left-0 top-0 z-[7] w-9 min-w-9 border-r-0 bg-zinc-100 align-middle shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]" aria-label="Row selection">
                                 {headerGroupIndex === 0 && selectablePageRows.length > 0 && (
                                     <Checkbox
                                         checked={pageSelectionState}
@@ -958,11 +996,11 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                                     event.stopPropagation()
                                                     header.column.resetSize()
                                                 }}
-                                                className="group/resize absolute inset-y-0 right-[-4px] z-[40] w-2 cursor-col-resize select-none touch-none"
+                                                className="group/resize absolute inset-y-0 right-0 z-[40] w-2 cursor-col-resize select-none touch-none"
                                                 aria-label={`Resize ${header.column.id} column`}
                                                 title={`Resize ${header.column.id} column`}
                                             >
-                                                <span className={`pointer-events-none absolute inset-y-0 left-[3px] w-px ${header.column.getIsResizing() ? 'bg-blue-500' : 'bg-transparent group-hover/resize:bg-blue-500'}`} />
+                                                <span className={`pointer-events-none absolute inset-y-0 right-0 w-px ${header.column.getIsResizing() ? 'bg-blue-500' : 'bg-transparent group-hover/resize:bg-blue-500'}`} />
                                             </button>
                                         )}
                                         {isPinnedLeft && <>
@@ -978,7 +1016,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                 <tbody>
                     {rowsToRender.map((row) => row.getIsGrouped() ? (
                         <tr key={row.id} className="border-b bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/70">
-                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-zinc-50 align-middle dark:bg-zinc-900">
+                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-zinc-50 align-middle dark:bg-zinc-900">
                                 <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
                             </td>}
                             <td colSpan={Math.max(row.getVisibleCells().length, 1)} className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
@@ -996,7 +1034,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                         </tr>
                     ) : (
                         <tr key={row.id} className="border-b group dark:border-zinc-800">
-                            {showSelection && <td className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-white p-2 text-center align-middle dark:bg-zinc-950">
+                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-white p-2 text-center align-middle dark:bg-zinc-950">
                                 <Checkbox
                                     checked={Boolean(selectedRows[row.id])}
                                     onCheckedChange={(checked) => setSelectedRows((current) => ({ ...current, [row.id]: checked === true }))}

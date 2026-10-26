@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import QueryResultsTable from "@/components/queryResults/table";
 import TableFilters from "@/components/queryResults/table/filters";
 import TableGrouping from "@/components/queryResults/table/grouping";
-import { PiGithubLogoBold } from "react-icons/pi";
 import { FaMicrosoft } from "react-icons/fa6";
 import { SiMariadb, SiMysql, SiPostgresql, SiSqlite } from "react-icons/si";
 import {
@@ -287,7 +285,7 @@ function ProductOverview() {
 }
 
 export default function Home() {
-    const login = () => signIn("github", { callbackUrl: "/app/playground/play" });
+    const openApp = () => { window.location.href = "/app/playground/play"; };
 
     return <main className="min-h-screen bg-white text-zinc-950">
         <header className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -295,7 +293,7 @@ export default function Home() {
                 <span>Placedv Query</span>
             </a>
             <div className="flex items-center gap-4">
-                <button onClick={login} className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-950 px-3 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
+                <button onClick={openApp} className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-950 px-3 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
                     Get started
                 </button>
             </div>
@@ -307,8 +305,7 @@ export default function Home() {
                     Your databases, in one focused workspace
                 </h1>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <button onClick={login} className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
-                        <PiGithubLogoBold aria-hidden="true" size={14} />
+                    <button onClick={openApp} className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
                         Get started
                     </button>
                     <a href="#product" className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300 px-4 text-xs font-semibold text-zinc-900 transition-colors hover:bg-zinc-50">

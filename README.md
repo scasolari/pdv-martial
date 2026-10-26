@@ -1,82 +1,42 @@
 # Placedv Query
 
-Placedv Query is a free, self-hosted database workspace for browsing tables, filtering and grouping records, editing rows, and running SQL queries. Run the application on your own computer or server and connect it to databases you are authorized to use.
+Placedv Query is a local desktop workspace for browsing tables, editing records, and running SQL against databases you are authorized to use. The app runs in Electron and stores its own settings, saved connections, and activity history in a SQLite database created on first launch.
 
-The application is not a hosted service. Each installation manages its own account database, SQLite uploads, encryption key, and connected database credentials. GitHub OAuth is used for sign-in.
+## Desktop development
+
+Requirements: Node.js 20.9 or later and npm.
+
+```bash
+npm ci
+npm run desktop:dev
+```
+
+The desktop launcher initializes the local SQLite database and a per-installation encryption key in Electron's user data directory. Development mode uses a separate `placedv-query-dev` profile and a random key file with owner-only permissions; the signed production app protects its key with the OS keychain. It starts the Next.js server on a free loopback port (`127.0.0.1`) and opens the app in a desktop window. The app server is not exposed to other devices on the local network.
+
+Create a packaged app for the current platform with:
+
+```bash
+npm run desktop:package
+```
+
+Builds are written to `release/`. The first packaged builds should be produced and smoke-checked on each target operating system because Electron and database drivers include platform-specific binaries.
 
 ## Features
 
-- Connect to MySQL, MariaDB, PostgreSQL, and Microsoft SQL Server.
-- Upload and browse SQLite databases.
+- Connect to MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, and SQLite.
 - Browse, filter, group, sort, edit, insert, and export table data.
 - Run SQL queries and inspect activity history.
-- Optional two-factor authentication and sensitive-column masking.
+- Upload and browse SQLite databases.
+- Mask selected sensitive columns.
 
-## Requirements
+## Local data and security
 
-- Node.js and npm.
-- A MySQL database for the application's accounts, saved connections, preferences, and activity history. This can run locally.
-- A GitHub OAuth application for sign-in.
+The app does not use accounts or remote authentication. Its SQLite file and uploaded SQLite databases live in Electron's per-user application data directory. Saved database credentials are encrypted with a per-installation key protected by the operating system keychain (macOS Keychain, Windows DPAPI, or a Linux Secret Service/KWallet backend). Back up the application data directory and keep access to the same OS account/keychain to preserve settings and saved connections. Losing the OS-protected key makes saved connection credentials unreadable. On Linux, configure GNOME Keyring or KWallet before launching the app.
 
-For local GitHub OAuth, set the callback URL to `http://localhost:3000/api/auth/callback/github`.
+The local web server binds only to `127.0.0.1`, uses a random available port, accepts only loopback hostnames, and rejects cross-origin API requests. Electron adds a per-launch API token to requests in its main process; the renderer cannot read the token. The app also sends a nonce-based Content Security Policy. These measures help prevent unrelated websites and other devices from using the local API, but do not protect data from malware or another process already running as the same user on the same computer.
 
-## Install and run locally
-
-```bash
-git clone <repository-url>
-cd placedv-query
-npm ci
-cp .env.example .env
-```
-
-Edit `.env` and set `DATABASE_URL`, `NEXTAUTH_SECRET`, `DB_ENCRYPTION_KEY`, `GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET`. Generate secrets locally:
-
-```bash
-openssl rand -base64 32  # NEXTAUTH_SECRET
-openssl rand -hex 32     # DB_ENCRYPTION_KEY
-```
-
-Then prepare the Prisma client and application database and start Next.js:
-
-```bash
-npx prisma generate
-npx prisma migrate deploy
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000). Keep `.env` private and back up `DB_ENCRYPTION_KEY` securely. If you lose or replace that key, saved database credentials, activity queries, and encrypted two-factor secrets may become unreadable.
-
-### Rotate the encryption key
-
-Keep the existing key available while rotating. Add both the old and new 64-character hexadecimal keys to `DB_ENCRYPTION_KEYS` as a JSON object, and set `DB_ENCRYPTION_CURRENT_KEY_ID` to the new key's ID. Keep a protected backup of the database and `.env`, then run a dry run followed by the actual rotation:
-
-```bash
-node scripts/rotate-encryption-key.mjs
-node scripts/rotate-encryption-key.mjs --execute
-```
-
-The script reports how many connection strings, history queries, and two-factor secrets it will rotate. After a successful run and verification, remove old keys from the keyring and remove `DB_ENCRYPTION_KEY` if it only held the old legacy key. Never remove a key while encrypted values still depend on it.
-
-SQLite uploads are stored under `.data/sqlite` by default. Set `DATABASE_SQLITE_STORAGE_DIR` to use another local directory. The app connects to external databases from the machine running the application; use database credentials with the least privileges needed.
-
-## Configuration
-
-See [.env.example](.env.example) for required and optional settings. `DATABASE_AUDIT_RETENTION_DAYS` defaults to 90 days, and the application keeps at most 100 history entries per database. Inactive history is removed on access. A self-hosted installation may optionally schedule `POST /api/internal/maintenance/prune-audit` with `DATABASE_AUDIT_CLEANUP_SECRET` to clean inactive history even when it is not opened.
-
-## Development
-
-```bash
-npm run dev
-npm run lint
-npm test
-```
-
-The test suite uses temporary databases and does not require access to a production database. See [the test report](docs/TESTS_RECAP.md) for the scope and last recorded results. That report is a historical snapshot; rerun the suite before relying on it for a release.
-
-## Security
-
-Do not commit `.env` files, database dumps, SQLite uploads, OAuth secrets, or encryption keys. If you find a vulnerability, report it privately to `info@placedv.com`; please do not include credentials or personal data in the report.
+SQLite uploads and external connection credentials are stored on the local computer. Use database credentials with the least privileges needed and connect only to databases you are authorized to access.
 
 ## License
 
-Placedv Query is released under the MIT License. See [LICENSE](LICENSE).
+Placedv Query is released under the MIT License.

@@ -4,6 +4,7 @@ import { connect } from "react-redux";
 import axios from "axios";
 import { ArrowLeft, ChevronDown, Settings2, Trash2 } from "lucide-react";
 import LeftBar from "@/components/navigationBar/leftBar";
+import ElectronTitlebarSpacer from "@/components/electronTitlebarSpacer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setDatabase, setDatabases, setQueryTabs, setTables } from "@/redux/actions/main";
@@ -164,9 +165,9 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
     return (
         <>
             <LeftBar openTab={openTable} openSqlTab={openSql} />
-            <main className={`${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
-                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 px-4 dark:bg-zinc-950">
-                    <div className="flex items-center gap-2">
+            <main className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
+                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 dark:bg-zinc-950">
+                    <div className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 px-4`}>
                     <ShowNavigationButton />
                     <Button
                         onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
@@ -175,7 +176,8 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                         <ArrowLeft size={12} className="mr-1" /> Back to database
                     </Button>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    <ElectronTitlebarSpacer />
+                    <div className="flex items-center gap-1 px-4 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
                         <Settings2 size={13} /> Database settings
                     </div>
                 </div>
@@ -261,18 +263,18 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                                 <p className="text-xs font-semibold">Connection string</p>
                                 <Input
                                     id="database-connection-string"
-                                    type="text"
+                                    type="password"
                                     value={connectionString}
                                     onChange={(event) => { setConnectionString(event.target.value); setSaved(false); }}
                                     maxLength={4096}
                                     placeholder="Enter a new MySQL or PostgreSQL connection string"
-                                    autoComplete="off"
+                                    autoComplete="new-password"
                                     spellCheck={false}
                                     className="h-8 w-[400px] text-xs font-semibold"
                                     disabled={saving}
                                 />
                                 <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                    Leave blank to keep the current encrypted connection. A new connection is checked before it is saved.
+                                    Saved credentials are encrypted and never shown here. Leave blank to keep them, or enter a replacement; the new connection is checked before it is saved.
                                 </p>
                                 {(Boolean(connectionString.trim()) || sshSettingsChanged || sslSettingsChanged) && <div className="flex max-w-[520px] items-start gap-2 text-xs font-semibold leading-relaxed text-zinc-600 dark:text-zinc-300">
                                     <Checkbox id="confirm-database-authorization" checked={connectionAuthorizationConfirmed} onCheckedChange={(checked) => setConnectionAuthorizationConfirmed(checked === true)} className="mt-0.5 h-3.5 w-3.5 shrink-0 border-zinc-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600" />

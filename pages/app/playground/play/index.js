@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 import axios from "axios";
 import { useRouter } from "next/router";
 import LeftBar from "@/components/navigationBar/leftBar";
+import ElectronTitlebarSpacer from "@/components/electronTitlebarSpacer";
 import { ShowNavigationButton, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +96,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
         <LeftBar />
         {navigationHidden && <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
             <div className="flex h-[53px] w-full items-center justify-between border-b bg-zinc-50 dark:bg-zinc-900/30">
-            <div className="flex items-center gap-2 px-4 py-3">
+            <div className="electron-titlebar-safe-left electron-titlebar-safe-left-controls flex items-center gap-2 px-4 py-3">
             <ShowNavigationButton />
             {toolbarLoading ? <div className="flex items-center gap-2" aria-label="Loading database toolbar" aria-busy="true">
                 <Skeleton className="h-7 w-32" />
@@ -182,6 +183,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
             </TooltipProvider>
             </>}
             </div>
+            <ElectronTitlebarSpacer />
             <div className="flex items-center gap-2 px-4 py-3">
                 {toolbarLoading ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /></div> : <>
                     {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800 !text-xs !font-semibold"><History size={12} />History</Button>}

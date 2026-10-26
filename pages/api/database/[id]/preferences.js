@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         try {
             const updated = await db.database.updateMany({
                 where: { id, user_id: session.id },
-                data: { preferences: normalizeDatabasePreferences(preferences) },
+                data: { preferences: JSON.stringify(normalizeDatabasePreferences(preferences)) },
             });
             if (!updated.count) return res.status(404).json({ error: "Dataset not found." });
             return res.status(200).json(normalizeDatabasePreferences(preferences));

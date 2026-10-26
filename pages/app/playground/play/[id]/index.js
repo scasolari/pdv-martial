@@ -1,4 +1,5 @@
 import LeftBar from "@/components/navigationBar/leftBar";
+import ElectronTitlebarSpacer from "@/components/electronTitlebarSpacer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -372,11 +373,15 @@ function PlaygroundPlayId(props) {
     const activeColumnVisibilityKey = activeTab?.type === "table"
         ? `${activeTab.id || database?.db_id}:${activeTab.name}`
         : activeTab?.id || activeTab?.name || String(activeTabIndex)
-    const activeColumnVisibility = columnVisibilityByTab[activeColumnVisibilityKey] || EMPTY_COLUMN_VISIBILITY
     const activeResultColumns = useMemo(() => activeTab?.type === "table" && activeTableSchema.length > 0
         ? activeTableSchema.map((column) => column.field)
         : Object.keys(activeTab?.data?.data?.[0] || {}),
     [activeTab?.data?.data, activeTab?.type, activeTableSchema]);
+    const idColumn = activeResultColumns.find((column) => column.toLowerCase() === "id")
+    const savedColumnVisibility = columnVisibilityByTab[activeColumnVisibilityKey] || EMPTY_COLUMN_VISIBILITY
+    const activeColumnVisibility = idColumn && savedColumnVisibility[idColumn] === false
+        ? { ...savedColumnVisibility, [idColumn]: true }
+        : savedColumnVisibility
     const activeFilterColumns = useMemo(() => {
         const schemaColumns = activeTab?.type === "table"
             ? activeTableSchema.map((column) => column.field)
@@ -393,6 +398,7 @@ function PlaygroundPlayId(props) {
     const updateActiveGrouping = (grouping) => setGroupingByTab((current) => ({ ...current, [activeColumnVisibilityKey]: grouping }))
     const filteredResultColumns = useMemo(() => activeResultColumns.filter((column) => column.toLowerCase().includes(columnSearch.trim().toLowerCase())), [activeResultColumns, columnSearch])
     const toggleColumnVisibility = (column) => setColumnVisibilityByTab((current) => {
+        if (column.toLowerCase() === "id") return current
         const visibility = current[activeColumnVisibilityKey] || {}
         return {
             ...current,
@@ -406,7 +412,10 @@ function PlaygroundPlayId(props) {
         ...current,
         [activeColumnVisibilityKey]: {
             ...activeColumnVisibility,
-            ...Object.fromEntries(activeResultColumns.map((column) => [column, false])),
+            ...Object.fromEntries(activeResultColumns
+                .filter((column) => column.toLowerCase() !== "id")
+                .map((column) => [column, false])),
+            ...(idColumn ? { [idColumn]: true } : {}),
         },
     }))
     const renderColumnSelector = () => (
@@ -432,9 +441,10 @@ function PlaygroundPlayId(props) {
                                 className="gap-2 !py-1.5 !font-mono !text-xs !font-semibold"
                             >
                                 <Checkbox
-                                    checked={activeColumnVisibility[column] !== false}
+                                    checked={column.toLowerCase() === "id" || activeColumnVisibility[column] !== false}
                                     onCheckedChange={() => toggleColumnVisibility(column)}
                                     onClick={(event) => event.stopPropagation()}
+                                    disabled={column.toLowerCase() === "id"}
                                     aria-label={`${activeColumnVisibility[column] !== false ? "Hide" : "Show"} ${column} column`}
                                     className="h-4 w-4 border-zinc-400 bg-transparent text-zinc-900 data-[state=checked]:border-zinc-300 data-[state=checked]:bg-zinc-300 data-[state=checked]:text-zinc-950 dark:border-zinc-500 dark:data-[state=checked]:border-zinc-300 dark:data-[state=checked]:bg-zinc-300 dark:data-[state=checked]:text-zinc-950"
                                 />
@@ -902,10 +912,10 @@ function PlaygroundPlayId(props) {
         <div>
             {/* passiamo anche activeTabName */}
             <LeftBar openTab={openOrFocusTab} openSqlTab={openSqlTab} activeTabName={activeTab?.name ?? null} />
-            <div className={`${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
+            <div className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
                 <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
                     <div className="border-b h-[53px] flex items-center w-full justify-between bg-zinc-50 dark:bg-zinc-900/30">
-                        <div className="flex items-center gap-2 p-3 px-4">
+                        <div className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 p-3 px-4`}>
                             <ShowNavigationButton />
                             {showToolbarSkeleton && <div className="flex items-center gap-2" aria-label="Loading database toolbar" aria-busy="true">
                                 <Skeleton className="h-7 w-32" />
@@ -1051,6 +1061,7 @@ function PlaygroundPlayId(props) {
                                 SQL
                             </Button>}
                         </div>
+                        <ElectronTitlebarSpacer />
                         <AlertDialog open={addDatasetOpen} onOpenChange={setAddDatasetOpen}>
                             <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                                 <AlertDialogHeader>
