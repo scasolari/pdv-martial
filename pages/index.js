@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
-import { Check } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion } from "@base-ui/react/accordion";
 
 const appFeatures = [
     {
@@ -96,17 +97,21 @@ export default function Home() {
                     <h1 id="features-title" className="mb-3 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                         Features
                     </h1>
-                    <ul className="space-y-3">
-                        {appFeatures.map(({ title, description }) => (
-                            <li key={title} className="flex items-start gap-2.5 text-xs leading-5">
-                                <Check aria-hidden="true" size={14} className="mt-0.5 shrink-0 text-zinc-900 dark:text-zinc-100" />
-                                <div>
-                                    <p className="font-semibold text-zinc-900 dark:text-zinc-100">{title}</p>
-                                    <p className="text-zinc-600 dark:text-zinc-400">{description}</p>
-                                </div>
-                            </li>
+                    <Accordion.Root className="border-t border-zinc-200 dark:border-zinc-800">
+                        {appFeatures.map(({ title, description }, index) => (
+                            <Accordion.Item key={title} value={`feature-${index}`} className="border-b border-zinc-200 dark:border-zinc-800">
+                                <Accordion.Header>
+                                    <Accordion.Trigger className="group flex min-h-10 w-full items-center gap-3 py-2 text-left text-xs font-semibold text-zinc-900 outline-none transition-colors hover:text-zinc-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-100 dark:hover:text-zinc-300">
+                                        <span>{title}</span>
+                                        <ChevronDown aria-hidden="true" size={14} className="ml-auto shrink-0 text-zinc-500 transition-transform duration-200 group-data-[open]:rotate-180" />
+                                    </Accordion.Trigger>
+                                </Accordion.Header>
+                                <Accordion.Panel className="overflow-hidden text-xs leading-5 text-zinc-600 transition-[height] duration-200 data-[starting-style]:h-0 data-[ending-style]:h-0 dark:text-zinc-400">
+                                    <p className="pb-3 pr-6">{description}</p>
+                                </Accordion.Panel>
+                            </Accordion.Item>
                         ))}
-                    </ul>
+                    </Accordion.Root>
                 </section>
             </div>
         </main>
