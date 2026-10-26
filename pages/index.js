@@ -97,9 +97,9 @@ export default function Home() {
                     <h1 id="features-title" className="mb-3 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                         Features
                     </h1>
-                    <Accordion.Root className="border-t border-zinc-200 dark:border-zinc-800">
+                    <Accordion.Root>
                         {appFeatures.map(({ title, description }, index) => (
-                            <Accordion.Item key={title} value={`feature-${index}`} className="border-b border-zinc-200 dark:border-zinc-800">
+                            <Accordion.Item key={title} value={`feature-${index}`} className="py-0.5">
                                 <Accordion.Header>
                                     <Accordion.Trigger className="group flex min-h-10 w-full items-center gap-3 py-2 text-left text-xs font-semibold text-zinc-900 outline-none transition-colors hover:text-zinc-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-100 dark:hover:text-zinc-300">
                                         <span>{title}</span>
