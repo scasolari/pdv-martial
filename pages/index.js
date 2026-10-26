@@ -40,7 +40,7 @@ export default function Home() {
                             aria-label="Download Placedv Query for Apple silicon"
                             className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
                         >
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 dark:bg-black/10">
+                            <span className="flex size-8 shrink-0 items-center justify-center">
                                 <FaApple aria-hidden="true" size={16} />
                             </span>
                             <span className="flex min-w-0 flex-col">
@@ -55,7 +55,7 @@ export default function Home() {
                             aria-label="Download Placedv Query for Intel Mac"
                             className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
                         >
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 dark:bg-black/10">
+                            <span className="flex size-8 shrink-0 items-center justify-center">
                                 <FaApple aria-hidden="true" size={16} />
                             </span>
                             <span className="flex min-w-0 flex-col">
