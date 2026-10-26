@@ -80,7 +80,7 @@ export default function Home() {
             <div className="fixed right-5 top-5 z-50">
                 <ThemeSelector />
             </div>
-            <div className="flex w-full flex-col items-center gap-6 px-4 py-20 sm:py-24">
+            <div className="flex w-full flex-col items-center gap-5 px-4 py-16 sm:py-20">
                 <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                     <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                 </span>
@@ -93,8 +93,8 @@ export default function Home() {
                     <FaApple aria-hidden="true" size={14} />
                     Download for Mac
                 </a>
-                <section aria-label="App features" className="w-full max-w-2xl">
-                    <Accordion.Root className="grid grid-cols-1 gap-x-12 gap-y-1 sm:grid-cols-2">
+                <section aria-label="App features" className="w-full max-w-xl">
+                    <Accordion.Root>
                         {appFeatures.map(({ title, description }, index) => (
                             <Accordion.Item key={title} value={`feature-${index}`} className="py-0.5">
                                 <Accordion.Header>
