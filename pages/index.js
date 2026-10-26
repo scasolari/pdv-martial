@@ -37,19 +37,31 @@ export default function Home() {
                             href="https://github.com/scasolari/pdv-martial/releases/download/v0.0.1/Placedv.Query-0.0.1-arm64.dmg"
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                            aria-label="Download Placedv Query for Apple silicon"
+                            className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
                         >
-                            <FaApple aria-hidden="true" size={14} />
-                            Apple silicon
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 dark:bg-black/10">
+                                <FaApple aria-hidden="true" size={16} />
+                            </span>
+                            <span className="flex min-w-0 flex-col">
+                                <span className="text-xs font-semibold leading-4">Download for Mac</span>
+                                <span className="text-[10px] font-medium leading-3 opacity-70">Apple silicon</span>
+                            </span>
                         </a>
                         <a
                             href="https://github.com/scasolari/pdv-martial/releases/download/v0.0.1/Placedv.Query-0.0.1.dmg"
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-zinc-300 px-4 text-xs font-semibold text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                            aria-label="Download Placedv Query for Intel Mac"
+                            className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
                         >
-                            <FaApple aria-hidden="true" size={14} />
-                            Intel
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 dark:bg-black/10">
+                                <FaApple aria-hidden="true" size={16} />
+                            </span>
+                            <span className="flex min-w-0 flex-col">
+                                <span className="text-xs font-semibold leading-4">Download for Mac</span>
+                                <span className="text-[10px] font-medium leading-3 opacity-70">Intel processor</span>
+                            </span>
                         </a>
                     </div>
                     <p className="-mt-4 text-xs text-zinc-500 dark:text-zinc-400">Version 0.0.1</p>
