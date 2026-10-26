@@ -49,7 +49,7 @@ export default function Home() {
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
                     >
                         <Github aria-hidden="true" size={13} />
-                        View source on GitHub
+                        Steal our code (legally)
                     </a>
                 </div>
             </div>
