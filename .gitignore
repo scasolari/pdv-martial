@@ -27,6 +27,7 @@
 *.sqlite3
 /.idea/
 /.local/
+/.desktop-package/
 
 # debug
 npm-debug.log*
