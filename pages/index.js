@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
+import { Github } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function ThemeSelector() {
@@ -24,10 +25,13 @@ export default function Home() {
                 <ThemeSelector />
             </div>
             <div className="flex min-h-screen flex-col items-center justify-center gap-8 py-12">
-                <div className="flex flex-col items-center gap-8">
+                <div className="flex flex-col items-center gap-6 px-5">
                     <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                         <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                     </span>
+                    <p className="max-w-sm text-center text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                        Connect, explore and manage your databases from one focused workspace.
+                    </p>
                     <a
                         href="https://github.com/scasolari/pdv-martial/releases"
                         target="_blank"
@@ -36,6 +40,15 @@ export default function Home() {
                     >
                         <FaApple aria-hidden="true" size={14} />
                         Download for Mac
+                    </a>
+                    <a
+                        href="https://github.com/scasolari/pdv-martial"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    >
+                        <Github aria-hidden="true" size={13} />
+                        View source on GitHub
                     </a>
                 </div>
             </div>
