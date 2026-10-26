@@ -9,7 +9,7 @@ const sourceFiles = ["**/*.{js,jsx,mjs}"];
 
 const eslintConfig = [
     {
-        ignores: [".next/**", "node_modules/**", "out/**", "build/**", "generated/test-auth-client/**"],
+        ignores: ["**/.next/**", "**/node_modules/**", "**/out/**", "**/build/**", "generated/test-auth-client/**"],
     },
     {
         ...js.configs.recommended,
