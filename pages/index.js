@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { signIn } from "next-auth/react";
-import { PiGithubLogoBold } from "react-icons/pi";
+import { FaApple } from "react-icons/fa6";
 
 export default function Home() {
     return (
@@ -9,14 +8,15 @@ export default function Home() {
                 <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1">
                     <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                 </span>
-                <button
-                    type="button"
-                    onClick={() => signIn("github", { callbackUrl: "/app/playground/play" })}
+                <a
+                    href="https://github.com/scasolari/pdv-martial/releases"
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-xs font-semibold text-white transition-colors hover:bg-zinc-700"
                 >
-                    <PiGithubLogoBold aria-hidden="true" size={14} />
-                    Login with GitHub
-                </button>
+                    <FaApple aria-hidden="true" size={14} />
+                    Download for Mac
+                </a>
             </div>
         </main>
     );
