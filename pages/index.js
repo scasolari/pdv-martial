@@ -94,9 +94,6 @@ export default function Home() {
                     Download for Mac
                 </a>
                 <section aria-labelledby="features-title" className="w-[28rem] max-w-[calc(100vw-2rem)]">
-                    <h1 id="features-title" className="mb-3 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        Features
-                    </h1>
                     <Accordion.Root>
                         {appFeatures.map(({ title, description }, index) => (
                             <Accordion.Item key={title} value={`feature-${index}`} className="py-0.5">
