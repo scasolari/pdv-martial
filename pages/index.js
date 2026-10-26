@@ -24,7 +24,7 @@ export default function Home() {
                 <ThemeSelector />
             </div>
             <div className="flex flex-col items-center gap-8">
-                <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1">
+                <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                     <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                 </span>
                 <a
