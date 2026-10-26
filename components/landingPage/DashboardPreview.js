@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Avatar, { genConfig } from "react-nice-avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,6 @@ import {
     ChevronsRight,
     ChevronsUpDown,
     ChevronDown,
-    CircleUserRound,
     Columns3,
     Download,
     History,
@@ -36,6 +36,7 @@ import { previewColumns, previewRows, previewSchema } from "./previewData";
 
 const iconButtonClass = "h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800";
 const actionButtonClass = "flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800 !text-xs !font-semibold";
+const previewAvatar = genConfig("placedv-query-preview");
 
 function DashboardTopbar() {
     return <div className="bg-zinc-50 dark:bg-zinc-950">
@@ -43,7 +44,7 @@ function DashboardTopbar() {
             <div className="flex items-center gap-2 px-4 py-3">
                 <div className="flex items-center gap-2">
                     <Button aria-label="Show navigation" className={iconButtonClass}><PanelLeftOpen size={14} /></Button>
-                    <Button aria-label="Open account menu" className="h-7 w-7 rounded-full border-0 bg-transparent p-0 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"><CircleUserRound size={20} /></Button>
+                    <Button aria-label="Open account menu" className="h-7 w-7 rounded-full border-0 bg-transparent p-0 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"><Avatar aria-hidden="true" style={{ width: 20, height: 20 }} {...previewAvatar} /></Button>
                 </div>
                 <Button aria-label="Select database" title="Placedv Note v6" className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
                     <DatabaseEngineIcon dialect="sqlite" size={14} />
