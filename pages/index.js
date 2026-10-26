@@ -80,7 +80,7 @@ export default function Home() {
             <div className="fixed right-5 top-5 z-50">
                 <ThemeSelector />
             </div>
-            <div className="flex flex-col items-center gap-8 py-12">
+            <div className="flex w-full flex-col items-center gap-6 px-4 py-20 sm:py-24">
                 <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                     <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                 </span>
@@ -93,12 +93,12 @@ export default function Home() {
                     <FaApple aria-hidden="true" size={14} />
                     Download for Mac
                 </a>
-                <section aria-label="App features" className="w-[28rem] max-w-[calc(100vw-2rem)]">
-                    <Accordion.Root>
+                <section aria-label="App features" className="w-full max-w-2xl">
+                    <Accordion.Root className="grid grid-cols-1 gap-x-12 gap-y-1 sm:grid-cols-2">
                         {appFeatures.map(({ title, description }, index) => (
                             <Accordion.Item key={title} value={`feature-${index}`} className="py-0.5">
                                 <Accordion.Header>
-                                    <Accordion.Trigger className="group flex min-h-10 w-full items-center gap-3 py-2 text-left text-xs font-semibold text-zinc-900 outline-none transition-colors hover:text-zinc-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-100 dark:hover:text-zinc-300">
+                                    <Accordion.Trigger className="group flex min-h-11 w-full items-center gap-3 py-2.5 text-left text-xs font-semibold text-zinc-900 outline-none transition-colors hover:text-zinc-600 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-100 dark:hover:text-zinc-300">
                                         <span>{title}</span>
                                         <ChevronDown aria-hidden="true" size={14} className="ml-auto shrink-0 text-zinc-500 transition-transform duration-200 group-data-[open]:rotate-180" />
                                     </Accordion.Trigger>
