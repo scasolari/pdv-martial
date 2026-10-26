@@ -2,7 +2,6 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DashboardPreview from "@/components/landingPage/DashboardPreview";
 
 function ThemeSelector() {
     const { theme, setTheme } = useTheme();
@@ -24,7 +23,7 @@ export default function Home() {
             <div className="fixed right-5 top-5 z-50">
                 <ThemeSelector />
             </div>
-            <div className="mx-auto flex w-full max-w-[1440px] flex-col items-center gap-12 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+            <div className="flex min-h-screen flex-col items-center justify-center gap-8 py-12">
                 <div className="flex flex-col items-center gap-8">
                     <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                         <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
@@ -39,9 +38,6 @@ export default function Home() {
                         Download for Mac
                     </a>
                 </div>
-                <section aria-label="Product preview" className="w-full">
-                    <DashboardPreview />
-                </section>
             </div>
         </main>
     );
