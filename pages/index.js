@@ -1,14 +1,14 @@
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { PiGithubLogoBold } from "react-icons/pi";
-import { Database } from "lucide-react";
 
 export default function Home() {
     return (
         <main className="flex min-h-screen items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-8">
-                <div className="flex items-center gap-3">
-                    <span className="flex size-11 items-center justify-center rounded-xl bg-zinc-950 text-white">
-                        <Database aria-hidden="true" size={22} strokeWidth={1.8} />
+                <div className="flex flex-col items-center gap-3">
+                    <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1">
+                        <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                     </span>
                     <span className="text-xl font-semibold tracking-tight text-zinc-950">Placedv Query</span>
                 </div>
