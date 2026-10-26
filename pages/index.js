@@ -76,7 +76,7 @@ function ThemeSelector() {
 export default function Home() {
     return (
         <main className="relative flex min-h-screen items-center justify-center bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-            <div className="absolute right-5 top-5">
+            <div className="fixed right-5 top-5 z-50">
                 <ThemeSelector />
             </div>
             <div className="flex flex-col items-center gap-8 py-12">
