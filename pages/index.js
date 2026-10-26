@@ -1,7 +1,16 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
+import { Check } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const appFeatures = [
+    "Connect to MySQL, MariaDB, PostgreSQL, SQL Server, and SQLite.",
+    "Browse, filter, group, sort, edit, insert, and export table data.",
+    "Run SQL queries and inspect their results.",
+    "Review database changes and activity history.",
+    "Protect accounts with two-factor authentication and sensitive-column masking.",
+];
 
 function ThemeSelector() {
     const { theme, setTheme } = useTheme();
@@ -23,7 +32,7 @@ export default function Home() {
             <div className="absolute right-5 top-5">
                 <ThemeSelector />
             </div>
-            <div className="flex flex-col items-center gap-8">
+            <div className="flex flex-col items-center gap-8 py-12">
                 <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                     <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                 </span>
@@ -36,6 +45,19 @@ export default function Home() {
                     <FaApple aria-hidden="true" size={14} />
                     Download for Mac
                 </a>
+                <section aria-labelledby="features-title" className="w-80 max-w-[calc(100vw-2rem)]">
+                    <h1 id="features-title" className="mb-3 text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                        Features
+                    </h1>
+                    <ul className="space-y-2.5">
+                        {appFeatures.map((feature) => (
+                            <li key={feature} className="flex items-start gap-2.5 text-xs leading-5 text-zinc-600 dark:text-zinc-400">
+                                <Check aria-hidden="true" size={14} className="mt-0.5 shrink-0 text-zinc-900 dark:text-zinc-100" />
+                                <span>{feature}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
             </div>
         </main>
     );
