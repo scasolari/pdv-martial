@@ -52,6 +52,7 @@ import AddDatabase from "@/components/addDatabase";
 import useClear from "@/lib/clear";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
+import packageJson from "../../../package.json";
 
 function LeftBar(props) {
     const {
@@ -412,7 +413,7 @@ function LeftBar(props) {
                             <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
                         </div>
                         <div className="p-3 px-4">
-                            <p className="!text-xs !font-semibold text-zinc-700">Beta 0.0.2</p>
+                            <p className="!text-xs !font-semibold text-zinc-700">Version: {packageJson.version}</p>
                         </div>
                     </div>
                 </div>
