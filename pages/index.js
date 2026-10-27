@@ -4,6 +4,53 @@ import { FaApple } from "react-icons/fa6";
 import { ExternalLink, Github } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const RELEASE_FALLBACK = {
+    version: "0.0.3",
+    appleSiliconUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3-arm64.dmg",
+    intelUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3.dmg",
+};
+
+export async function getStaticProps() {
+    try {
+        const response = await fetch("https://api.github.com/repos/scasolari/pdv-martial/releases/latest", {
+            headers: {
+                Accept: "application/vnd.github+json",
+                "User-Agent": "Placedv-Query-website",
+            },
+            signal: AbortSignal.timeout(5000),
+        });
+
+        if (!response.ok) throw new Error(`GitHub release lookup failed: ${response.status}`);
+
+        const latestRelease = await response.json();
+        const assets = Array.isArray(latestRelease.assets) ? latestRelease.assets : [];
+        const appleSiliconAsset = assets.find(({ name }) => /(?:arm64|aarch64).*\.dmg$/i.test(name));
+        const intelAsset = assets.find(({ name }) => /\.dmg$/i.test(name) && !/(?:arm64|aarch64)/i.test(name));
+
+        if (!latestRelease.tag_name || !appleSiliconAsset || !intelAsset) {
+            throw new Error("Latest GitHub release is missing a Mac DMG asset.");
+        }
+
+        return {
+            props: {
+                release: {
+                    version: latestRelease.tag_name.replace(/^v/i, ""),
+                    appleSiliconUrl: appleSiliconAsset.browser_download_url,
+                    intelUrl: intelAsset.browser_download_url,
+                },
+            },
+            revalidate: 60,
+        };
+    } catch (error) {
+        console.error("Unable to load the latest GitHub release:", error);
+
+        return {
+            props: { release: RELEASE_FALLBACK },
+            revalidate: 60,
+        };
+    }
+}
+
 function ThemeSelector() {
     const { theme, setTheme } = useTheme();
 
@@ -18,7 +65,7 @@ function ThemeSelector() {
     );
 }
 
-export default function Home() {
+export default function Home({ release }) {
     return (
         <main className="relative min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
             <div className="fixed right-5 top-5 z-50 flex items-center gap-3">
@@ -48,7 +95,7 @@ export default function Home() {
                     </p>
                     <div className="flex flex-col items-center gap-2 sm:flex-row">
                         <a
-                            href="https://github.com/scasolari/pdv-martial/releases/download/v0.0.1/Placedv.Query-0.0.1-arm64.dmg"
+                            href={release.appleSiliconUrl}
                             target="_blank"
                             rel="noreferrer"
                             aria-label="Download Placedv Query for Apple silicon"
@@ -63,7 +110,7 @@ export default function Home() {
                             </span>
                         </a>
                         <a
-                            href="https://github.com/scasolari/pdv-martial/releases/download/v0.0.1/Placedv.Query-0.0.1.dmg"
+                            href={release.intelUrl}
                             target="_blank"
                             rel="noreferrer"
                             aria-label="Download Placedv Query for Intel Mac"
@@ -78,7 +125,7 @@ export default function Home() {
                             </span>
                         </a>
                     </div>
-                    <p className="-mt-4 text-xs text-zinc-500 dark:text-zinc-400">Version 0.0.1</p>
+                    <p className="-mt-4 text-xs text-zinc-500 dark:text-zinc-400">Version {release.version}</p>
                     <a
                         href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
                         target="_blank"
