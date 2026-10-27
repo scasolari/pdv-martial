@@ -82,7 +82,7 @@ function PlaygroundPlayId(props) {
     const [databaseMenuOpen, setDatabaseMenuOpen] = useState(false)
     const [databaseMenuSearch, setDatabaseMenuSearch] = useState("")
     const [addDatasetOpen, setAddDatasetOpen] = useState(false)
-    const { navigationHidden } = useNavigationVisibility()
+    const { navigationHidden, navigationWidth } = useNavigationVisibility()
     const showToolbarSkeleton = navigationHidden && !router.isReady
 
     const openOrFocusTab = (newTab) => {
@@ -902,7 +902,7 @@ function PlaygroundPlayId(props) {
         <div>
             {/* passiamo anche activeTabName */}
             <LeftBar openTab={openOrFocusTab} openSqlTab={openSqlTab} activeTabName={activeTab?.name ?? null} />
-            <div className={`${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
+            <div className="z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200" style={{ marginLeft: navigationHidden ? 0 : navigationWidth }}>
                 <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
                     <div className="border-b h-[53px] flex items-center w-full justify-between bg-zinc-50 dark:bg-zinc-900/30">
                         <div className="flex items-center gap-2 p-3 px-4">

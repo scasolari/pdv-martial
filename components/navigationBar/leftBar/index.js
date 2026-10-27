@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import AddDatabase from "@/components/addDatabase";
 import useClear from "@/lib/clear";
-import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
+import { NAVIGATION_WIDTH_MAX, NAVIGATION_WIDTH_MIN, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 import packageJson from "../../../package.json";
 
@@ -74,7 +74,28 @@ function LeftBar(props) {
     const logout = useLogout();
     const router = useRouter();
     const { data: session } = useSession();
-    const { navigationHidden, setNavigationHidden, setAppSettingsOpen } = useNavigationVisibility();
+    const { navigationHidden, navigationWidth, setNavigationWidth, setNavigationHidden, setAppSettingsOpen } = useNavigationVisibility();
+    const resizeStartX = useRef(null);
+    const resizeStartWidth = useRef(null);
+
+    const handleResizePointerDown = (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        resizeStartX.current = event.clientX;
+        resizeStartWidth.current = navigationWidth;
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleResizePointerMove = (event) => {
+        if (resizeStartX.current === null) return;
+        const nextWidth = resizeStartWidth.current + event.clientX - resizeStartX.current;
+        setNavigationWidth(Math.min(NAVIGATION_WIDTH_MAX, Math.max(NAVIGATION_WIDTH_MIN, nextWidth)));
+    };
+
+    const stopResize = () => {
+        resizeStartX.current = null;
+        resizeStartWidth.current = null;
+    };
     const [open, setOpen] = React.useState(false);
     const [openDb, setOpenDb] = React.useState(false);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
@@ -145,7 +166,7 @@ function LeftBar(props) {
 
     return (
         <>
-            <div className="h-[100vh] w-[240px] fixed top-0 border-r bg-zinc-50 dark:bg-zinc-900/30">
+            <div className="fixed top-0 h-[100vh] border-r bg-zinc-50 dark:bg-zinc-900/30" style={{ width: `${navigationWidth}px` }}>
                 <div className="flex flex-col gap-2">
                     <div className="grid gap-1 grid-cols-[26px_1fr_auto_auto] p-3 px-4">
                         <Popover>
@@ -322,6 +343,26 @@ function LeftBar(props) {
                         </div>
                     </div>
                 </div>
+                <div
+                    role="separator"
+                    aria-label="Resize navigation"
+                    aria-orientation="vertical"
+                    aria-valuemin={NAVIGATION_WIDTH_MIN}
+                    aria-valuemax={NAVIGATION_WIDTH_MAX}
+                    aria-valuenow={navigationWidth}
+                    tabIndex={0}
+                    onPointerDown={handleResizePointerDown}
+                    onPointerMove={handleResizePointerMove}
+                    onPointerUp={stopResize}
+                    onPointerCancel={stopResize}
+                    onKeyDown={(event) => {
+                        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                        event.preventDefault();
+                        const delta = event.key === "ArrowRight" ? 10 : -10;
+                        setNavigationWidth((width) => Math.min(NAVIGATION_WIDTH_MAX, Math.max(NAVIGATION_WIDTH_MIN, width + delta)));
+                    }}
+                    className="absolute -right-1 top-0 z-50 h-full w-2 cursor-col-resize touch-none outline-none after:absolute after:inset-y-0 after:left-[3px] after:w-px after:bg-transparent hover:after:bg-blue-500 focus-visible:after:bg-blue-500"
+                />
             </div>
             <AlertDialog open={deleteDatasetOpen} onOpenChange={(open) => {
                 if (!deletingDataset) setDeleteDatasetOpen(open);

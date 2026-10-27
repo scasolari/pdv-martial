@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/base-toast";
 function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, setQueryTabs, setTables }) {
     const router = useRouter();
     const clearDatabaseState = useClear();
-    const { navigationHidden } = useNavigationVisibility();
+    const { navigationHidden, navigationWidth } = useNavigationVisibility();
     const databaseId = router.query.id;
     const [dbName, setDbName] = useState("");
     const [savedDbName, setSavedDbName] = useState("");
@@ -164,7 +164,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
     return (
         <>
             <LeftBar openTab={openTable} openSqlTab={openSql} />
-            <main className={`${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
+            <main className="min-h-screen transition-[margin] duration-200" style={{ marginLeft: navigationHidden ? 0 : navigationWidth }}>
                 <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 px-4 dark:bg-zinc-950">
                     <div className="flex items-center gap-2">
                     <ShowNavigationButton />

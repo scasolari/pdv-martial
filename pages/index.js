@@ -1,13 +1,22 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
-import { ExternalLink, Github } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
+import { ChevronDown, Download, ExternalLink, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const RELEASE_FALLBACK = {
     version: "0.0.3",
+    url: "https://github.com/scasolari/pdv-martial/releases/tag/v0.0.3",
     appleSiliconUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3-arm64.dmg",
     intelUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3.dmg",
+    stars: 0,
 };
 
 export async function getStaticProps() {
@@ -31,22 +40,41 @@ export async function getStaticProps() {
             throw new Error("Latest GitHub release is missing a Mac DMG asset.");
         }
 
+        let stars = 0;
+        try {
+            const repositoryResponse = await fetch("https://api.github.com/repos/scasolari/pdv-martial", {
+                headers: {
+                    Accept: "application/vnd.github+json",
+                    "User-Agent": "Placedv-Query-website",
+                },
+                signal: AbortSignal.timeout(5000),
+            });
+            if (repositoryResponse.ok) {
+                const repository = await repositoryResponse.json();
+                stars = Number.isInteger(repository.stargazers_count) ? repository.stargazers_count : 0;
+            }
+        } catch (error) {
+            console.error("Unable to load GitHub star count:", error);
+        }
+
         return {
             props: {
                 release: {
                     version: latestRelease.tag_name.replace(/^v/i, ""),
+                    url: latestRelease.html_url,
                     appleSiliconUrl: appleSiliconAsset.browser_download_url,
                     intelUrl: intelAsset.browser_download_url,
+                    stars,
                 },
             },
-            revalidate: 60,
+            revalidate: 300,
         };
     } catch (error) {
         console.error("Unable to load the latest GitHub release:", error);
 
         return {
             props: { release: RELEASE_FALLBACK },
-            revalidate: 60,
+            revalidate: 300,
         };
     }
 }
@@ -66,73 +94,76 @@ function ThemeSelector() {
 }
 
 export default function Home({ release }) {
+    const starsLabel = release.stars >= 1000
+        ? `${Math.floor(release.stars / 1000)}k+`
+        : release.stars.toLocaleString("en-US");
+
     return (
         <main className="relative min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-            <div className="fixed right-5 top-5 z-50 flex items-center gap-3">
+            <div className="fixed right-5 top-5 z-50 flex flex-row items-center gap-3">
+                <ThemeSelector />
                 <a
                     href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
                     target="_blank"
                     rel="noreferrer"
-                    aria-label="View Placedv Query GitHub stars"
-                    className="inline-flex h-7 items-center rounded-md transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
+                    aria-label={`${starsLabel} GitHub stars`}
+                    className="inline-flex h-7 items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
                 >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src="https://img.shields.io/github/stars/scasolari/pdv-martial?style=flat&label=Stars"
-                        alt="GitHub stars"
-                        className="h-5 w-auto"
-                    />
+                    <Star aria-hidden="true" className="size-3.5 fill-amber-400 text-amber-400" />
+                    <span className="font-semibold text-zinc-950 dark:text-zinc-100">{starsLabel}</span>
+                    <span>GitHub stars</span>
                 </a>
-                <ThemeSelector />
             </div>
             <div className="flex min-h-screen flex-col items-center justify-center gap-8 py-12">
                 <div className="flex flex-col items-center gap-6 px-5">
                     <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                         <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                     </span>
-                    <p className="max-w-sm text-center text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                        Connect, explore and manage your databases from one focused workspace.
-                    </p>
-                    <div className="flex flex-col items-center gap-2 sm:flex-row">
-                        <a
-                            href={release.appleSiliconUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label="Download Placedv Query for Apple silicon"
-                            className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
-                        >
-                            <span className="flex size-8 shrink-0 items-center justify-center">
-                                <FaApple aria-hidden="true" size={16} />
-                            </span>
-                            <span className="flex min-w-0 flex-col">
-                                <span className="text-xs font-semibold leading-4">Download for Mac</span>
-                                <span className="text-[10px] font-medium leading-3 opacity-70">Apple silicon</span>
-                            </span>
-                        </a>
-                        <a
-                            href={release.intelUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label="Download Placedv Query for Intel Mac"
-                            className="group inline-flex h-12 w-52 items-center gap-3 rounded-lg bg-zinc-950 px-3 text-left text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:ring-offset-zinc-950"
-                        >
-                            <span className="flex size-8 shrink-0 items-center justify-center">
-                                <FaApple aria-hidden="true" size={16} />
-                            </span>
-                            <span className="flex min-w-0 flex-col">
-                                <span className="text-xs font-semibold leading-4">Download for Mac</span>
-                                <span className="text-[10px] font-medium leading-3 opacity-70">Intel processor</span>
-                            </span>
-                        </a>
+                    <div className="flex max-w-sm flex-col gap-1 text-center text-sm font-semibold leading-6 text-zinc-600 dark:text-zinc-400 mb-6">
+                        <h3 className="text-xl text-primary">Open-source desktop database client.</h3>
+                        <p>Connect, explore and manage your databases from one focused, open-source workspace.</p>
                     </div>
-                    <p className="-mt-4 text-xs text-zinc-500 dark:text-zinc-400">Version {release.version}</p>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className="group inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
+                            >
+                                <FaApple aria-hidden="true" size={16} />
+                                <span className="text-xs font-semibold">Download for Mac</span>
+                                <ChevronDown aria-hidden="true" className="size-4 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="center" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                            <DropdownMenuItem asChild className="text-xs font-semibold">
+                                <a href={release.appleSiliconUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Apple silicon`}>
+                                    <Download aria-hidden="true" className="mr-2 size-3.5" />
+                                    Apple silicon
+                                </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="text-xs font-semibold">
+                                <a href={release.intelUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Intel Mac`}>
+                                    <Download aria-hidden="true" className="mr-2 size-3.5" />
+                                    Intel Mac
+                                </a>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <a
+                        href={release.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="-mt-4 text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+                    >
+                        Version {release.version}
+                    </a>
                     <a
                         href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
                     >
-                        <Github aria-hidden="true" size={13} />
+                        <FaGithub aria-hidden="true" size={13} />
                         Steal our code (legally)
                         <ExternalLink aria-hidden="true" size={14} />
                     </a>

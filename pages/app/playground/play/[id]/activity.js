@@ -20,7 +20,7 @@ const ACTIVITY_GROUP_COLUMNS = Object.freeze(["Date and time", "Database", "Acti
 
 function ActivityHistoryPage({ database, setQueryTabs }) {
     const router = useRouter();
-    const { navigationHidden } = useNavigationVisibility();
+    const { navigationHidden, navigationWidth } = useNavigationVisibility();
     const databaseId = router.query.id;
     const [events, setEvents] = useState([]);
     const [activityFilter, setActivityFilter] = useState("all");
@@ -136,7 +136,7 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
     return (
         <>
             <LeftBar openTab={openTable} openSqlTab={openSql} />
-            <main className={`${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
+            <main className="min-h-screen transition-[margin] duration-200" style={{ marginLeft: navigationHidden ? 0 : navigationWidth }}>
                 <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 px-4 dark:bg-zinc-950">
                     <div className="flex items-center gap-2">
                         <ShowNavigationButton />

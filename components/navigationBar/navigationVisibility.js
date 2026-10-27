@@ -10,13 +10,16 @@ import { setNavigationHidden as setNavigationHiddenAction } from "@/redux/action
 import Image from "next/image";
 
 const NavigationVisibilityContext = createContext(null);
+export const NAVIGATION_WIDTH_MIN = 180;
+export const NAVIGATION_WIDTH_MAX = 240;
 
 export function NavigationVisibilityProvider({ children }) {
     const dispatch = useDispatch();
     const navigationHidden = useSelector((state) => state.navigationHidden);
     const setNavigationHidden = useCallback((hidden) => dispatch(setNavigationHiddenAction(hidden)), [dispatch]);
     const [appSettingsOpen, setAppSettingsOpen] = useState(false);
-    const value = useMemo(() => ({ navigationHidden, setNavigationHidden, appSettingsOpen, setAppSettingsOpen }), [navigationHidden, setNavigationHidden, appSettingsOpen]);
+    const [navigationWidth, setNavigationWidth] = useState(NAVIGATION_WIDTH_MAX);
+    const value = useMemo(() => ({ navigationHidden, setNavigationHidden, navigationWidth, setNavigationWidth, appSettingsOpen, setAppSettingsOpen }), [navigationHidden, setNavigationHidden, navigationWidth, appSettingsOpen]);
 
     return (
         <NavigationVisibilityContext.Provider value={value}>
