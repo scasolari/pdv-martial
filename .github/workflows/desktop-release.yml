@@ -47,7 +47,11 @@ jobs:
         run: npm ci
 
       - name: Build Intel packages
-        run: npm run desktop:package -- --mac --x64 --publish never
+        shell: bash
+        run: |
+          ulimit -n 65536 || ulimit -n 16384 || ulimit -n 8192
+          echo "Open-file soft limit: $(ulimit -Sn); hard limit: $(ulimit -Hn)"
+          npm run desktop:package -- --mac --x64 --publish never
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
@@ -114,7 +118,11 @@ jobs:
         run: npm ci
 
       - name: Build Apple Silicon packages
-        run: npm run desktop:package -- --mac --arm64 --publish never
+        shell: bash
+        run: |
+          ulimit -n 65536 || ulimit -n 16384 || ulimit -n 8192
+          echo "Open-file soft limit: $(ulimit -Sn); hard limit: $(ulimit -Hn)"
+          npm run desktop:package -- --mac --arm64 --publish never
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
