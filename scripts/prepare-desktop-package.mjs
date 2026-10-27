@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -27,6 +27,22 @@ const copyDirectory = async (name, shouldCopy = () => true) => {
   });
 };
 
+// Source maps are only useful for debugging and account for thousands of
+// extra files in Next.js and dependency packages. The macOS signing walk scans
+// every packaged file concurrently, so omitting maps avoids exhausting the
+// file descriptors available on GitHub-hosted macOS runners.
+const removeSourceMaps = async (directory) => {
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await removeSourceMaps(entryPath);
+    } else if (entry.isFile() && entry.name.endsWith(".map")) {
+      await rm(entryPath, { force: true });
+    }
+  }
+};
+
 await copyDirectory(".next", (path) => !["cache", "dev", "diagnostics", "types"].includes(path.split(/[\\/]/)[0]));
 await copyDirectory("prisma", (path) => !path.startsWith("migrations.mysql-legacy"));
 
@@ -46,5 +62,6 @@ await copyDirectory("public");
 await cp(join(projectRoot, "next.config.mjs"), join(stageRoot, "next.config.mjs"));
 await mkdir(join(stageRoot, "scripts"), { recursive: true });
 await cp(join(projectRoot, "scripts", "desktop-bootstrap.mjs"), join(stageRoot, "scripts", "desktop-bootstrap.mjs"));
+await removeSourceMaps(stageRoot);
 
 console.log(`Prepared desktop runtime in ${stageRoot}`);
