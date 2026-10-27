@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
-import { ChevronDown, Computer, Copy, Database, Download, EyeOff, Languages, Menu, Moon, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { Check, ChevronDown, Computer, Copy, Database, Download, EyeOff, Languages, Menu, Moon, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { toast } from "@/components/ui/base-toast";
 
 function formatByteSize(bytes) {
@@ -56,6 +56,8 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [computerInfo, setComputerInfo] = useState(null);
     const [computerInfoLoading, setComputerInfoLoading] = useState(false);
     const [computerInfoError, setComputerInfoError] = useState("");
+    const [updateInfo, setUpdateInfo] = useState(null);
+    const [updateStatus, setUpdateStatus] = useState({ status: "idle" });
     const [accountDeleteOpen, setAccountDeleteOpen] = useState(false);
     const [accountConfirmation, setAccountConfirmation] = useState("");
     const [accountDeleteCode, setAccountDeleteCode] = useState("");
@@ -89,6 +91,7 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
         { id: "navigation", label: "Navigation & Accessibility", icon: Menu },
         { id: "sensitive", label: "Sensitive data", icon: EyeOff },
         { id: "database", label: "Database preferences", icon: Database },
+        { id: "updates", label: "Updates", icon: RefreshCw },
         { id: "computer", label: "Computer", icon: Computer },
     ];
     const reduxSchemaIsCurrent = String(tables?._databaseId ?? "") === String(databaseId ?? "") && Array.isArray(tables?.data);
@@ -129,6 +132,82 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
             .finally(() => { if (!cancelled) setComputerInfoLoading(false); });
         return () => { cancelled = true; };
     }, [open, activeSection]);
+
+    useEffect(() => {
+        if (!open || activeSection !== "updates" || typeof window === "undefined") return undefined;
+        if (!window.desktopUpdates) {
+            setUpdateStatus({ status: "unsupported" });
+            return undefined;
+        }
+        let cancelled = false;
+        const unsubscribe = window.desktopUpdates.onStatus((nextStatus) => {
+            if (!cancelled) setUpdateStatus(nextStatus);
+        });
+        window.desktopUpdates.getInfo()
+            .then((info) => {
+                if (!cancelled) {
+                    setUpdateInfo(info);
+                    if (!info.supported) setUpdateStatus({ status: "unsupported" });
+                }
+            })
+            .catch((error) => {
+                if (!cancelled) setUpdateStatus({ status: "error", message: error.message || "Unable to load update information." });
+            });
+        return () => {
+            cancelled = true;
+            unsubscribe?.();
+        };
+    }, [open, activeSection]);
+
+    const checkForUpdates = async () => {
+        if (["checking", "downloading", "installing"].includes(updateStatus.status)) {
+            toast.add({ title: "Update operation in progress", description: "Wait for the current update operation to finish.", type: "warning" });
+            return;
+        }
+        if (updateStatus.status === "downloaded") {
+            toast.add({ title: "Update ready to install", description: "Restart the app to finish installing the downloaded update.", type: "warning" });
+            return;
+        }
+        if (!window.desktopUpdates || !updateInfo?.supported) {
+            setUpdateStatus({ status: "unsupported" });
+            toast.add({ title: "Update check unavailable", description: "In-app updates are available in the installed desktop app.", type: "warning" });
+            return;
+        }
+        setUpdateStatus({ status: "checking" });
+        try {
+            const result = await window.desktopUpdates.checkForUpdates();
+            setUpdateStatus(result);
+            if (result.status === "available") {
+                toast.add({ title: "Update available", description: `Version ${result.version} is ready to download.`, type: "success" });
+            } else if (result.status === "not-available") {
+                toast.add({ title: "You’re up to date", description: "You already have the latest version.", type: "success" });
+            } else if (result.status === "unsupported") {
+                toast.add({ title: "Update check unavailable", description: "In-app updates are available in the installed desktop app.", type: "warning" });
+            }
+        } catch (error) {
+            const message = error.message || "Unable to check for updates.";
+            setUpdateStatus({ status: "error", message });
+            toast.add({ title: "Unable to check for updates", description: message, type: "error" });
+        }
+    };
+
+    const downloadUpdate = async () => {
+        setUpdateStatus({ status: "downloading", percent: 0 });
+        try {
+            await window.desktopUpdates.downloadUpdate();
+        } catch (error) {
+            setUpdateStatus({ status: "error", message: error.message || "Unable to download the update." });
+        }
+    };
+
+    const installUpdate = async () => {
+        setUpdateStatus({ status: "installing" });
+        try {
+            await window.desktopUpdates.installUpdate();
+        } catch (error) {
+            setUpdateStatus({ status: "error", message: error.message || "Unable to install the update." });
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -287,7 +366,57 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                     </nav>
                 </aside>
                 <main className="h-full overflow-y-auto p-6 text-left">
-                    {activeSection === "computer" ? (
+                    {activeSection === "updates" ? (
+                        <section className="space-y-4 text-left">
+                            <div className="space-y-1">
+                                <h2 className="text-sm font-semibold">Updates</h2>
+                                <p className="text-xs font-semibold text-muted-foreground">Check for and install the latest version of Placedv Query.</p>
+                            </div>
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+                                <span className="text-xs font-semibold text-muted-foreground">Installed version</span>
+                                <span className="text-xs font-semibold">{updateInfo?.version || "Loading..."}</span>
+                            </div>
+                            {updateStatus.status === "unsupported" ? (
+                                <p className="text-xs font-semibold text-muted-foreground">In-app updates are available in the installed desktop app.</p>
+                            ) : updateStatus.status === "available" ? (
+                                <div className="space-y-3">
+                                    <p className="text-xs font-semibold">Version {updateStatus.version} is available.</p>
+                                    <Button type="button" onClick={downloadUpdate} className="h-7 gap-1.5 bg-blue-600 px-3 !text-xs !font-semibold text-white hover:bg-blue-700">
+                                        <Download size={13} /> Download update
+                                    </Button>
+                                </div>
+                            ) : updateStatus.status === "downloading" ? (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs font-semibold"><span>Downloading update...</span><span>{Math.floor(updateStatus.percent || 0)}%</span></div>
+                                    <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(updateStatus.percent || 0)} className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+                                        <div className="h-full bg-blue-600 transition-[width]" style={{ width: `${Math.min(100, Math.max(0, updateStatus.percent || 0))}%` }} />
+                                    </div>
+                                </div>
+                            ) : updateStatus.status === "downloaded" ? (
+                                <div className="space-y-3">
+                                    <p className="flex items-center gap-1.5 text-xs font-semibold"><Check size={14} className="text-green-600" />Version {updateStatus.version} is ready to install.</p>
+                                    <Button type="button" onClick={installUpdate} className="h-7 bg-blue-600 px-3 !text-xs !font-semibold text-white hover:bg-blue-700">Restart and install</Button>
+                                </div>
+                            ) : updateStatus.status === "not-available" ? (
+                                <p className="flex items-center gap-1.5 text-xs font-semibold"><Check size={14} className="text-green-600" />You’re up to date.</p>
+                            ) : updateStatus.status === "error" ? (
+                                <p role="alert" className="text-xs font-semibold text-red-600">{updateStatus.message || "Unable to check for updates."}</p>
+                            ) : updateStatus.status === "installing" ? (
+                                <p className="text-xs font-semibold text-muted-foreground">Restarting to install the update...</p>
+                            ) : updateStatus.status === "checking" ? (
+                                <p className="text-xs font-semibold text-muted-foreground">Checking for updates...</p>
+                            ) : updateStatus.status === "idle" || updateStatus.status === "cancelled" ? (
+                                <p className="text-xs font-semibold text-muted-foreground">{updateInfo ? "Check GitHub for a newer release." : "Loading update information..."}</p>
+                            ) : null}
+                            <Button
+                                type="button"
+                                onClick={checkForUpdates}
+                                className="h-7 gap-1.5 bg-blue-600 px-3 !text-xs !font-semibold text-white hover:bg-blue-700"
+                            >
+                                <RefreshCw size={13} /> Check for updates
+                            </Button>
+                        </section>
+                    ) : activeSection === "computer" ? (
                         <section className="space-y-4 text-left">
                             <div className="space-y-1">
                                 <h2 className="text-sm font-semibold">Computer information</h2>

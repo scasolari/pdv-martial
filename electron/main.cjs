@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, nativeTheme, safeStorage, utilityProcess } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const { spawn } = require("node:child_process");
 const { createServer } = require("node:net");
 const { join } = require("node:path");
@@ -14,6 +15,7 @@ let mainWindow;
 let isQuitting = false;
 let localApiToken;
 const devMode = process.argv.includes("--dev");
+let updateCheckInProgress = false;
 
 // Development Electron and signed production builds can have different OS
 // keychain identities. Keep their encrypted keys and local data separate.
@@ -31,6 +33,89 @@ ipcMain.on("desktop:toggle-maximize", (event) => {
     if (!mainWindow || event.sender !== mainWindow.webContents) return;
     if (mainWindow.isMaximized()) mainWindow.unmaximize();
     else mainWindow.maximize();
+});
+
+function assertMainWindowSender(event) {
+    if (!mainWindow || event.sender !== mainWindow.webContents) {
+        throw new Error("Update requests are only allowed from the desktop window.");
+    }
+}
+
+function sendUpdateStatus(status) {
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send("desktop:update-status", status);
+}
+
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+autoUpdater.on("checking-for-update", () => sendUpdateStatus({ status: "checking" }));
+autoUpdater.on("update-available", (info) => sendUpdateStatus({ status: "available", version: info.version, releaseNotes: info.releaseNotes || null }));
+autoUpdater.on("update-not-available", (info) => sendUpdateStatus({ status: "not-available", version: info.version }));
+autoUpdater.on("download-progress", (progress) => sendUpdateStatus({
+    status: "downloading",
+    percent: progress.percent,
+    transferred: progress.transferred,
+    total: progress.total,
+    bytesPerSecond: progress.bytesPerSecond,
+}));
+autoUpdater.on("update-downloaded", (info) => sendUpdateStatus({ status: "downloaded", version: info.version }));
+autoUpdater.on("update-cancelled", () => sendUpdateStatus({ status: "cancelled" }));
+autoUpdater.on("error", (error) => {
+    console.error("Desktop update failed", error);
+    sendUpdateStatus({ status: "error", message: error?.message || "Unable to check for updates." });
+});
+
+ipcMain.handle("desktop:update-info", (event) => {
+    assertMainWindowSender(event);
+    return {
+        version: app.getVersion(),
+        supported: app.isPackaged && !devMode && ["darwin", "linux", "win32"].includes(process.platform),
+        platform: process.platform,
+    };
+});
+
+ipcMain.handle("desktop:update-check", async (event) => {
+    assertMainWindowSender(event);
+    if (!app.isPackaged || devMode) return { status: "unsupported" };
+    if (updateCheckInProgress) return { status: "checking" };
+
+    updateCheckInProgress = true;
+    sendUpdateStatus({ status: "checking" });
+    try {
+        const result = await autoUpdater.checkForUpdates();
+        const response = result?.isUpdateAvailable
+            ? { status: "available", version: result.updateInfo.version, releaseNotes: result.updateInfo.releaseNotes || null }
+            : { status: "not-available", version: result?.updateInfo?.version || app.getVersion() };
+        sendUpdateStatus(response);
+        return response;
+    } catch (error) {
+        const response = { status: "error", message: error?.message || "Unable to check for updates." };
+        sendUpdateStatus(response);
+        throw new Error(response.message);
+    } finally {
+        updateCheckInProgress = false;
+    }
+});
+
+ipcMain.handle("desktop:update-download", async (event) => {
+    assertMainWindowSender(event);
+    if (!app.isPackaged || devMode) throw new Error("Updates are only available in the installed desktop app.");
+    try {
+        await autoUpdater.downloadUpdate();
+        return { status: "downloaded" };
+    } catch (error) {
+        const message = error?.message || "Unable to download the update.";
+        sendUpdateStatus({ status: "error", message });
+        throw new Error(message);
+    }
+});
+
+ipcMain.handle("desktop:update-install", (event) => {
+    assertMainWindowSender(event);
+    if (!app.isPackaged || devMode) throw new Error("Updates are only available in the installed desktop app.");
+    sendUpdateStatus({ status: "installing" });
+    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+    return { status: "installing" };
 });
 
 const hasAppLock = app.requestSingleInstanceLock();
