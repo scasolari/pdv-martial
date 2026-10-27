@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const stageRoot = join(projectRoot, ".desktop-package");
@@ -13,6 +14,11 @@ delete packageJson.devDependencies;
 delete packageJson.scripts;
 await writeFile(join(stageRoot, "package.json"), `${JSON.stringify(packageJson, null, 2)}\n`);
 
+// Build a clean production dependency tree instead of copying the development
+// checkout's entire node_modules (which can overwhelm electron-builder's file
+// copying/signing step on GitHub macOS runners).
+await cp(join(projectRoot, "package-lock.json"), join(stageRoot, "package-lock.json"));
+
 const copyDirectory = async (name, shouldCopy = () => true) => {
   const source = join(projectRoot, name);
   await cp(source, join(stageRoot, name), {
@@ -22,10 +28,21 @@ const copyDirectory = async (name, shouldCopy = () => true) => {
 };
 
 await copyDirectory(".next", (path) => !["cache", "dev", "diagnostics", "types"].includes(path.split(/[\\/]/)[0]));
-await copyDirectory("node_modules");
+await copyDirectory("prisma", (path) => !path.startsWith("migrations.mysql-legacy"));
+
+const installResult = spawnSync("npm", ["ci", "--omit=dev"], {
+  cwd: stageRoot,
+  stdio: "inherit",
+  env: process.env,
+});
+if (installResult.error) throw installResult.error;
+if ((installResult.status ?? 1) !== 0) process.exit(installResult.status ?? 1);
+
+// Preserve the Prisma client generated for the production build. It contains
+// the platform-specific engine selected on the packaging runner.
+await cp(join(projectRoot, "node_modules", ".prisma"), join(stageRoot, "node_modules", ".prisma"), { recursive: true });
 await copyDirectory("electron");
 await copyDirectory("public");
-await copyDirectory("prisma", (path) => !path.startsWith("migrations.mysql-legacy"));
 await cp(join(projectRoot, "next.config.mjs"), join(stageRoot, "next.config.mjs"));
 await mkdir(join(stageRoot, "scripts"), { recursive: true });
 await cp(join(projectRoot, "scripts", "desktop-bootstrap.mjs"), join(stageRoot, "scripts", "desktop-bootstrap.mjs"));
