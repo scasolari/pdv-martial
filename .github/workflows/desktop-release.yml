@@ -37,9 +37,16 @@ jobs:
         env:
           MAC_CERTIFICATE_BASE64: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
           if [[ -z "$MAC_CERTIFICATE_BASE64" || -z "$MAC_CERTIFICATE_PASSWORD" ]]; then
             echo "Configure MAC_CERTIFICATE_BASE64 and MAC_CERTIFICATE_PASSWORD repository secrets before publishing." >&2
+            exit 1
+          fi
+          if [[ -z "$APPLE_API_KEY" || -z "$APPLE_API_KEY_ID" || -z "$APPLE_API_ISSUER" ]]; then
+            echo "Configure APPLE_API_KEY, APPLE_API_KEY_ID, and APPLE_API_ISSUER repository secrets before publishing notarized macOS builds." >&2
             exit 1
           fi
 
@@ -55,6 +62,9 @@ jobs:
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
       - name: Collect Intel packages
         shell: bash
@@ -108,9 +118,16 @@ jobs:
         env:
           MAC_CERTIFICATE_BASE64: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
           if [[ -z "$MAC_CERTIFICATE_BASE64" || -z "$MAC_CERTIFICATE_PASSWORD" ]]; then
             echo "Configure MAC_CERTIFICATE_BASE64 and MAC_CERTIFICATE_PASSWORD repository secrets before publishing." >&2
+            exit 1
+          fi
+          if [[ -z "$APPLE_API_KEY" || -z "$APPLE_API_KEY_ID" || -z "$APPLE_API_ISSUER" ]]; then
+            echo "Configure APPLE_API_KEY, APPLE_API_KEY_ID, and APPLE_API_ISSUER repository secrets before publishing notarized macOS builds." >&2
             exit 1
           fi
 
@@ -126,6 +143,9 @@ jobs:
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
       - name: Collect Apple Silicon packages
         shell: bash
