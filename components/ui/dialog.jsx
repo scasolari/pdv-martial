@@ -22,7 +22,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
+const DialogContent = React.forwardRef(({ className, children, onPointerDownOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -31,6 +31,13 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
         "fixed left-[50%] top-16 z-50 grid max-h-[calc(100vh-8rem)] w-full max-w-lg translate-x-[-50%] gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-4 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-4 sm:rounded-lg",
         className
       )}
+      onPointerDownOutside={(event) => {
+        onPointerDownOutside?.(event);
+        const target = event.detail.originalEvent.target;
+        if (target instanceof Element && target.closest("[data-toast-root]")) {
+          event.preventDefault();
+        }
+      }}
       {...props}>
       {children}
     </DialogPrimitive.Content>
