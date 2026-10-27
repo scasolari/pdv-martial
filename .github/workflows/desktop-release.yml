@@ -49,8 +49,8 @@ jobs:
       - name: Build Intel packages
         shell: bash
         run: |
-          ulimit -n 8192 || ulimit -n 4096
-          echo "Open-file limit: $(ulimit -n)"
+          ulimit -n 65536 || ulimit -n 16384 || ulimit -n 8192
+          echo "Open-file soft limit: $(ulimit -Sn); hard limit: $(ulimit -Hn)"
           npm run desktop:package -- --mac --x64 --publish never
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
@@ -75,8 +75,8 @@ jobs:
       - name: Build Apple Silicon packages
         shell: bash
         run: |
-          ulimit -n 8192 || ulimit -n 4096
-          echo "Open-file limit: $(ulimit -n)"
+          ulimit -n 65536 || ulimit -n 16384 || ulimit -n 8192
+          echo "Open-file soft limit: $(ulimit -Sn); hard limit: $(ulimit -Hn)"
           npm run desktop:package -- --mac --arm64 --publish never
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
