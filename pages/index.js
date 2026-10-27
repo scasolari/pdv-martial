@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { FaApple } from "react-icons/fa6";
-import { Github } from "lucide-react";
+import { ExternalLink, Github } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function ThemeSelector() {
@@ -21,7 +21,21 @@ function ThemeSelector() {
 export default function Home() {
     return (
         <main className="relative min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-            <div className="fixed right-5 top-5 z-50">
+            <div className="fixed right-5 top-5 z-50 flex items-center gap-3">
+                <a
+                    href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="View Placedv Query GitHub stars"
+                    className="inline-flex h-7 items-center rounded-md transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="https://img.shields.io/github/stars/scasolari/pdv-martial?style=flat&label=Stars"
+                        alt="GitHub stars"
+                        className="h-5 w-auto"
+                    />
+                </a>
                 <ThemeSelector />
             </div>
             <div className="flex min-h-screen flex-col items-center justify-center gap-8 py-12">
@@ -73,6 +87,7 @@ export default function Home() {
                     >
                         <Github aria-hidden="true" size={13} />
                         Steal our code (legally)
+                        <ExternalLink aria-hidden="true" size={14} />
                     </a>
                 </div>
             </div>
