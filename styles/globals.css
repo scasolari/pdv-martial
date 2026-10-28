@@ -108,6 +108,10 @@ html[data-electron-platform="darwin"] {
     transition: none !important;
 }
 
+.electron-sidebar-resizing .electron-initial-empty-state {
+    transition: none !important;
+}
+
 .electron-sidebar-resize-handle {
     position: absolute;
     top: 0;

@@ -192,6 +192,13 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
             </div>
             </div>
         </div>}
+        {!database?.db_id && <main
+            aria-label="Workspace"
+            className="electron-initial-empty-state fixed bottom-0 right-0 top-[53px] z-0 flex items-center justify-center px-6 text-center transition-[left] duration-200"
+            style={{ left: navigationHidden ? 0 : "var(--electron-sidebar-width)" }}
+        >
+            <p className="text-sm font-semibold text-muted-foreground">Select a database from the sidebar to start working.</p>
+        </main>}
         <AlertDialog open={addDatasetOpen} onOpenChange={setAddDatasetOpen}>
             <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                 <AlertDialogHeader>
