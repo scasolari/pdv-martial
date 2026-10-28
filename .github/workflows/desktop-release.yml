@@ -195,15 +195,34 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           output_dir="$GITHUB_WORKSPACE/../pdv-martial-desktop-builds"
           mkdir -p release-assets
-          for suffix in "-arm64.dmg" "-arm64.dmg.blockmap" "-arm64-mac.zip" "-arm64-mac.zip.blockmap"; do
-            source="$output_dir/Placedv Query-$version$suffix"
-            target="release-assets/Placedv-Query-$version$suffix"
-            if [[ ! -f "$source" ]]; then
-              echo "Missing Apple Silicon package: $source" >&2
-              exit 1
-            fi
-            cp "$source" "$target"
-          done
+          shopt -s nullglob
+          echo "Apple Silicon build output ($output_dir):"
+          ls -lah "$output_dir"
+
+          # electron-builder can omit the architecture segment from the DMG
+          # name when only one macOS architecture is packaged. This job builds
+          # arm64 on a clean runner, so identify its outputs by type and publish
+          # them under stable architecture-specific release names.
+          dmg_candidates=("$output_dir"/Placedv\ Query-*-arm64.dmg)
+          if (( ${#dmg_candidates[@]} == 0 )); then
+            dmg_candidates=("$output_dir"/Placedv\ Query-*.dmg)
+          fi
+          zip_candidates=("$output_dir"/Placedv\ Query-*-arm64-mac.zip)
+          if (( ${#zip_candidates[@]} == 0 )); then
+            zip_candidates=("$output_dir"/Placedv\ Query-*-mac.zip)
+          fi
+
+          if (( ${#dmg_candidates[@]} != 1 || ${#zip_candidates[@]} != 1 )); then
+            echo "Expected one DMG and one ZIP from the arm64 build; found ${#dmg_candidates[@]} DMGs and ${#zip_candidates[@]} ZIPs." >&2
+            exit 1
+          fi
+
+          dmg="${dmg_candidates[0]}"
+          zip="${zip_candidates[0]}"
+          cp "$dmg" "release-assets/Placedv-Query-$version-arm64.dmg"
+          cp "$dmg.blockmap" "release-assets/Placedv-Query-$version-arm64.dmg.blockmap"
+          cp "$zip" "release-assets/Placedv-Query-$version-arm64-mac.zip"
+          cp "$zip.blockmap" "release-assets/Placedv-Query-$version-arm64-mac.zip.blockmap"
 
       - name: Upload Apple Silicon packages
         uses: actions/upload-artifact@v4
