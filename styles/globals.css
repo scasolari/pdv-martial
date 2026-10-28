@@ -81,6 +81,10 @@ html[data-electron-platform="darwin"] .electron-titlebar-drag-region {
     -webkit-app-region: drag;
 }
 
+.electron-titlebar-no-drag {
+    -webkit-app-region: no-drag;
+}
+
 html[data-electron-platform="darwin"] .electron-toast-no-drag {
     -webkit-app-region: no-drag;
 }

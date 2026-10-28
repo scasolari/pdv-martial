@@ -178,21 +178,21 @@ function PlaygroundPlayId(props) {
         }
         setTableMenuError("")
         setHiddenNavigationSchema({ databaseId, data: [] })
-        setTables({ _databaseId: databaseId, data: [] })
+        setTables({ _databaseId: databaseId, data: [], _schemaLoaded: false })
 
         return axios.get(`/api/playground/db/table?db_id=${encodeURIComponent(databaseId)}`)
             .then(({ data }) => {
                 if (String(activeDatabaseIdRef.current) !== String(databaseId) || requestId !== tableSchemaRequestRef.current) return
                 const schema = Array.isArray(data?.data) ? data.data : []
                 setHiddenNavigationSchema({ databaseId, data: schema })
-                setTables({ ...data, data: schema, _databaseId: databaseId, _dialect: data.dialect })
+                setTables({ ...data, data: schema, _databaseId: databaseId, _dialect: data.dialect, _schemaLoaded: true })
             })
             .catch((error) => {
                 if (requestId === tableSchemaRequestRef.current && String(activeDatabaseIdRef.current) === String(databaseId)) {
                     console.error("Unable to load database tables", error)
                     setTableMenuError(error.response?.data?.error || error.response?.data?.message || "Unable to load tables")
                     setHiddenNavigationSchema({ databaseId, data: [] })
-                    setTables({ _databaseId: databaseId, data: [] })
+                    setTables({ _databaseId: databaseId, data: [], _schemaLoaded: false })
                 }
             })
             .finally(() => {
@@ -915,7 +915,7 @@ function PlaygroundPlayId(props) {
             <div className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
                 <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
                     <div className="border-b h-[53px] flex items-center w-full justify-between bg-zinc-50 dark:bg-zinc-900/30">
-                        <div className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 p-3 px-4`}>
+                        <div data-command-search-left className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 p-3 px-4`}>
                             <ShowNavigationButton />
                             {showToolbarSkeleton && <div className="flex items-center gap-2" aria-label="Loading database toolbar" aria-busy="true">
                                 <Skeleton className="h-7 w-32" />
@@ -1073,7 +1073,7 @@ function PlaygroundPlayId(props) {
                                 </AlertDialogHeader>
                             </AlertDialogContent>
                         </AlertDialog>
-                        <div className="flex items-center gap-2 p-3 px-4">
+                        <div data-command-search-right className="flex items-center gap-2 p-3 px-4">
                             {showToolbarSkeleton ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-20" /></div> : <>
                             {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><History size={12} />History</Button>}
                             {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><Settings2 size={12} />Settings</Button>}

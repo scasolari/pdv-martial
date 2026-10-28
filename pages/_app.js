@@ -8,6 +8,7 @@ import {NavigationVisibilityProvider, useNavigationVisibility} from "@/component
 import {Toaster} from "@/components/ui/base-toast";
 import {useEffect} from "react";
 import {useTheme} from "next-themes";
+import GlobalCommandSearch from "@/components/globalCommandSearch";
 
 const AppSettingsDialog = dynamic(() => import("@/components/appSettingsDialog"));
 
@@ -36,6 +37,7 @@ export default function App({Component, pageProps}) {
                 <NativeThemeSync />
                 <NavigationVisibilityProvider>
                     <Component {...pageProps} />
+                    <GlobalCommandSearch />
                     <GlobalSettingsDialog />
                     <Toaster />
                 </NavigationVisibilityProvider>

@@ -2,15 +2,14 @@ import Link from "next/link";
 import {BiCode, BiPlus} from "react-icons/bi";
 import { useRouter } from "next/router";
 import { connect } from "react-redux";
-import {useCallback, useEffect} from "react";
+import {useEffect} from "react";
 import Image from "next/image";
-import {setDatabase, setDatabases, setProfile, setQuery, setTables} from "@/redux/actions/main";
+import {setProfile} from "@/redux/actions/main";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import axios from "axios";
 import {useTheme} from "next-themes";
 import {
     Tooltip,
@@ -24,7 +23,7 @@ import LocalAvatar from "@/components/localAvatar";
 
 
 function NavigationBar(props) {
-    const { profile, setProfile, setDatabases } = props;
+    const { profile, setProfile } = props;
     const router = useRouter();
     const {theme, setTheme} = useTheme()
     const {setAppSettingsOpen} = useNavigationVisibility();
@@ -33,17 +32,9 @@ function NavigationBar(props) {
         return router.pathname === path || router.pathname.startsWith(`${path}/`);
     };
 
-    const fetchDatabases = useCallback(() => {
-        axios.get("/api/database")
-            .then((response) => {
-                setDatabases(response.data);
-            })
-    }, [setDatabases]);
-
     useEffect(() => {
-        fetchDatabases()
         setProfile({ user: { id: "placedv-local-user", name: "Local user", email: "Local desktop" } });
-    }, [fetchDatabases, setProfile]);
+    }, [setProfile]);
 
     return <div className="h-[100vh] fixed top-0 px-3 py-4 border-r">
         <div className="flex flex-col items-center gap-3">
@@ -129,10 +120,6 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = {
     setProfile,
-    setDatabases,
-    setDatabase,
-    setQuery,
-    setTables
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NavigationBar);

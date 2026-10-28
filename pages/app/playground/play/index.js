@@ -13,7 +13,7 @@ import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Columns3, History, Plus, RefreshCcw, Settings2, Table } from "lucide-react";
+import { Check, Columns3, Database, History, MousePointer2, Plus, RefreshCcw, Settings2, Table } from "lucide-react";
 import { setDatabase, setDatabases, setQuery, setQueryResults, setQueryTabs, setTables } from "@/redux/actions/main";
 
 function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQuery, setQueryResults, setQueryTabs, setTables }) {
@@ -96,7 +96,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
         <LeftBar />
         {navigationHidden && <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
             <div className="flex h-[53px] w-full items-center justify-between border-b bg-zinc-50 dark:bg-zinc-900/30">
-            <div className="electron-titlebar-safe-left electron-titlebar-safe-left-controls flex items-center gap-2 px-4 py-3">
+            <div data-command-search-left className="electron-titlebar-safe-left electron-titlebar-safe-left-controls flex items-center gap-2 px-4 py-3">
             <ShowNavigationButton />
             {toolbarLoading ? <div className="flex items-center gap-2" aria-label="Loading database toolbar" aria-busy="true">
                 <Skeleton className="h-7 w-32" />
@@ -184,7 +184,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
             </>}
             </div>
             <ElectronTitlebarSpacer />
-            <div className="flex items-center gap-2 px-4 py-3">
+            <div data-command-search-right className="flex items-center gap-2 px-4 py-3">
                 {toolbarLoading ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /></div> : <>
                     {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800 !text-xs !font-semibold"><History size={12} />History</Button>}
                     {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800 !text-xs !font-semibold"><Settings2 size={12} />Settings</Button>}
@@ -197,7 +197,31 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
             className="electron-initial-empty-state fixed bottom-0 right-0 top-[53px] z-0 flex items-center justify-center px-6 text-center transition-[left] duration-200"
             style={{ left: navigationHidden ? 0 : "var(--electron-sidebar-width)" }}
         >
-            <p className="text-sm font-semibold text-muted-foreground">Select a database from the sidebar to start working.</p>
+            <div className="flex max-w-sm flex-col items-center gap-5">
+                <div aria-hidden="true" className="relative flex h-44 w-72 items-center justify-center">
+                    <div className="relative w-60 overflow-hidden rounded-xl border border-border/80 bg-card shadow-xl shadow-black/10">
+                        <div className="space-y-1 p-2.5">
+                            <div className="flex items-center gap-2 rounded-md px-2.5 py-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/35" />
+                                <span className="h-1.5 w-20 rounded-full bg-muted-foreground/20" />
+                            </div>
+                            <div className="relative flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                <span className="h-1.5 w-28 rounded-full bg-primary/35" />
+                                <MousePointer2 className="absolute -bottom-3 right-5 h-6 w-6 rotate-[-12deg] fill-primary stroke-background drop-shadow-md" strokeWidth={1.8} />
+                            </div>
+                            <div className="flex items-center gap-2 rounded-md px-2.5 py-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/35" />
+                                <span className="h-1.5 w-16 rounded-full bg-muted-foreground/20" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-1.5">
+                    <h1 className="text-base font-semibold tracking-tight text-foreground">Choose a database to get started</h1>
+                    <p className="whitespace-nowrap text-sm text-muted-foreground">Select one from the sidebar to browse tables and run queries.</p>
+                </div>
+            </div>
         </main>}
         <AlertDialog open={addDatasetOpen} onOpenChange={setAddDatasetOpen}>
             <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">

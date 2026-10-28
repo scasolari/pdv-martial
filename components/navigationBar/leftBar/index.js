@@ -28,7 +28,7 @@ import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
+import { Database, PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
 import LocalAvatar from "@/components/localAvatar";
 import {
     Tooltip,
@@ -87,13 +87,8 @@ function LeftBar(props) {
     const [sidebarWidth, setSidebarWidth] = useState(null);
     const [value, setValue] = React.useState("");
     const frameworks = databases;
+    const compactDatabaseSelector = sidebarWidth !== null && sidebarWidth <= 300;
     const clearDatabaseState = useClear();
-
-    const fetchDatabases = useCallback(() => {
-        axios.get("/api/database").then((response) => {
-            setDatabases(response.data);
-        });
-    }, [setDatabases]);
 
     const refreshDatabaseSchema = async () => {
         if (!database?.db_id || refreshingSchema) return;
@@ -137,9 +132,8 @@ function LeftBar(props) {
     };
 
     useEffect(() => {
-        fetchDatabases();
         setProfile({ user: { id: "placedv-local-user", name: "Local user", email: "Local desktop" } });
-    }, [fetchDatabases, setProfile]);
+    }, [setProfile]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -274,13 +268,19 @@ function LeftBar(props) {
                                     <Button
                                         variant="outline"
                                         role="combobox"
-                                        aria-expanded={open}
-                                        className="hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 flex w-full overflow-hidden truncate flex-row gap-3 px-3 h-7 rounded-md justify-between !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900"
+                                        aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
+                                        title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
+                                        aria-expanded={openDb}
+                                        className={`hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "w-7 shrink-0 justify-self-center justify-center p-0" : "w-full justify-between gap-2 px-2"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
                                     >
-                                        <p className="truncate overflow-hidden !text-xs">
-                                            {value || database?.db_name || "Select dataset..."}
-                                        </p>
-                                        <BiExpandVertical size={16} />
+                                        {compactDatabaseSelector ? (
+                                            <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                        ) : (
+                                            <span className="min-w-0 flex-1 truncate text-left !text-xs">
+                                                {value || database?.db_name || "Select dataset..."}
+                                            </span>
+                                        )}
+                                        {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent

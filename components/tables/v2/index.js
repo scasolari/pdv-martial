@@ -46,7 +46,9 @@ function TablesV2(props) {
     const store = useStore();
     const router = useRouter();
 
-    const hasCurrentTables = tables?._databaseId === database?.db_id && Array.isArray(tables?.data);
+    const hasCurrentTables = tables?._databaseId === database?.db_id
+        && Array.isArray(tables?.data)
+        && (tables._schemaLoaded === true || tables.data.length > 0);
     const fetchTables = useCallback(async () => {
         if (!database?.db_id) return;
         if (hasCurrentTables) {
@@ -57,7 +59,7 @@ function TablesV2(props) {
         axios
             .get(`/api/playground/db/table?db_id=${database?.db_id}`)
             .then((response) => {
-                setTables({ ...response.data, _databaseId: database.db_id, _dialect: response.data.dialect });
+                setTables({ ...response.data, _databaseId: database.db_id, _dialect: response.data.dialect, _schemaLoaded: true });
                 setLoading(false);
             })
             .catch(() => setLoading(false));
