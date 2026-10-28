@@ -1,6 +1,6 @@
 {
   "name": "placedv-query",
-  "version": "0.0.7-fix.001",
+  "version": "0.0.8",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
