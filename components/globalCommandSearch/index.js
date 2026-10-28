@@ -19,6 +19,8 @@ export default function GlobalCommandSearch() {
     const queryTabs = useSelector((state) => state.queryTabs || []);
     const [open, setOpen] = useState(false);
     const [searchPosition, setSearchPosition] = useState(null);
+    const [titlebarDragBounds, setTitlebarDragBounds] = useState(null);
+    const searchButtonRef = useRef(null);
     const hasFetchedDatabases = useRef(false);
     const isAppRoute = router.pathname.startsWith("/app");
 
@@ -48,24 +50,39 @@ export default function GlobalCommandSearch() {
         const updateCenter = () => {
             const leftGroup = document.querySelector("[data-command-search-left]");
             const rightGroup = document.querySelector("[data-command-search-right]");
+            let leftLimit;
+            let rightLimit;
+            let centerX;
+            let centerY;
             if (leftGroup && rightGroup) {
                 const leftRect = leftGroup.getBoundingClientRect();
                 const rightRect = rightGroup.getBoundingClientRect();
-                const nextPosition = {
-                    x: (leftRect.right + rightRect.left) / 2,
-                    y: (leftRect.top + leftRect.bottom + rightRect.top + rightRect.bottom) / 4,
-                };
-                setSearchPosition((current) => current?.x === nextPosition.x && current?.y === nextPosition.y ? current : nextPosition);
-                return;
+                leftLimit = leftRect.right;
+                rightLimit = rightRect.left;
+                centerX = (leftLimit + rightLimit) / 2;
+                centerY = (leftRect.top + leftRect.bottom + rightRect.top + rightRect.bottom) / 4;
+            } else {
+                const sidebarWidth = navigationHidden ? 0 : Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--electron-sidebar-width")) || 0;
+                const topBar = document.querySelector(".electron-main-with-sidebar > div > div");
+                const topBarRect = topBar?.getBoundingClientRect();
+                leftLimit = navigationHidden ? (document.documentElement.dataset.electronPlatform === "darwin" ? 80 : 0) : sidebarWidth;
+                rightLimit = window.innerWidth;
+                centerX = (leftLimit + rightLimit) / 2;
+                centerY = topBarRect ? (topBarRect.top + topBarRect.bottom) / 2 : 26.5;
             }
-            const sidebarWidth = navigationHidden ? 0 : Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--electron-sidebar-width")) || 0;
-            const topBar = document.querySelector(".electron-main-with-sidebar > div > div");
-            const topBarRect = topBar?.getBoundingClientRect();
-            const nextPosition = {
-                x: (window.innerWidth + sidebarWidth) / 2,
-                y: topBarRect ? (topBarRect.top + topBarRect.bottom) / 2 : 26.5,
-            };
+
+            const nextPosition = { x: centerX, y: centerY };
             setSearchPosition((current) => current?.x === nextPosition.x && current?.y === nextPosition.y ? current : nextPosition);
+
+            const fallbackSearchWidth = window.innerWidth <= 640 ? 32 : Math.min(window.innerWidth * 0.26, 320);
+            const searchWidth = searchButtonRef.current?.getBoundingClientRect().width || fallbackSearchWidth;
+            const searchLeft = centerX - searchWidth / 2;
+            const searchRight = centerX + searchWidth / 2;
+            const nextBounds = {
+                left: { left: leftLimit, width: Math.max(0, searchLeft - leftLimit) },
+                right: { left: searchRight, width: Math.max(0, rightLimit - searchRight) },
+            };
+            setTitlebarDragBounds((current) => JSON.stringify(current) === JSON.stringify(nextBounds) ? current : nextBounds);
         };
 
         updateCenter();
@@ -155,12 +172,35 @@ export default function GlobalCommandSearch() {
         router.push(path);
     };
 
+    const toggleWindowMaximize = () => window.desktopWindow?.toggleMaximize?.();
+
     return <>
+        {titlebarDragBounds && <>
+            <div
+                aria-hidden="true"
+                className="electron-titlebar-drag-region fixed top-0 z-40 h-[53px] select-none"
+                style={titlebarDragBounds.left}
+                onDoubleClick={toggleWindowMaximize}
+            />
+            <div
+                aria-hidden="true"
+                className="electron-titlebar-drag-region fixed top-0 z-40 h-[53px] select-none"
+                style={titlebarDragBounds.right}
+                onDoubleClick={toggleWindowMaximize}
+            />
+        </>}
         <Button
+            ref={searchButtonRef}
             type="button"
             variant="outline"
             aria-label="Search or run commands"
             onClick={() => setOpen(true)}
+            onDoubleClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpen(false);
+                toggleWindowMaximize();
+            }}
             style={{
                 left: searchPosition ? `${searchPosition.x}px` : (navigationHidden ? "50%" : "calc((100vw + var(--electron-sidebar-width)) / 2)"),
                 top: searchPosition ? `${searchPosition.y}px` : "26.5px",
