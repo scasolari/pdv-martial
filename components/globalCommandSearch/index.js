@@ -205,12 +205,6 @@ export default function GlobalCommandSearch() {
                 </>}
                 <CommandSeparator />
                 <CommandGroup heading="Navigation">
-                    <CommandItem onSelect={() => go("/app/dashboard")}>
-                        <LayoutDashboard /><span>Open dashboard</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => go("/app/playground/play")}>
-                        <Database /><span>Open playground</span>
-                    </CommandItem>
                     <CommandItem onSelect={() => go("/app/add/dataset")}>
                         <Plus /><span>Add database</span>
                     </CommandItem>
