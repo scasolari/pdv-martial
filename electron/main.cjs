@@ -250,6 +250,9 @@ async function startLocalApp() {
     const appDir = app.getAppPath();
     const port = await findPort();
     const sqlitePath = join(app.getPath("userData"), "placedv.sqlite");
+    const sqliteUrl = process.platform === "win32"
+        ? `file:${sqlitePath.replace(/\\/g, "/").split("/").map((part, index) => index === 0 ? part : encodeURIComponent(part)).join("/")}`
+        : pathToFileURL(sqlitePath).href;
     const keyPath = join(app.getPath("userData"), devMode ? "dev-encryption-key" : "encryption-key");
     const encryptionKey = devMode
         ? await loadOrCreateDevEncryptionKey(keyPath)
@@ -258,7 +261,7 @@ async function startLocalApp() {
     const env = {
         ...process.env,
         NODE_ENV: devMode ? "development" : "production",
-        DATABASE_URL: pathToFileURL(sqlitePath).href,
+        DATABASE_URL: sqliteUrl,
         DATABASE_SQLITE_STORAGE_DIR: join(app.getPath("userData"), "sqlite"),
         DB_ENCRYPTION_KEY: encryptionKey,
         PDV_DESKTOP_APP: "1",
