@@ -60,6 +60,12 @@ if ((installResult.status ?? 1) !== 0) process.exit(installResult.status ?? 1);
 // is unavailable. Its legacy NAN binding does not build against Electron 45,
 // so omit it from the packaged runtime and let ssh2 use its portable fallback.
 await rm(join(stageRoot, "node_modules", "cpu-features"), { recursive: true, force: true });
+// electron-builder also scans the workspace root when rebuilding native
+// dependencies. Remove the optional module there on Linux as well, otherwise
+// it attempts to rebuild the incompatible copy from the development install.
+if (process.platform === "linux") {
+  await rm(join(projectRoot, "node_modules", "cpu-features"), { recursive: true, force: true });
+}
 
 // Preserve the Prisma client generated for the production build. It contains
 // the platform-specific engine selected on the packaging runner.
