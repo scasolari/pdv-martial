@@ -30,6 +30,7 @@ win:
   target: nsis
 linux:
   icon: assets/icons/placedv-query.png
+  maintainer: Placedv Query
   target:
     - AppImage
     - deb
