@@ -46,13 +46,20 @@ const removeSourceMaps = async (directory) => {
 await copyDirectory(".next", (path) => !["cache", "dev", "diagnostics", "types"].includes(path.split(/[\\/]/)[0]));
 await copyDirectory("prisma", (path) => !path.startsWith("migrations.mysql-legacy"));
 
-const installResult = spawnSync("npm", ["ci", "--omit=dev"], {
+// Windows exposes npm through npm.cmd, which Node must launch through a shell.
+const installResult = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["ci", "--omit=dev"], {
+  shell: process.platform === "win32",
   cwd: stageRoot,
   stdio: "inherit",
   env: process.env,
 });
 if (installResult.error) throw installResult.error;
 if ((installResult.status ?? 1) !== 0) process.exit(installResult.status ?? 1);
+
+// ssh2 treats cpu-features as an optional optimization and falls back when it
+// is unavailable. Its legacy NAN binding does not build against Electron 45,
+// so omit it from the packaged runtime and let ssh2 use its portable fallback.
+await rm(join(stageRoot, "node_modules", "cpu-features"), { recursive: true, force: true });
 
 // Preserve the Prisma client generated for the production build. It contains
 // the platform-specific engine selected on the packaging runner.
