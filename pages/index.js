@@ -4,6 +4,7 @@ import { FaApple } from "react-icons/fa6";
 import { FaGithub } from "react-icons/fa";
 import { ChevronDown, Download, ExternalLink, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -100,6 +101,12 @@ export default function Home({ release }) {
 
     return (
         <main className="relative min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+            <Alert className="fixed left-1/2 top-16 z-40 w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 bg-background/80 shadow-sm backdrop-blur-md xl:top-5">
+                <AlertTitle className="text-xs font-semibold">Windows and Linux</AlertTitle>
+                <AlertDescription className="text-xs font-semibold">
+                    We’re working on desktop distributions for both platforms.
+                </AlertDescription>
+            </Alert>
             <div className="fixed right-5 top-5 z-50 flex flex-row items-center gap-3">
                 <ThemeSelector />
                 <a
@@ -114,14 +121,14 @@ export default function Home({ release }) {
                     <span>GitHub stars</span>
                 </a>
             </div>
-            <div className="flex min-h-screen flex-col items-center justify-center gap-8 py-12">
+            <div className="-mt-32 flex min-h-screen flex-col items-center justify-center gap-8 py-12">
                 <div className="flex flex-col items-center gap-6 px-5">
                     <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
                         <Image src="/placedv-query-desktop-icon.png" alt="" width={64} height={64} priority />
                     </span>
                     <div className="flex max-w-sm flex-col gap-1 text-center text-sm font-semibold leading-6 text-zinc-600 dark:text-zinc-400 mb-6">
                         <h3 className="text-xl text-primary">Open-source desktop database client.</h3>
-                        <p>Connect, explore and manage your databases from one focused, open-source workspace.</p>
+                        <p>No AI. No hype. Just a focused, open-source workspace to connect, explore and manage your databases.</p>
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -169,6 +176,26 @@ export default function Home({ release }) {
                     </a>
                 </div>
             </div>
+            <section aria-label="Placedv Query dashboard preview" className="relative z-10 mx-auto -mt-[26vh] w-full max-w-[1160px] px-4 pb-8">
+                <Image
+                    src="/placedv-query-dashboard-preview-light.png"
+                    alt="Placedv Query database dashboard in light mode, with table navigation, filters, and records"
+                    width={2000}
+                    height={1356}
+                    sizes="(max-width: 1192px) 100vw, 1128px"
+                    quality={90}
+                    className="h-auto w-full dark:hidden"
+                />
+                <Image
+                    src="/placedv-query-dashboard-preview.png"
+                    alt="Placedv Query database dashboard with table navigation, filters, and records"
+                    width={2000}
+                    height={1356}
+                    sizes="(max-width: 1192px) 100vw, 1128px"
+                    quality={90}
+                    className="hidden h-auto w-full dark:block"
+                />
+            </section>
         </main>
     );
 }
