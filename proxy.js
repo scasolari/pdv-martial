@@ -49,7 +49,7 @@ export function proxy(req) {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "font-src 'self' data:",
-        "connect-src 'self'",
+        "connect-src 'self' https://us.i.posthog.com https://us-assets.i.posthog.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
