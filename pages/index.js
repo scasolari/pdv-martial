@@ -1,126 +1,44 @@
 import Image from "next/image";
-import { useTheme } from "next-themes";
-import { FaApple } from "react-icons/fa6";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { FaApple, FaLinux, FaWindows } from "react-icons/fa6";
 import { FaGithub } from "react-icons/fa";
-import { ChevronDown, Download, ExternalLink, Star } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChevronDown, Download, ExternalLink, Heart } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const RELEASE_FALLBACK = {
-    version: "0.0.3",
-    url: "https://github.com/scasolari/pdv-martial/releases/tag/v0.0.3",
-    appleSiliconUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3-arm64.dmg",
-    intelUrl: "https://github.com/scasolari/pdv-martial/releases/download/v0.0.3/Placedv-Query-0.0.3.dmg",
-    stars: 0,
-};
+import { getLatestRelease } from "@/lib/githubRelease";
+import SiteTopbar from "@/components/siteTopbar";
 
 export async function getStaticProps() {
-    try {
-        const response = await fetch("https://api.github.com/repos/scasolari/pdv-martial/releases/latest", {
-            headers: {
-                Accept: "application/vnd.github+json",
-                "User-Agent": "Placedv-Query-website",
-            },
-            signal: AbortSignal.timeout(5000),
-        });
-
-        if (!response.ok) throw new Error(`GitHub release lookup failed: ${response.status}`);
-
-        const latestRelease = await response.json();
-        const assets = Array.isArray(latestRelease.assets) ? latestRelease.assets : [];
-        const appleSiliconAsset = assets.find(({ name }) => /(?:arm64|aarch64).*\.dmg$/i.test(name));
-        const intelAsset = assets.find(({ name }) => /\.dmg$/i.test(name) && !/(?:arm64|aarch64)/i.test(name));
-
-        if (!latestRelease.tag_name || !appleSiliconAsset || !intelAsset) {
-            throw new Error("Latest GitHub release is missing a Mac DMG asset.");
-        }
-
-        let stars = 0;
-        try {
-            const repositoryResponse = await fetch("https://api.github.com/repos/scasolari/pdv-martial", {
-                headers: {
-                    Accept: "application/vnd.github+json",
-                    "User-Agent": "Placedv-Query-website",
-                },
-                signal: AbortSignal.timeout(5000),
-            });
-            if (repositoryResponse.ok) {
-                const repository = await repositoryResponse.json();
-                stars = Number.isInteger(repository.stargazers_count) ? repository.stargazers_count : 0;
-            }
-        } catch (error) {
-            console.error("Unable to load GitHub star count:", error);
-        }
-
-        return {
-            props: {
-                release: {
-                    version: latestRelease.tag_name.replace(/^v/i, ""),
-                    url: latestRelease.html_url,
-                    appleSiliconUrl: appleSiliconAsset.browser_download_url,
-                    intelUrl: intelAsset.browser_download_url,
-                    stars,
-                },
-            },
-            revalidate: 300,
-        };
-    } catch (error) {
-        console.error("Unable to load the latest GitHub release:", error);
-
-        return {
-            props: { release: RELEASE_FALLBACK },
-            revalidate: 300,
-        };
-    }
-}
-
-function ThemeSelector() {
-    const { theme, setTheme } = useTheme();
-
-    return (
-        <Tabs aria-label="Theme" value={theme || "system"} onValueChange={setTheme}>
-            <TabsList className="h-7 p-0.5">
-                <TabsTrigger value="light" className="h-6 px-2 py-0 !text-xs !font-semibold">Light</TabsTrigger>
-                <TabsTrigger value="dark" className="h-6 px-2 py-0 !text-xs !font-semibold">Dark</TabsTrigger>
-                <TabsTrigger value="system" className="h-6 px-2 py-0 !text-xs !font-semibold">System</TabsTrigger>
-            </TabsList>
-        </Tabs>
-    );
+    return {
+        props: { release: await getLatestRelease() },
+        revalidate: 300,
+    };
 }
 
 export default function Home({ release }) {
-    const starsLabel = release.stars >= 1000
-        ? `${Math.floor(release.stars / 1000)}k+`
-        : release.stars.toLocaleString("en-US");
+    const [operatingSystem, setOperatingSystem] = useState("mac");
+
+    useEffect(() => {
+        const platform = `${navigator.userAgent} ${navigator.platform || ""}`.toLowerCase();
+        if (platform.includes("win")) setOperatingSystem("windows");
+        else if (platform.includes("linux") || platform.includes("x11")) setOperatingSystem("linux");
+        else setOperatingSystem("mac");
+    }, []);
+
+    const downloadConfig = {
+        mac: { label: "Download for Mac", icon: <FaApple aria-hidden="true" size={16} /> },
+        windows: { label: "Download for Windows", icon: <FaWindows aria-hidden="true" size={16} />, url: release.windowsUrl },
+        linux: { label: "Download for Linux", icon: <FaLinux aria-hidden="true" size={16} />, url: release.linuxUrl },
+    }[operatingSystem];
 
     return (
         <main className="relative min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-            <Alert className="fixed left-1/2 top-16 z-40 w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 bg-background/80 shadow-sm backdrop-blur-md xl:top-5">
-                <AlertTitle className="text-xs font-semibold">Windows and Linux</AlertTitle>
-                <AlertDescription className="text-xs font-semibold">
-                    We’re working on desktop distributions for both platforms.
-                </AlertDescription>
-            </Alert>
-            <div className="fixed right-5 top-5 z-50 flex flex-row items-center gap-3">
-                <ThemeSelector />
-                <a
-                    href="https://github.com/scasolari/pdv-martial/tree/feature/electron"
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`${starsLabel} GitHub stars`}
-                    className="inline-flex h-7 items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
-                >
-                    <Star aria-hidden="true" className="size-3.5 fill-amber-400 text-amber-400" />
-                    <span className="font-semibold text-zinc-950 dark:text-zinc-100">{starsLabel}</span>
-                    <span>GitHub stars</span>
-                </a>
-            </div>
+            <SiteTopbar stars={release.stars} />
             <div className="-mt-32 flex min-h-screen flex-col items-center justify-center gap-8 py-12">
                 <div className="flex flex-col items-center gap-6 px-5">
                     <span className="flex size-16 items-center justify-center rounded-2xl bg-zinc-950 p-1 dark:ring-1 dark:ring-zinc-700">
@@ -130,32 +48,44 @@ export default function Home({ release }) {
                         <h3 className="text-xl text-primary">Open-source desktop database client.</h3>
                         <p>No AI. No hype. Just a focused, open-source workspace to connect, explore and manage your databases.</p>
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                type="button"
-                                className="group inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
-                            >
-                                <FaApple aria-hidden="true" size={16} />
-                                <span className="text-xs font-semibold">Download for Mac</span>
-                                <ChevronDown aria-hidden="true" className="size-4 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="center" className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                            <DropdownMenuItem asChild className="text-xs font-semibold">
-                                <a href={release.appleSiliconUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Apple silicon`}>
-                                    <Download aria-hidden="true" className="mr-2 size-3.5" />
-                                    Apple silicon
-                                </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild className="text-xs font-semibold">
-                                <a href={release.intelUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Intel Mac`}>
-                                    <Download aria-hidden="true" className="mr-2 size-3.5" />
-                                    Intel Mac
-                                </a>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    {operatingSystem === "mac" ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="group inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
+                                >
+                                    {downloadConfig.icon}
+                                    <span className="text-xs font-semibold">{downloadConfig.label}</span>
+                                    <ChevronDown aria-hidden="true" className="size-4 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                                <DropdownMenuItem asChild className="text-xs font-semibold">
+                                    <a href={release.appleSiliconUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Apple silicon`}>
+                                        <Download aria-hidden="true" className="mr-2 size-3.5" />
+                                        Apple silicon
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild className="text-xs font-semibold">
+                                    <a href={release.intelUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Intel Mac`}>
+                                        <Download aria-hidden="true" className="mr-2 size-3.5" />
+                                        Intel Mac
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <a
+                            href={downloadConfig.url}
+                            className="inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
+                            aria-label={`${downloadConfig.label}, version ${release.version}`}
+                        >
+                            {downloadConfig.icon}
+                            <span className="text-xs font-semibold">{downloadConfig.label}</span>
+                            {operatingSystem === "linux" && <Download aria-hidden="true" className="size-3.5 opacity-70" />}
+                        </a>
+                    )}
                     <a
                         href={release.url}
                         target="_blank"
@@ -196,6 +126,17 @@ export default function Home({ release }) {
                     className="hidden h-auto w-full dark:block"
                 />
             </section>
+            <footer className="mx-auto flex w-full max-w-[1160px] items-center justify-center gap-2 px-4 pb-8 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <Link href="/privacy" className="hover:text-zinc-950 dark:hover:text-zinc-100">Privacy</Link>
+                <span aria-hidden="true">·</span>
+                <Link href="/terms" className="hover:text-zinc-950 dark:hover:text-zinc-100">Terms</Link>
+                <span aria-hidden="true">·</span>
+                <a href="https://github.com/scasolari/pdv-martial/blob/feature/electron/LICENSE" target="_blank" rel="noreferrer" className="hover:text-zinc-950 dark:hover:text-zinc-100">MIT License</a>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1">
+                    Built with <Heart aria-label="love" className="size-3 fill-rose-500 text-rose-500" /> by Sergio Casolari
+                </span>
+            </footer>
         </main>
     );
 }
