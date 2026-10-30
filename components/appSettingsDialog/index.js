@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
-import { Check, ChevronDown, Computer, Copy, Database, Download, EyeOff, Languages, Menu, Moon, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Computer, Copy, Database, Download, EyeOff, Languages, Menu, Moon, RefreshCw, Search, Shield, Trash2, X } from "lucide-react";
 import { toast } from "@/components/ui/base-toast";
+import { disableAnalytics, enableAnalytics, isAnalyticsConfigured, isAnalyticsEnabled, isAnalyticsEnvironmentAllowed } from "@/lib/analytics";
 
 function formatByteSize(bytes) {
     if (!Number.isFinite(bytes)) return "Unknown";
@@ -58,6 +59,9 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [computerInfoError, setComputerInfoError] = useState("");
     const [updateInfo, setUpdateInfo] = useState(null);
     const [updateStatus, setUpdateStatus] = useState({ status: "idle" });
+    const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+    const [analyticsSaving, setAnalyticsSaving] = useState(false);
+    const [analyticsEnvironmentAllowed, setAnalyticsEnvironmentAllowed] = useState(null);
     const [accountDeleteOpen, setAccountDeleteOpen] = useState(false);
     const [accountConfirmation, setAccountConfirmation] = useState("");
     const [accountDeleteCode, setAccountDeleteCode] = useState("");
@@ -92,6 +96,7 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
         { id: "sensitive", label: "Sensitive data", icon: EyeOff },
         { id: "database", label: "Database preferences", icon: Database },
         { id: "updates", label: "Updates", icon: RefreshCw },
+        { id: "analytics", label: "Privacy & analytics", icon: Shield },
         { id: "computer", label: "Computer", icon: Computer },
     ];
     const reduxSchemaIsCurrent = String(tables?._databaseId ?? "") === String(databaseId ?? "") && Array.isArray(tables?.data);
@@ -158,6 +163,37 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
             unsubscribe?.();
         };
     }, [open, activeSection]);
+
+    useEffect(() => {
+        if (!open || activeSection !== "analytics" || typeof window === "undefined") return;
+        setAnalyticsEnabled(isAnalyticsEnabled());
+        isAnalyticsEnvironmentAllowed().then(setAnalyticsEnvironmentAllowed);
+    }, [open, activeSection]);
+
+    const changeAnalyticsPreference = async (enabled) => {
+        if (!isAnalyticsConfigured()) return;
+        setAnalyticsSaving(true);
+        try {
+            if (enabled) {
+                const enabledSuccessfully = await enableAnalytics();
+                if (!enabledSuccessfully) return;
+                setAnalyticsEnabled(true);
+                window.dispatchEvent(new Event("placedv-analytics-consent-changed"));
+            } else {
+                await disableAnalytics();
+                setAnalyticsEnabled(false);
+                window.dispatchEvent(new Event("placedv-analytics-consent-changed"));
+            }
+        } catch {
+            toast.add({
+                title: "Unable to update analytics preference",
+                description: "Your current setting has not been changed.",
+                type: "error",
+            });
+        } finally {
+            setAnalyticsSaving(false);
+        }
+    };
 
     const checkForUpdates = async () => {
         if (["checking", "downloading", "installing"].includes(updateStatus.status)) {
@@ -366,7 +402,36 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                     </nav>
                 </aside>
                 <main className="h-full overflow-y-auto p-6 text-left">
-                    {activeSection === "updates" ? (
+                    {activeSection === "analytics" ? (
+                        <section className="space-y-4 text-left">
+                            <div className="space-y-1">
+                                <h2 className="text-sm font-semibold">Privacy &amp; analytics</h2>
+                                <p className="text-xs font-semibold text-muted-foreground">Choose whether to share basic usage analytics to help improve Placedv Query.</p>
+                            </div>
+                            {isAnalyticsConfigured() ? (
+                                <div className="flex items-start justify-between gap-4 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-semibold">Share usage analytics</p>
+                                        <p className="max-w-[440px] text-xs font-semibold leading-relaxed text-muted-foreground">
+                                            When enabled, PostHog US receives a pseudonymous analytics ID and events for app opens, broad screen categories, and successful queries, with basic app/device context. It never receives database names, SQL, connection strings, or table and row contents. Automatic click tracking, page URLs, and session recordings are disabled. PostHog receives your IP address and may derive approximate location from it. You can turn this off at any time.
+                                        </p>
+                                        {analyticsEnvironmentAllowed === false && <p className="text-xs font-semibold text-muted-foreground">Analytics are disabled in development builds and on localhost.</p>}
+                                    </div>
+                                    <Switch
+                                        aria-label="Share usage analytics"
+                                        checked={analyticsEnabled}
+                                        disabled={analyticsSaving || (analyticsEnvironmentAllowed !== true && !analyticsEnabled)}
+                                        onCheckedChange={changeAnalyticsPreference}
+                                        className="shrink-0 shadow-none"
+                                    />
+                                </div>
+                            ) : (
+                                <p className="rounded-lg border border-neutral-200 p-3 text-xs font-semibold text-muted-foreground dark:border-neutral-800">
+                                    Usage analytics are not configured for this build.
+                                </p>
+                            )}
+                        </section>
+                    ) : activeSection === "updates" ? (
                         <section className="space-y-4 text-left">
                             <div className="space-y-1">
                                 <h2 className="text-sm font-semibold">Updates</h2>

@@ -21,6 +21,14 @@ npm run desktop:package
 
 Builds are written to `release/`. The first packaged builds should be produced and smoke-checked on each target operating system because Electron and database drivers include platform-specific binaries.
 
+### Optional usage analytics
+
+PostHog usage analytics are disabled until a user explicitly enables them in **Settings → Privacy & analytics**. Development builds and localhost web builds never send analytics. The integration sends only app-open, coarse screen-view, and successful-query events; it does not send SQL, database names, connection details, or table contents. Autocapture, page URLs, performance capture, and session recordings are disabled. PostHog receives the event sender's IP address and may use it to derive approximate location.
+
+Configure `NEXT_PUBLIC_POSTHOG_KEY` with the PostHog project key and `NEXT_PUBLIC_POSTHOG_HOST` with the ingestion host (US Cloud: `https://us.i.posthog.com`) before building. GitHub release workflows read these from the Actions variables `POSTHOG_PROJECT_KEY` and `POSTHOG_API_HOST`; the Railway web deployment uses the `NEXT_PUBLIC_` variable names directly. Leave the project key unset to build with analytics unavailable.
+
+To exclude your release checks from analytics insights, add your public IP to PostHog's project-level **Filter out internal and test users** rules and enable that filter for new and existing insights. This excludes those events from insights; PostHog may still ingest them. Update the rule if your public IP changes.
+
 ## Features
 
 - Connect to MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, and SQLite.

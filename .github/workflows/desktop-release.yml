@@ -86,6 +86,8 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.POSTHOG_API_HOST }}
 
       - name: Collect Intel packages
         shell: bash
@@ -188,6 +190,8 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.POSTHOG_API_HOST }}
 
       - name: Collect Apple Silicon packages
         shell: bash
@@ -260,6 +264,9 @@ jobs:
 
       - name: Build Linux packages
         run: npm run desktop:package -- --linux --x64 --publish never
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.POSTHOG_API_HOST }}
 
       - name: Collect Linux packages
         shell: bash
@@ -322,6 +329,9 @@ jobs:
 
       - name: Build Windows packages
         run: npm run desktop:package -- --win --x64 --publish never
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.POSTHOG_API_HOST }}
 
       - name: Collect Windows packages
         shell: pwsh

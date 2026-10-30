@@ -28,6 +28,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } 
 import AddDatabase from "@/components/addDatabase";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { captureAnalyticsEvent } from "@/lib/analytics";
 import { toast } from "@/components/ui/base-toast";
 import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 
@@ -731,6 +732,7 @@ function PlaygroundPlayId(props) {
                 query: activeTab?.query ?? query,
             })
             .then((res) => {
+                captureAnalyticsEvent("query_executed");
                 setLoading(false)
                 setQueryError(false)
                 // Aggiorna SOLO la tab attiva (SQL) con i risultati
