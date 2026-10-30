@@ -1,7 +1,7 @@
 import LegalPageLayout from "@/components/legal-page-layout";
 import { getGitHubStars } from "@/lib/githubRelease";
 
-const updatedAt = "29 October 2026";
+const updatedAt = "30 October 2026";
 
 export async function getStaticProps() {
     return { props: { stars: await getGitHubStars() }, revalidate: 3600 };
@@ -71,9 +71,11 @@ export default function Privacy({ stars }) {
                 <h2>4. GitHub and software updates</h2>
                 <p>
                     The website retrieves public release information and the public star count from GitHub during server-side page
-                    generation or revalidation. The app checks for updates only when you request a check in its settings, and downloads
-                    releases from GitHub. When your device contacts GitHub, GitHub may process standard request information such as your
-                    IP address, request time, device or application details, and the requested release or asset, under its own
+                    generation or revalidation. Placedv Query does not use GitHub for sign-in or user accounts, and you do not need a
+                    GitHub account to use the app. GitHub is used to host public source code and releases. The app checks for updates
+                    only when you request a check in its settings, and downloads releases from GitHub. When your device contacts GitHub,
+                    GitHub may process standard request information such as your IP address, request time, device or application details,
+                    and the requested release or asset, under its own
                     <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noreferrer">Privacy Statement</a>.
                     Opening GitHub links or downloading a release also takes you to GitHub and is subject to its terms and privacy notice.
                 </p>
@@ -82,23 +84,26 @@ export default function Privacy({ stars }) {
             <section>
                 <h2>5. Website hosting</h2>
                 <p>
-                    This website does not include analytics or advertising trackers in the application code. The provider hosting the
-                    website may process technical connection and security logs to deliver and protect the site. The hosting provider and
-                    its privacy notice must be identified here before the website is publicly launched.
+                    This website is hosted by Railway. Railway may process technical request, device, and operational data to provide,
+                    secure, and maintain the hosting service. For details about its collection, use, retention, and international
+                    processing of personal data, see the
+                    <a href="https://railway.com/legal/privacy" target="_blank" rel="noreferrer">Railway Privacy Policy</a>.
+                    This website does not include analytics or advertising trackers in the application code.
                 </p>
             </section>
 
             <section>
                 <h2>6. Legal basis, recipients, and international transfers</h2>
                 <p>
-                    The publisher does not receive database contents or connection credentials through the desktop app. GitHub and the
-                    website host process information under their own terms when your device or browser communicates with them. If you
+                    The publisher does not receive database contents or connection credentials through the desktop app. GitHub and Railway
+                    may process technical information when your device or browser communicates with their services, under their respective
+                    privacy notices. If you
                     contact the publisher directly, the information you include will be used to respond to your request and retained only
                     as needed for that purpose or to meet legal obligations. No personal information is sold by the publisher.
                 </p>
                 <p>
-                    GitHub and the website host may process information in countries outside your own. Review their notices for the
-                    locations and safeguards that apply to their services.
+                    GitHub and Railway may process information in countries outside your own. Review their notices for the locations and
+                    safeguards that apply to their services.
                 </p>
             </section>
 

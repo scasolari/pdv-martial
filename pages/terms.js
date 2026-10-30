@@ -1,7 +1,7 @@
 import LegalPageLayout from "@/components/legal-page-layout";
 import { getGitHubStars } from "@/lib/githubRelease";
 
-const updatedAt = "29 October 2026";
+const updatedAt = "30 October 2026";
 
 export async function getStaticProps() {
     return { props: { stars: await getGitHubStars() }, revalidate: 3600 };
@@ -12,7 +12,8 @@ export default function Terms({ stars }) {
         <LegalPageLayout title="Terms of Use" updatedAt={updatedAt} stars={stars}>
             <p>
                 These terms describe use of Placedv Query, an open-source desktop database client published by Sergio Casolari.
-                The app runs locally on your computer and connects to database services that you configure.
+                The app runs locally on your computer and connects to database services that you configure. No Placedv account or
+                GitHub sign-in is required to use the app.
             </p>
 
             <section>
@@ -35,12 +36,15 @@ export default function Terms({ stars }) {
             </section>
 
             <section>
-                <h2>3. Local software and third-party services</h2>
+                <h2>3. Local software, hosting, and third-party services</h2>
                 <p>
                     Placedv Query stores its app data on your computer and connects directly to the databases you configure. It is not
                     a hosted database service and the publisher does not operate a cloud account or synchronization service for the app.
-                    GitHub distributes the source code and releases and may provide update downloads; your use of GitHub is subject to
-                    GitHub&apos;s own terms.
+                    GitHub hosts the source code and releases and may provide update downloads. You do not need a GitHub account to use
+                    Placedv Query; if you visit GitHub or download a release there, GitHub&apos;s own terms apply to your use of that service.
+                    The Placedv Query website is hosted by Railway, which may process technical data needed to provide and secure the
+                    website. See the <a href="https://railway.com/legal/privacy" target="_blank" rel="noreferrer">Railway Privacy Policy</a>
+                    for details.
                 </p>
             </section>
 
