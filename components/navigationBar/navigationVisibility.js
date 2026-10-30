@@ -41,7 +41,7 @@ export function ShowNavigationButton() {
                         <Button
                             onClick={() => setNavigationHidden(false)}
                             aria-label="Show navigation"
-                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
                             <PanelLeftOpen size={14} />
                         </Button>

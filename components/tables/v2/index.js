@@ -202,13 +202,13 @@ function TablesV2(props) {
                         className={cn(
                             "group flex flex-row items-center justify-between px-2.5 py-1 rounded-md text-xs font-semibold transition hover:cursor-pointer",
                             // stile hover base
-                            "hover:bg-zinc-100 dark:hover:bg-zinc-900",
+                            "hover:bg-zinc-200 dark:hover:bg-zinc-900",
                             // menu aperto
                             isOpen &&
                             "bg-zinc-100 dark:bg-zinc-900",
                             // 🔥 tabella attiva evidenziata
                             isActive &&
-                            "bg-blue-50 dark:!bg-blue-950/30 text-blue-700 dark:text-blue-200"
+                            "!bg-blue-100 dark:!bg-zinc-800 text-blue-700 dark:text-white"
                         )}
                     >
                         <div className="flex flex-row items-center gap-3">

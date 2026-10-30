@@ -406,7 +406,7 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
                             ) : updateStatus.status === "checking" ? (
                                 <p className="text-xs font-semibold text-muted-foreground">Checking for updates...</p>
                             ) : updateStatus.status === "idle" || updateStatus.status === "cancelled" ? (
-                                <p className="text-xs font-semibold text-muted-foreground">{updateInfo ? "Check GitHub for a newer release." : "Loading update information..."}</p>
+                                <p className="text-xs font-semibold text-muted-foreground">{updateInfo ? "Check for a newer release." : "Loading update information..."}</p>
                             ) : null}
                             <Button
                                 type="button"

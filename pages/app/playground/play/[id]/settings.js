@@ -167,7 +167,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
             <LeftBar openTab={openTable} openSqlTab={openSql} />
             <main className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
                 <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 dark:bg-zinc-950">
-                    <div className={`${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 px-4`}>
+                    <div data-command-search-left className={`electron-titlebar-no-drag ${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 px-4`}>
                     <ShowNavigationButton />
                     <Button
                         onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
@@ -177,7 +177,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                     </Button>
                     </div>
                     <ElectronTitlebarSpacer />
-                    <div className="flex items-center gap-1 px-4 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    <div data-command-search-right className="flex items-center gap-1 px-4 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
                         <Settings2 size={13} /> Database settings
                     </div>
                 </div>

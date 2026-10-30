@@ -931,7 +931,7 @@ function PlaygroundPlayId(props) {
                                                 <Button
                                                     aria-label="Select database"
                                                     title={database?.db_name || "Select database"}
-                                                    className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                                 >
                                                     <DatabaseEngineIcon dialect={database?.dialect || databases?.find((item) => item.id === database?.db_id)?.dialect} size={14} />
                                                     {database?.db_name && <span className="truncate text-xs font-semibold">{database.db_name}</span>}
@@ -992,7 +992,7 @@ function PlaygroundPlayId(props) {
                                             aria-label="Refresh schema"
                                             disabled={!database?.db_id || schemaRefreshing}
                                             onClick={() => loadHiddenNavigationTables(database?.db_id, { force: true, showRefreshLoading: true })}
-                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                         >
                                             <RefreshCcw ref={schemaRefreshIconRef} size={14} />
                                         </Button>
@@ -1015,7 +1015,7 @@ function PlaygroundPlayId(props) {
                                                 <Button
                                                     aria-label="Show database tables"
                                                     disabled={!database?.db_id}
-                                                    className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                                 >
                                                     <Columns3 size={14} />
                                                 </Button>
