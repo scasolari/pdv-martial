@@ -96,6 +96,7 @@ function LeftBar(props) {
     const compactDatabaseSelector = sidebarWidth !== null && sidebarWidth <= 300;
     const clearDatabaseState = useClear();
     const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+    const downloadPercent = Math.floor(Math.min(100, Math.max(0, Number(updateStatus.percent) || 0)));
 
     const handleUpdateButtonClick = async () => {
         if (updateStatus.status === "downloaded") {
@@ -127,7 +128,8 @@ function LeftBar(props) {
         if (!window.desktopUpdates) return;
         try {
             setUpdateStatus({ status: "downloading", percent: 0 });
-            await window.desktopUpdates.downloadUpdate();
+            const result = await window.desktopUpdates.downloadUpdate();
+            if (result?.status === "downloaded") setUpdateStatus(result);
         } catch (error) {
             setUpdateStatus({ status: "error", message: error.message || "Unable to download the update." });
         }
@@ -511,9 +513,9 @@ function LeftBar(props) {
                     </AlertDialogHeader>
                     {updateStatus.status === "downloading" && (
                         <div className="space-y-1">
-                            <div className="flex justify-between text-xs font-semibold"><span>Progress</span><span>{Math.floor(updateStatus.percent || 0)}%</span></div>
-                            <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(updateStatus.percent || 0)} className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
-                                <div className="h-full bg-blue-600 transition-[width]" style={{ width: `${Math.min(100, Math.max(0, updateStatus.percent || 0))}%` }} />
+                            <div className="flex justify-between text-xs font-semibold"><span>Progress</span><span>{downloadPercent}%</span></div>
+                            <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadPercent} className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+                                <div className="h-full bg-blue-600 transition-[width]" style={{ width: `${downloadPercent}%` }} />
                             </div>
                         </div>
                     )}
@@ -530,7 +532,7 @@ function LeftBar(props) {
                             <Button onClick={installUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Restart and install</Button>
                         )}
                         {updateStatus.status === "installing" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Restarting...</Button>}
-                        {updateStatus.status === "downloading" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading...</Button>}
+                        {updateStatus.status === "downloading" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
                         {updateStatus.status === "error" && <Button onClick={handleUpdateButtonClick} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Check again</Button>}
                     </AlertDialogFooter>
                 </AlertDialogContent>
