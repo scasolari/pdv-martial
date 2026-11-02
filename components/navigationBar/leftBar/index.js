@@ -76,6 +76,7 @@ function LeftBar(props) {
         setNavigationHidden,
         setAppSettingsOpen,
         updateStatus,
+        setUpdateStatus,
         checkForUpdates,
     } = useNavigationVisibility();
     const [open, setOpen] = React.useState(false);
