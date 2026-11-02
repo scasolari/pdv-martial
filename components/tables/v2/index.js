@@ -175,7 +175,7 @@ function TablesV2(props) {
 
     return (
         <>
-        <ul className="px-4 py-2 pt-0 flex flex-col gap-1 relative mt-1">
+        <ul className="px-4 py-2 pt-0 flex flex-col gap-0.5 relative mt-1">
             {tables?.data?.map((data, index) => {
                 const isOpen = openIndex === index;
 

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,78 @@ export function NavigationVisibilityProvider({ children }) {
     const navigationHidden = useSelector((state) => state.navigationHidden);
     const setNavigationHidden = useCallback((hidden) => dispatch(setNavigationHiddenAction(hidden)), [dispatch]);
     const [appSettingsOpen, setAppSettingsOpen] = useState(false);
-    const value = useMemo(() => ({ navigationHidden, setNavigationHidden, appSettingsOpen, setAppSettingsOpen }), [navigationHidden, setNavigationHidden, appSettingsOpen]);
+    const [updateInfo, setUpdateInfo] = useState(null);
+    const [updateStatus, setUpdateStatus] = useState({ status: "idle" });
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const updates = window.desktopUpdates;
+        if (!updates) {
+            setUpdateStatus({ status: "unsupported" });
+            return undefined;
+        }
+
+        let cancelled = false;
+        const unsubscribe = updates.onStatus((status) => {
+            if (!cancelled) setUpdateStatus(status);
+        });
+
+        updates.getInfo()
+            .then((info) => {
+                if (cancelled) return null;
+                setUpdateInfo(info);
+                if (!info?.supported) {
+                    setUpdateStatus({ status: "unsupported" });
+                    return null;
+                }
+                setUpdateStatus({ status: "checking" });
+                return updates.checkForUpdates();
+            })
+            .then((status) => {
+                if (status && !cancelled) setUpdateStatus(status);
+            })
+            .catch((error) => {
+                if (!cancelled) setUpdateStatus({ status: "error", message: error.message || "Unable to check for updates." });
+            });
+
+        return () => {
+            cancelled = true;
+            unsubscribe?.();
+        };
+    }, []);
+
+    const checkForUpdates = useCallback(async () => {
+        if (["checking", "downloading", "installing"].includes(updateStatus.status)) return updateStatus;
+        if (updateStatus.status === "downloaded") return updateStatus;
+        const updates = typeof window !== "undefined" ? window.desktopUpdates : null;
+        if (!updates || !updateInfo?.supported) {
+            const unsupported = { status: "unsupported" };
+            setUpdateStatus(unsupported);
+            return unsupported;
+        }
+
+        setUpdateStatus({ status: "checking" });
+        try {
+            const result = await updates.checkForUpdates();
+            setUpdateStatus(result);
+            return result;
+        } catch (error) {
+            const failure = { status: "error", message: error.message || "Unable to check for updates." };
+            setUpdateStatus(failure);
+            return failure;
+        }
+    }, [updateInfo, updateStatus]);
+
+    const value = useMemo(() => ({
+        navigationHidden,
+        setNavigationHidden,
+        appSettingsOpen,
+        setAppSettingsOpen,
+        updateInfo,
+        updateStatus,
+        setUpdateStatus,
+        checkForUpdates,
+    }), [navigationHidden, setNavigationHidden, appSettingsOpen, updateInfo, updateStatus, checkForUpdates]);
 
     return (
         <NavigationVisibilityContext.Provider value={value}>

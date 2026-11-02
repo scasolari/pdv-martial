@@ -70,7 +70,7 @@
 }
 
 html[data-electron-platform="darwin"] .electron-titlebar-safe-left {
-    padding-left: 64px !important;
+    padding-left: 68px !important;
 }
 
 html[data-electron-platform="darwin"] .electron-titlebar-safe-left-controls {

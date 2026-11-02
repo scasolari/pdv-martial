@@ -37,7 +37,14 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const currentDatabaseId = useRef(databaseId);
     currentDatabaseId.current = databaseId;
     const { theme, setTheme } = useTheme();
-    const { navigationHidden, setNavigationHidden } = useNavigationVisibility();
+    const {
+        navigationHidden,
+        setNavigationHidden,
+        updateInfo,
+        updateStatus,
+        setUpdateStatus,
+        checkForUpdates: requestUpdateCheck,
+    } = useNavigationVisibility();
     const [activeSection, setActiveSection] = useState("appearance");
     const [browserLocale, setBrowserLocale] = useState("en-US");
     const [value, setValue] = useState("");
@@ -57,8 +64,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [computerInfo, setComputerInfo] = useState(null);
     const [computerInfoLoading, setComputerInfoLoading] = useState(false);
     const [computerInfoError, setComputerInfoError] = useState("");
-    const [updateInfo, setUpdateInfo] = useState(null);
-    const [updateStatus, setUpdateStatus] = useState({ status: "idle" });
     const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
     const [analyticsSaving, setAnalyticsSaving] = useState(false);
     const [analyticsEnvironmentAllowed, setAnalyticsEnvironmentAllowed] = useState(null);
@@ -68,6 +73,7 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     const [, setAccountDeleteError] = useState("");
     const [accountDeleteLoading, setAccountDeleteLoading] = useState(false);
     const preferencesRef = useRef(databasePreferences);
+
     const copySqlitePath = async (sqlitePath) => {
         if (!sqlitePath) return;
         try {
@@ -139,32 +145,6 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
     }, [open, activeSection]);
 
     useEffect(() => {
-        if (!open || activeSection !== "updates" || typeof window === "undefined") return undefined;
-        if (!window.desktopUpdates) {
-            setUpdateStatus({ status: "unsupported" });
-            return undefined;
-        }
-        let cancelled = false;
-        const unsubscribe = window.desktopUpdates.onStatus((nextStatus) => {
-            if (!cancelled) setUpdateStatus(nextStatus);
-        });
-        window.desktopUpdates.getInfo()
-            .then((info) => {
-                if (!cancelled) {
-                    setUpdateInfo(info);
-                    if (!info.supported) setUpdateStatus({ status: "unsupported" });
-                }
-            })
-            .catch((error) => {
-                if (!cancelled) setUpdateStatus({ status: "error", message: error.message || "Unable to load update information." });
-            });
-        return () => {
-            cancelled = true;
-            unsubscribe?.();
-        };
-    }, [open, activeSection]);
-
-    useEffect(() => {
         if (!open || activeSection !== "analytics" || typeof window === "undefined") return;
         setAnalyticsEnabled(isAnalyticsEnabled());
         isAnalyticsEnvironmentAllowed().then(setAnalyticsEnvironmentAllowed);
@@ -209,21 +189,15 @@ function AppSettingsDialog({ profile, setProfile, setDatabase, database, tables,
             toast.add({ title: "Update check unavailable", description: "In-app updates are available in the installed desktop app.", type: "warning" });
             return;
         }
-        setUpdateStatus({ status: "checking" });
-        try {
-            const result = await window.desktopUpdates.checkForUpdates();
-            setUpdateStatus(result);
-            if (result.status === "available") {
-                toast.add({ title: "Update available", description: `Version ${result.version} is ready to download.`, type: "success" });
-            } else if (result.status === "not-available") {
-                toast.add({ title: "You’re up to date", description: "You already have the latest version.", type: "success" });
-            } else if (result.status === "unsupported") {
-                toast.add({ title: "Update check unavailable", description: "In-app updates are available in the installed desktop app.", type: "warning" });
-            }
-        } catch (error) {
-            const message = error.message || "Unable to check for updates.";
-            setUpdateStatus({ status: "error", message });
-            toast.add({ title: "Unable to check for updates", description: message, type: "error" });
+        const result = await requestUpdateCheck();
+        if (result.status === "available") {
+            toast.add({ title: "Update available", description: `Version ${result.version} is ready to download.`, type: "success" });
+        } else if (result.status === "not-available") {
+            toast.add({ title: "You’re up to date", description: "You already have the latest version.", type: "success" });
+        } else if (result.status === "unsupported") {
+            toast.add({ title: "Update check unavailable", description: "In-app updates are available in the installed desktop app.", type: "warning" });
+        } else if (result.status === "error") {
+            toast.add({ title: "Unable to check for updates", description: result.message || "Unable to check for updates.", type: "error" });
         }
     };
 

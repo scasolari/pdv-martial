@@ -28,7 +28,7 @@ import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { Database, PanelRightOpen, RefreshCcw, Plus, Trash2 } from "lucide-react";
+import { Database, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Trash2 } from "lucide-react";
 import LocalAvatar from "@/components/localAvatar";
 import {
     Tooltip,
@@ -71,7 +71,13 @@ function LeftBar(props) {
     } = props;
 
     const router = useRouter();
-    const { navigationHidden, setNavigationHidden, setAppSettingsOpen } = useNavigationVisibility();
+    const {
+        navigationHidden,
+        setNavigationHidden,
+        setAppSettingsOpen,
+        updateStatus,
+        checkForUpdates,
+    } = useNavigationVisibility();
     const [open, setOpen] = React.useState(false);
     const [openDb, setOpenDb] = React.useState(false);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
@@ -89,6 +95,53 @@ function LeftBar(props) {
     const frameworks = databases;
     const compactDatabaseSelector = sidebarWidth !== null && sidebarWidth <= 300;
     const clearDatabaseState = useClear();
+    const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+
+    const handleUpdateButtonClick = async () => {
+        if (updateStatus.status === "downloaded") {
+            setUpdateDialogOpen(true);
+            return;
+        }
+        if (["checking", "downloading", "installing"].includes(updateStatus.status)) return;
+        if (updateStatus.status === "unsupported") {
+            toast.add({ title: "Update check unavailable", description: "Update checks are available in the installed desktop app.", type: "warning" });
+            return;
+        }
+
+        const result = await checkForUpdates();
+        if (result.status === "available") {
+            setUpdateDialogOpen(true);
+        } else if (result.status === "not-available") {
+            setUpdateDialogOpen(false);
+            toast.add({ title: "You’re up to date", description: "You already have the latest version.", type: "success" });
+        } else if (result.status === "error") {
+            setUpdateDialogOpen(false);
+            toast.add({ title: "Unable to check for updates", description: result.message || "Unable to check for updates.", type: "error" });
+        } else if (result.status === "unsupported") {
+            setUpdateDialogOpen(false);
+            toast.add({ title: "Update check unavailable", description: "Update checks are available in the installed desktop app.", type: "warning" });
+        }
+    };
+
+    const downloadUpdate = async () => {
+        if (!window.desktopUpdates) return;
+        try {
+            setUpdateStatus({ status: "downloading", percent: 0 });
+            await window.desktopUpdates.downloadUpdate();
+        } catch (error) {
+            setUpdateStatus({ status: "error", message: error.message || "Unable to download the update." });
+        }
+    };
+
+    const installUpdate = async () => {
+        if (!window.desktopUpdates) return;
+        try {
+            setUpdateStatus({ status: "installing" });
+            await window.desktopUpdates.installUpdate();
+        } catch (error) {
+            setUpdateStatus({ status: "error", message: error.message || "Unable to install the update." });
+        }
+    };
 
     const refreshDatabaseSchema = async () => {
         if (!database?.db_id || refreshingSchema) return;
@@ -232,37 +285,37 @@ function LeftBar(props) {
                     onKeyDown={handleResizeKeyDown}
                 />
                 <div className="flex flex-col gap-2">
-                    <div className="electron-titlebar-safe-left grid items-center gap-1 grid-cols-[46px_1fr_auto_auto] p-3 px-4">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button aria-label="Open local profile menu" className="translate-x-5 h-6 w-6 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                                    {profile?.user?.image ? <Image className="h-6 w-6 rounded-full border object-cover" src={profile.user.image} height={24} width={24} alt={profile?.user?.name || "Account"} unoptimized /> : <LocalAvatar size={24} />}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                align="start"
-                                side="bottom"
-                                className="w-[276px] p-0 border-zinc-200 dark:border-zinc-700 z-[99999999]"
-                            >
-                                <div className="p-3 pb-0 pt-2">
-                                    <p className="text-xs text-zinc-500 !font-semibold">
-                                        {profile?.user?.email}
-                                    </p>
-                                </div>
-                                <ul className="p-1">
-                                    <li className="font-semibold">
-                                        <button
-                                            type="button"
-                                            onClick={() => setAppSettingsOpen(true)}
-                                            className="!text-xs flex w-full text-left hover:cursor-pointer dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md"
-                                        >
-                                            Settings
-                                        </button>
-                                    </li>
-                                </ul>
-                            </PopoverContent>
-                        </Popover>
-                        <div className="contents">
+                    <div className="electron-titlebar-safe-left flex min-w-0 items-center justify-between gap-1 p-3 px-3">
+                        <div className="flex items-center gap-1">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button aria-label="Open local profile menu" className="ml-3 mr-3 flex items-center h-6 w-6 shrink-0 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                                        {profile?.user?.image ? <Image className="h-6 w-6 rounded-full border object-cover" src={profile.user.image} height={24} width={24} alt={profile?.user?.name || "Account"} unoptimized /> : <LocalAvatar size={24} />}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    align="start"
+                                    side="bottom"
+                                    className="w-[276px] p-0 border-zinc-200 dark:border-zinc-700 z-[99999999]"
+                                >
+                                    <div className="p-3 pb-0 pt-2">
+                                        <p className="text-xs text-zinc-500 !font-semibold">
+                                            {profile?.user?.email}
+                                        </p>
+                                    </div>
+                                    <ul className="p-1">
+                                        <li className="font-semibold">
+                                            <button
+                                                type="button"
+                                                onClick={() => setAppSettingsOpen(true)}
+                                                className="!text-xs flex w-full text-left hover:cursor-pointer dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md"
+                                            >
+                                                Settings
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </PopoverContent>
+                            </Popover>
                             <Popover open={openDb} onOpenChange={setOpenDb}>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -271,7 +324,7 @@ function LeftBar(props) {
                                         aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
                                         title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
                                         aria-expanded={openDb}
-                                        className={`hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "w-7 shrink-0 justify-self-center justify-center p-0" : "w-full justify-between gap-2 px-2"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                        className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 shrink-0 justify-center p-1.5" : "basis-[104px] shrink justify-between gap-2 px-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
                                     >
                                         {compactDatabaseSelector ? (
                                             <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -297,7 +350,7 @@ function LeftBar(props) {
                                             <CommandGroup>
                                                 {frameworks.map((framework) => (
                                                     <CommandItem
-                                                        className="!font-semibold rounded-md !text-xs !px-2 !py-1 hover:cursor-pointer"
+                                                        className="!font-semibold rounded-md !text-xs !px-2 !py-1 hover:cursor-pointer flex justify-between items-center"
                                                         key={framework.id}
                                                         value={framework.db_name}
                                                         onSelect={(currentValue) => {
@@ -323,36 +376,38 @@ function LeftBar(props) {
                                                             }
                                                         }}
                                                     >
-                                                        <div className="!text-xs !font-semibold flex items-center gap-2">
+                                                        <div className="!text-xs !font-semibold flex items-center gap-2 truncate">
                                                             <DatabaseEngineIcon dialect={framework.dialect} size={14} />
-                                                            {framework.db_name}
+                                                            <div className="truncate">{framework.db_name}</div>
                                                         </div>
-                                                        <FaCheck
-                                                            size={12}
-                                                            className={cn(
-                                                                "ml-auto h-3 w-3 shrink-0",
-                                                                value === framework.db_name
-                                                                    ? "opacity-100"
-                                                                    : "opacity-0"
-                                                            )}
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            aria-label={`Delete ${framework.db_name}`}
-                                                            title="Delete dataset"
-                                                            onPointerDown={(event) => event.stopPropagation()}
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                setDatasetToDelete(framework);
-                                                                setDeleteDatasetError("");
-                                                                setOpenDb(false);
-                                                                setDeleteDatasetOpen(true);
-                                                            }}
-                                                            className="ml-1 h-5 w-5 shrink-0 p-1 text-zinc-500 shadow-none hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-950 dark:hover:text-red-300"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </Button>
+                                                        <div className="flex gap-1 items-center">
+                                                            <FaCheck
+                                                                size={12}
+                                                                className={cn(
+                                                                    "ml-auto h-3 w-3 shrink-0",
+                                                                    value === framework.db_name
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                aria-label={`Delete ${framework.db_name}`}
+                                                                title="Delete dataset"
+                                                                onPointerDown={(event) => event.stopPropagation()}
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    setDatasetToDelete(framework);
+                                                                    setDeleteDatasetError("");
+                                                                    setOpenDb(false);
+                                                                    setDeleteDatasetOpen(true);
+                                                                }}
+                                                                className="ml-1 h-5 w-5 shrink-0 p-1 text-zinc-500 shadow-none hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-950 dark:hover:text-red-300"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </Button>
+                                                        </div>
                                                     </CommandItem>
                                                 ))}
                                                 <CommandSeparator className="my-1" />
@@ -380,25 +435,25 @@ function LeftBar(props) {
                                     </Command>
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <TooltipProvider>
-                            <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} className="hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 w-fit shadow-none h-7 p-1.5 bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
+                            <TooltipProvider>
+                                <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} aria-label="Refresh schema" className="hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
                                         <span>
                                             <RefreshCcw ref={schemaRefreshIconRef} size={16} />
                                         </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
-                                        <p>{refreshingSchema ? "Refreshing schema..." : "Refresh schema"}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </Button>
-                        </TooltipProvider>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                            <p>{refreshingSchema ? "Refreshing schema..." : "Refresh schema"}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </Button>
+                            </TooltipProvider>
+                        </div>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 w-fit shadow-none h-7 p-1.5 bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
+                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none ml-auto hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
                                         <PanelRightOpen size={16} />
                                     </Button>
                                 </TooltipTrigger>
@@ -412,12 +467,74 @@ function LeftBar(props) {
                         <div className="h-[calc(100vh-100px)]">
                             <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
                         </div>
-                        <div className="p-3 px-4">
+                        <div className="flex items-center justify-between px-4">
                             <p className="!text-xs !font-semibold text-zinc-700">Version: {packageJson.version}</p>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            aria-label={updateStatus.status === "available" ? `Update ${updateStatus.version} available` : "Check for updates"}
+                                            onClick={handleUpdateButtonClick}
+                                            disabled={["checking", "downloading", "installing"].includes(updateStatus.status)}
+                                            className="relative h-6 w-6 border-0 bg-transparent p-1 text-zinc-600 shadow-none hover:bg-zinc-100 hover:text-zinc-950 disabled:cursor-wait dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                                        >
+                                            <RefreshCw size={15} className={updateStatus.status === "checking" ? "animate-spin" : undefined} />
+                                            {updateStatus.status === "available" && (
+                                                <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-zinc-50 dark:ring-zinc-900" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <p>{updateStatus.status === "available" ? `Version ${updateStatus.version} available — click to update` : updateStatus.status === "checking" ? "Checking for updates..." : updateStatus.status === "unsupported" ? "Update checks are available in the installed desktop app" : "Check for updates"}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </div>
                 </div>
             </div>
+            <AlertDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+                <AlertDialogContent className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-sm font-semibold">
+                            {updateStatus.status === "downloaded" ? "Update ready to install" : updateStatus.status === "checking" ? "Checking for updates" : updateStatus.status === "downloading" ? "Downloading update" : updateStatus.status === "installing" ? "Installing update" : updateStatus.status === "error" ? "Update failed" : "Update available"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs font-semibold">
+                            {updateStatus.status === "available" && `Version ${updateStatus.version} is available. Download it now?`}
+                            {updateStatus.status === "checking" && "Checking whether a newer version is available..."}
+                            {updateStatus.status === "downloading" && `Downloading version ${updateStatus.version || "update"}...`}
+                            {updateStatus.status === "downloaded" && `Version ${updateStatus.version} has been downloaded. Restart the app to install it.`}
+                            {updateStatus.status === "installing" && "The app is restarting to complete the update."}
+                            {updateStatus.status === "error" && (updateStatus.message || "The update could not be completed.")}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    {updateStatus.status === "downloading" && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold"><span>Progress</span><span>{Math.floor(updateStatus.percent || 0)}%</span></div>
+                            <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(updateStatus.percent || 0)} className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+                                <div className="h-full bg-blue-600 transition-[width]" style={{ width: `${Math.min(100, Math.max(0, updateStatus.percent || 0))}%` }} />
+                            </div>
+                        </div>
+                    )}
+                    <AlertDialogFooter>
+                        {!["downloading", "installing"].includes(updateStatus.status) && (
+                            <AlertDialogCancel className="!mt-0 h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-neutral-200 hover:bg-neutral-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-neutral-800 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                                {updateStatus.status === "downloaded" ? "Later" : "Cancel"}
+                            </AlertDialogCancel>
+                        )}
+                        {updateStatus.status === "available" && (
+                            <Button onClick={downloadUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Download update</Button>
+                        )}
+                        {updateStatus.status === "downloaded" && (
+                            <Button onClick={installUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Restart and install</Button>
+                        )}
+                        {updateStatus.status === "installing" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Restarting...</Button>}
+                        {updateStatus.status === "downloading" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading...</Button>}
+                        {updateStatus.status === "error" && <Button onClick={handleUpdateButtonClick} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Check again</Button>}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog open={deleteDatasetOpen} onOpenChange={(open) => {
                 if (!deletingDataset) setDeleteDatasetOpen(open);
             }}>

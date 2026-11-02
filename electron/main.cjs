@@ -304,7 +304,7 @@ async function createWindow() {
         ...(process.platform === "darwin"
             ? {
                   titleBarStyle: "hiddenInset",
-                  trafficLightPosition: { x: 12, y: 17 },
+                  trafficLightPosition: { x: 12, y: 17.5 },
               }
             : {}),
         webPreferences: {
