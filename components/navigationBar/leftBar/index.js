@@ -125,7 +125,10 @@ function LeftBar(props) {
     };
 
     const downloadUpdate = async () => {
-        if (!window.desktopUpdates) return;
+        if (!window.desktopUpdates?.downloadUpdate) {
+            setUpdateStatus({ status: "error", message: "The desktop updater is unavailable. Restart the installed app and try again." });
+            return;
+        }
         try {
             setUpdateStatus({ status: "downloading", percent: 0 });
             const result = await window.desktopUpdates.downloadUpdate();
@@ -526,14 +529,14 @@ function LeftBar(props) {
                             </AlertDialogCancel>
                         )}
                         {updateStatus.status === "available" && (
-                            <Button onClick={downloadUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Download update</Button>
+                            <Button type="button" onClick={downloadUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Download update</Button>
                         )}
                         {updateStatus.status === "downloaded" && (
-                            <Button onClick={installUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Restart and install</Button>
+                            <Button type="button" onClick={installUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Restart and install</Button>
                         )}
                         {updateStatus.status === "installing" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Restarting...</Button>}
-                        {updateStatus.status === "downloading" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
-                        {updateStatus.status === "error" && <Button onClick={handleUpdateButtonClick} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Check again</Button>}
+                        {updateStatus.status === "downloading" && <Button type="button" disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
+                        {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Check again</Button>}
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
