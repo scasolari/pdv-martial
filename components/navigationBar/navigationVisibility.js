@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import LocalAvatar from "@/components/localAvatar";
 import { setNavigationHidden as setNavigationHiddenAction } from "@/redux/actions/main";
 
 const NavigationVisibilityContext = createContext(null);
+const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
 export function NavigationVisibilityProvider({ children }) {
     const dispatch = useDispatch();
@@ -16,6 +17,7 @@ export function NavigationVisibilityProvider({ children }) {
     const [appSettingsOpen, setAppSettingsOpen] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
     const [updateStatus, setUpdateStatus] = useState({ status: "idle" });
+    const checkForUpdatesRef = useRef(null);
 
     useEffect(() => {
         if (typeof window === "undefined") return undefined;
@@ -26,6 +28,7 @@ export function NavigationVisibilityProvider({ children }) {
         }
 
         let cancelled = false;
+        let updateIntervalId;
         const unsubscribe = updates.onStatus((status) => {
             if (!cancelled) setUpdateStatus(status);
         });
@@ -38,6 +41,9 @@ export function NavigationVisibilityProvider({ children }) {
                     setUpdateStatus({ status: "unsupported" });
                     return null;
                 }
+                updateIntervalId = window.setInterval(() => {
+                    if (!cancelled) void checkForUpdatesRef.current?.();
+                }, UPDATE_CHECK_INTERVAL_MS);
                 setUpdateStatus({ status: "checking" });
                 return updates.checkForUpdates();
             })
@@ -50,6 +56,7 @@ export function NavigationVisibilityProvider({ children }) {
 
         return () => {
             cancelled = true;
+            if (updateIntervalId) window.clearInterval(updateIntervalId);
             unsubscribe?.();
         };
     }, []);
@@ -75,6 +82,7 @@ export function NavigationVisibilityProvider({ children }) {
             return failure;
         }
     }, [updateInfo, updateStatus]);
+    checkForUpdatesRef.current = checkForUpdates;
 
     const value = useMemo(() => ({
         navigationHidden,
