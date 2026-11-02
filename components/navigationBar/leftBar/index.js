@@ -286,10 +286,10 @@ function LeftBar(props) {
                 />
                 <div className="flex flex-col gap-2">
                     <div className="electron-titlebar-safe-left flex min-w-0 items-center justify-between gap-1 p-3 px-3">
-                        <div className="flex items-center gap-1">
+                        <div className="flex min-w-0 flex-1 items-center gap-1">
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button aria-label="Open local profile menu" className="ml-3 mr-3 flex items-center h-6 w-6 shrink-0 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                                    <Button aria-label="Open local profile menu" className="ml-3 mr-1 flex items-center h-6 w-6 shrink-0 rounded-full border-0 bg-transparent p-0 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800">
                                         {profile?.user?.image ? <Image className="h-6 w-6 rounded-full border object-cover" src={profile.user.image} height={24} width={24} alt={profile?.user?.name || "Account"} unoptimized /> : <LocalAvatar size={24} />}
                                     </Button>
                                 </PopoverTrigger>
@@ -324,14 +324,14 @@ function LeftBar(props) {
                                         aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
                                         title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
                                         aria-expanded={openDb}
-                                        className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 shrink-0 justify-center p-1.5" : "basis-[104px] shrink justify-between gap-2 px-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                        className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1" } h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
                                     >
                                         {compactDatabaseSelector ? (
                                             <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
                                         ) : (
-                                            <span className="min-w-0 flex-1 truncate text-left !text-xs">
+                                            <div className="min-w-0 flex-1 truncate text-left !text-xs !font-semibold">
                                                 {value || database?.db_name || "Select dataset..."}
-                                            </span>
+                                            </div>
                                         )}
                                         {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
                                     </Button>
