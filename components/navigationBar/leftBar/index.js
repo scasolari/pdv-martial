@@ -9,7 +9,7 @@ import {
 } from "@/redux/actions/main";
 import { connect } from "react-redux";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import {
     Command,
@@ -28,7 +28,9 @@ import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { Database, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Trash2 } from "lucide-react";
+import { CodeXml, Database, EllipsisVertical, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import LocalAvatar from "@/components/localAvatar";
 import {
     Tooltip,
@@ -68,6 +70,8 @@ function LeftBar(props) {
         openTab, // 👈 ARRIVA dal Playground
         openSqlTab,
         activeTabName,
+        savedQueries = [],
+        onDeleteSavedQuery,
     } = props;
 
     const router = useRouter();
@@ -81,6 +85,7 @@ function LeftBar(props) {
     } = useNavigationVisibility();
     const [open, setOpen] = React.useState(false);
     const [openDb, setOpenDb] = React.useState(false);
+    const [openSavedQueryMenuId, setOpenSavedQueryMenuId] = useState(null);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
     const [refreshingSchema, setRefreshingSchema] = useState(false);
     const schemaRefreshIconRef = useRef(null);
@@ -88,6 +93,7 @@ function LeftBar(props) {
     const [datasetToDelete, setDatasetToDelete] = useState(null);
     const [deleteDatasetOpen, setDeleteDatasetOpen] = useState(false);
     const [deletingDataset, setDeletingDataset] = useState(false);
+    const [queryToDelete, setQueryToDelete] = useState(null);
     const [, setDeleteDatasetError] = useState("");
     const sidebarRef = useRef(null);
     const resizeDragRef = useRef(null);
@@ -471,7 +477,100 @@ function LeftBar(props) {
                     </div>
                     <div className="overflow-x-scroll flex flex-col h-[100vh]">
                         <div className="h-[calc(100vh-100px)]">
-                            <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
+                            <Tabs defaultValue="tables">
+                                <div className="px-4">
+                                    <TabsList className="h-7 p-0.5 w-full">
+                                        <TabsTrigger value="tables" className="font-semibold text-xs w-full">Tables</TabsTrigger>
+                                        <TabsTrigger value="queries" className="font-semibold text-xs w-full">Queries</TabsTrigger>
+                                    </TabsList>
+                                </div>
+                                <TabsContent value="tables">
+                                    <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
+                                </TabsContent>
+                                <TabsContent value="queries">
+                                    {savedQueries.length === 0 ? (
+                                        <p className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">No saved queries yet.</p>
+                                    ) : (
+                                        <ul className="px-4 py-2 pt-0 flex flex-col gap-0.5 relative mt-1">
+                                            {savedQueries.map((savedQuery) => {
+                                                const isMenuOpen = openSavedQueryMenuId === savedQuery.id;
+                                                const openQuery = () => openSqlTab(savedQuery.query);
+                                                return (
+                                                    <div
+                                                        key={savedQuery.id}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onKeyDown={(event) => {
+                                                            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                                                                event.preventDefault();
+                                                                openQuery();
+                                                            }
+                                                        }}
+                                                        onClick={openQuery}
+                                                        className={cn(
+                                                            "group flex flex-row items-center justify-between px-2.5 py-1 rounded-md text-xs font-semibold transition hover:cursor-pointer",
+                                                            "hover:bg-zinc-200 dark:hover:bg-zinc-900",
+                                                            isMenuOpen && "bg-zinc-100 dark:bg-zinc-900"
+                                                        )}
+                                                    >
+                                                        <div className="flex min-w-0 flex-row items-center gap-3">
+                                                            <CodeXml size={12} className="shrink-0" />
+                                                            <p className="!text-xs !font-semibold truncate">{savedQuery.name}</p>
+                                                        </div>
+                                                        <DropdownMenu
+                                                            open={isMenuOpen}
+                                                            onOpenChange={(open) => setOpenSavedQueryMenuId(open ? savedQuery.id : null)}
+                                                        >
+                                                            <DropdownMenuTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label={`Actions for ${savedQuery.name}`}
+                                                                    onClick={(event) => event.stopPropagation()}
+                                                                    onPointerDown={(event) => event.stopPropagation()}
+                                                                    className="relative opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-1 rounded-md"
+                                                                >
+                                                                    <EllipsisVertical size={12} />
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="start" side="right" className="z-[10000] w-[200px] border border-neutral-200 dark:border-neutral-700">
+                                                                <DropdownMenuItem
+                                                                    className="text-xs font-semibold hover:cursor-pointer"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        openQuery();
+                                                                    }}
+                                                                >
+                                                                    Open query in SQL editor
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="text-xs font-semibold hover:cursor-pointer"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        window.navigator.clipboard.writeText(savedQuery.query)
+                                                                            .then(() => toast.add({ title: "Query copied", type: "success" }))
+                                                                            .catch(() => toast.add({ title: "Unable to copy query", type: "error" }));
+                                                                    }}
+                                                                >
+                                                                    Copy query
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="text-xs font-semibold text-red-600 hover:cursor-pointer focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setQueryToDelete(savedQuery);
+                                                                    }}
+                                                                >
+                                                                    Delete query
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
+                                </TabsContent>
+                            </Tabs>
                         </div>
                         <div className="flex items-center justify-between px-4">
                             <p className="!text-xs !font-semibold text-zinc-700">Version: {packageJson.version}</p>
@@ -555,6 +654,33 @@ function LeftBar(props) {
                         <AlertDialogCancel disabled={deletingDataset} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
                         <Button onClick={deleteDataset} disabled={deletingDataset} className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 !text-xs !font-semibold">
                             {deletingDataset ? "Deleting..." : "Delete"}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={Boolean(queryToDelete)} onOpenChange={(open) => {
+                if (!open) setQueryToDelete(null);
+            }}>
+                <AlertDialogContent className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-sm font-semibold">Delete saved query?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs font-semibold">
+                            Delete “{queryToDelete?.name}” from the saved queries on this device?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                            Cancel
+                        </AlertDialogCancel>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                if (queryToDelete) onDeleteSavedQuery?.(queryToDelete.id);
+                                setQueryToDelete(null);
+                            }}
+                            className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 !text-xs !font-semibold"
+                        >
+                            Delete
                         </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>

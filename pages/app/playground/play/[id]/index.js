@@ -10,7 +10,7 @@ import dynamic from "next/dynamic";
 import QueryResultsTable from "@/components/queryResults/table";
 import TableFilters from "@/components/queryResults/table/filters";
 import TableGrouping from "@/components/queryResults/table/grouping";
-import { Check, ChevronDown, ChevronsLeft, ChevronsRight, ChevronsUpDown, Clock, CodeXml, Columns3, Download, History, Info, Play, Plus, RefreshCcw, Search, Settings2, Table, Trash2, X} from "lucide-react";
+import { Check, ChevronDown, ChevronsLeft, ChevronsRight, ChevronsUpDown, Clock, CodeXml, Columns3, Download, History, Info, Play, Plus, RefreshCcw, Save, Search, Settings2, Table, Trash2, X} from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,7 +24,7 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/router";
 import { ShowNavigationButton, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import AddDatabase from "@/components/addDatabase";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +36,7 @@ const EMPTY_FILTER_RULES = Object.freeze([])
 const EMPTY_GROUPING = Object.freeze([])
 const EMPTY_COLUMNS = Object.freeze([])
 const EMPTY_COLUMN_VISIBILITY = Object.freeze({})
+const SAVED_QUERIES_STORAGE_KEY = "placedv-query-saved-queries"
 
 const MinimalEditor = dynamic(() => import("@/components/codeEditor"), {
     ssr: false,
@@ -84,6 +85,9 @@ function PlaygroundPlayId(props) {
     const [databaseMenuOpen, setDatabaseMenuOpen] = useState(false)
     const [databaseMenuSearch, setDatabaseMenuSearch] = useState("")
     const [addDatasetOpen, setAddDatasetOpen] = useState(false)
+    const [savedQueries, setSavedQueries] = useState([])
+    const [saveQueryDialogOpen, setSaveQueryDialogOpen] = useState(false)
+    const [saveQueryName, setSaveQueryName] = useState("")
     const { navigationHidden } = useNavigationVisibility()
     const showToolbarSkeleton = navigationHidden && !router.isReady
 
@@ -364,7 +368,46 @@ function PlaygroundPlayId(props) {
             })),
         ])), [tables?.data]);
     const activeSqlQuery = activeTab?.query ?? query;
-    const executedSqlQuery = activeTab?.executedQuery || activeTab?.query || "";
+    const executedSqlQuery = activeTab?.executedQuery || "";
+
+    useEffect(() => {
+        try {
+            const storedQueries = JSON.parse(window.localStorage.getItem(SAVED_QUERIES_STORAGE_KEY) || "[]")
+            setSavedQueries(Array.isArray(storedQueries) ? storedQueries : [])
+        } catch {
+            setSavedQueries([])
+        }
+    }, [])
+
+    const handleSaveQuery = () => {
+        const queryText = String(activeSqlQuery || "").trim()
+        const name = saveQueryName.trim()
+        if (!queryText || !name) return
+
+        const nextSavedQueries = [
+            ...savedQueries.filter((savedQuery) => savedQuery.name.toLowerCase() !== name.toLowerCase()),
+            { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, query: queryText },
+        ]
+        try {
+            window.localStorage.setItem(SAVED_QUERIES_STORAGE_KEY, JSON.stringify(nextSavedQueries))
+            setSavedQueries(nextSavedQueries)
+            setSaveQueryDialogOpen(false)
+            toast.add({ title: "Query saved", description: `“${name}” is available in the Queries sidebar.`, type: "success" })
+        } catch {
+            toast.add({ title: "Unable to save query", description: "There was a problem saving this query on this device.", type: "error" })
+        }
+    }
+
+    const handleDeleteSavedQuery = (savedQueryId) => {
+        const nextSavedQueries = savedQueries.filter((savedQuery) => savedQuery.id !== savedQueryId)
+        try {
+            window.localStorage.setItem(SAVED_QUERIES_STORAGE_KEY, JSON.stringify(nextSavedQueries))
+            setSavedQueries(nextSavedQueries)
+            toast.add({ title: "Query deleted", type: "success" })
+        } catch {
+            toast.add({ title: "Unable to delete query", description: "There was a problem updating saved queries on this device.", type: "error" })
+        }
+    }
     const activeTableSchema = useMemo(() => activeTab?.schema?.length
         ? activeTab.schema
         : tables?.data?.find((table) => table.tableName === activeTab?.name)?.details?.columns || EMPTY_COLUMNS,
@@ -913,7 +956,7 @@ function PlaygroundPlayId(props) {
     return (
         <div>
             {/* passiamo anche activeTabName */}
-            <LeftBar openTab={openOrFocusTab} openSqlTab={openSqlTab} activeTabName={activeTab?.name ?? null} />
+            <LeftBar openTab={openOrFocusTab} openSqlTab={openSqlTab} activeTabName={activeTab?.name ?? null} savedQueries={savedQueries} onDeleteSavedQuery={handleDeleteSavedQuery} />
             <div className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} z-40 flex h-screen min-h-0 flex-col overflow-hidden transition-[margin] duration-200`}>
                 <div className="sticky top-0 z-40 bg-zinc-50 dark:bg-zinc-950">
                     <div className="border-b h-[53px] flex items-center w-full justify-between bg-zinc-50 dark:bg-zinc-900/30">
@@ -1133,21 +1176,35 @@ function PlaygroundPlayId(props) {
                     {activeTab?.type === "sql" ? (
                         <div className="bg-white dark:bg-zinc-950 border-b">
                             <div className="p-3 px-4 flex items-center justify-between gap-3">
-                                <Button
-                                    disabled={!database?.db_id || !activeSqlQuery?.trim() || loading}
-                                    onClick={fetchQuery}
-                                    className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0  p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
-                                >
-                                    <Play size={12} />
-                                    {loading === true
-                                        ? "Running..."
-                                        : <>
-                                            Run Query
-                                            <span className="text-[10px] text-blue-300">⌘↵</span>
-                                        </>
-                                    }
-
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        disabled={!database?.db_id || !activeSqlQuery?.trim() || loading}
+                                        onClick={fetchQuery}
+                                        className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
+                                    >
+                                        <Play size={12} />
+                                        {loading === true
+                                            ? "Running..."
+                                            : <>
+                                                Run Query
+                                                <span className="text-[10px] text-blue-300">⌘↵</span>
+                                            </>
+                                        }
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        aria-label="Save query"
+                                        disabled={!String(activeSqlQuery || "").trim()}
+                                        onClick={() => {
+                                            setSaveQueryName(`Saved query ${savedQueries.length + 1}`)
+                                            setSaveQueryDialogOpen(true)
+                                        }}
+                                        className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                    >
+                                        <Save size={12} />
+                                        Save query
+                                    </Button>
+                                </div>
                                 {activeTab.data?.data?.length === 0
                                     ? null
                                     : <div className="flex items-center gap-1 text-xs font-semibold text-zinc-400 dark:text-zinc-500">
@@ -1323,8 +1380,8 @@ function PlaygroundPlayId(props) {
                         />
                         </div>
                     ) : activeTab?.type === "sql" ? (
-                        <div>
-                            <div className="border-b">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                            <div className="shrink-0 border-b">
                                 <MinimalEditor
                                     onChange={(value) => {
                                         setQuery(value);
@@ -1338,13 +1395,13 @@ function PlaygroundPlayId(props) {
                                     initialValue={activeSqlQuery}
                                 />
                             </div>
-                            {queryError === true ? null : loading === true ? <div className="h-[calc(100vh-54px)] flex items-center justify-center">
+                            {queryError === true ? null : loading === true ? <div className="flex min-h-0 flex-1 items-center justify-center">
                                 <p className="text-xs font-semibold">No rows for this table</p>
                             </div> : (
-                                <div>
+                                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                                     {activeTab.data?.data?.length === 0
                                             ? null
-                                        : <div className="p-3 px-4 border-b flex items-center justify-between gap-1 text-xs font-semibold text-zinc-400 dark:text-zinc-500">
+                                        : <div className="shrink-0 p-3 px-4 border-b flex items-center justify-between gap-1 text-xs font-semibold text-zinc-400 dark:text-zinc-500">
                                             <div className="flex items-center gap-2">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -1398,19 +1455,19 @@ function PlaygroundPlayId(props) {
                                                 </p>
                                                 {activeTab.data?.truncated && (
                                                     <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                                        <span>First 1,000 rows shown</span>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <button type="button" aria-label="Why are only 1,000 rows shown?" className="rounded-full p-0.5 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 dark:hover:bg-amber-950">
-                                                                        <Info size={12} />
-                                                                    </button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="top" className="max-w-[280px] text-xs font-semibold leading-4">
-                                                                    SQL results and their exports are capped at 1,000 rows to keep queries responsive. Open a table from the database navigation to browse all its rows in pages.
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Why are only 1,000 rows shown?"
+                                                            title="Why are only 1,000 rows shown?"
+                                                            onClick={() => toast.add({
+                                                                title: "SQL result limit",
+                                                                description: "SQL results and their exports are capped at 1,000 rows to keep queries responsive. Add a filter or LIMIT clause to narrow the results, or open a table from the database navigation to browse its rows in pages.",
+                                                                type: "info",
+                                                            })}
+                                                            className="rounded-full p-0.5 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 dark:hover:bg-amber-950"
+                                                        >
+                                                            <Info size={12} />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -1447,6 +1504,40 @@ function PlaygroundPlayId(props) {
                     </div>
                 )}
             </div>
+            <AlertDialog open={saveQueryDialogOpen} onOpenChange={setSaveQueryDialogOpen}>
+                <AlertDialogContent className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-sm font-semibold">Save query</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs font-semibold">
+                            Choose a name for this query. It will be saved on this device.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Input
+                        autoFocus
+                        maxLength={80}
+                        value={saveQueryName}
+                        onChange={(event) => setSaveQueryName(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" && saveQueryName.trim() && String(activeSqlQuery || "").trim()) {
+                                event.preventDefault()
+                                handleSaveQuery()
+                            }
+                        }}
+                        aria-label="Query name"
+                        placeholder="Query name"
+                        className="h-8 !text-xs !font-semibold"
+                    />
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="!mt-0 h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
+                        <Button
+                            type="button"
+                            disabled={!saveQueryName.trim() || !String(activeSqlQuery || "").trim()}
+                            onClick={handleSaveQuery}
+                            className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 !text-xs !font-semibold"
+                        >Save query</Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
