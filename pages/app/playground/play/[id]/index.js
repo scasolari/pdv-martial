@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { setDatabase, setQuery, setQueryResults, setQueryTabs, setTables } from "@/redux/actions/main";
 import axios from "axios";
-import { useTheme } from "next-themes";
 import { useRouter } from "next/router";
 import { ShowNavigationButton, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,8 +35,6 @@ const EMPTY_FILTER_RULES = Object.freeze([])
 const EMPTY_GROUPING = Object.freeze([])
 const EMPTY_COLUMNS = Object.freeze([])
 const EMPTY_COLUMN_VISIBILITY = Object.freeze({})
-const SAVED_QUERIES_STORAGE_KEY = "placedv-query-saved-queries"
-
 const MinimalEditor = dynamic(() => import("@/components/codeEditor"), {
     ssr: false,
     loading: () => <Skeleton className="h-[200px] w-full" />,
@@ -45,7 +42,6 @@ const MinimalEditor = dynamic(() => import("@/components/codeEditor"), {
 
 function PlaygroundPlayId(props) {
     const { queryTabs, setQueryTabs, database, setDatabase, databases, query, setQuery, setQueryResults, tables } = props;
-    const { theme } = useTheme();
     const router = useRouter();
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const prevLengthRef = useRef(0);
@@ -85,7 +81,7 @@ function PlaygroundPlayId(props) {
     const [databaseMenuOpen, setDatabaseMenuOpen] = useState(false)
     const [databaseMenuSearch, setDatabaseMenuSearch] = useState("")
     const [addDatasetOpen, setAddDatasetOpen] = useState(false)
-    const [savedQueries, setSavedQueries] = useState([])
+    const [savedQueriesByDatabase, setSavedQueriesByDatabase] = useState({})
     const [saveQueryDialogOpen, setSaveQueryDialogOpen] = useState(false)
     const [saveQueryName, setSaveQueryName] = useState("")
     const { navigationHidden } = useNavigationVisibility()
@@ -351,6 +347,8 @@ function PlaygroundPlayId(props) {
 
     const activeTab =
         queryTabs && queryTabs.length > 0 ? queryTabs[activeTabIndex] : null;
+    const selectedDatabaseId = typeof database?.db_id === "string" ? database.db_id : null;
+    const savedQueries = selectedDatabaseId ? savedQueriesByDatabase[selectedDatabaseId] || [] : [];
     const sqlEditorTables = useMemo(() => (tables?.data || [])
         .map((table) => table.tableName)
         .filter(Boolean), [tables?.data]);
@@ -371,41 +369,54 @@ function PlaygroundPlayId(props) {
     const executedSqlQuery = activeTab?.executedQuery || "";
 
     useEffect(() => {
-        try {
-            const storedQueries = JSON.parse(window.localStorage.getItem(SAVED_QUERIES_STORAGE_KEY) || "[]")
-            setSavedQueries(Array.isArray(storedQueries) ? storedQueries : [])
-        } catch {
-            setSavedQueries([])
-        }
-    }, [])
+        if (!selectedDatabaseId) return undefined;
+        let cancelled = false;
+        axios.get("/api/saved-queries", { params: { databaseId: selectedDatabaseId } })
+            .then(({ data }) => {
+                if (cancelled) return;
+                const queries = Array.isArray(data?.queries) ? data.queries : [];
+                setSavedQueriesByDatabase((current) => ({ ...current, [selectedDatabaseId]: queries }));
+            })
+            .catch((error) => {
+                if (cancelled) return;
+                console.error("Unable to load saved queries", error);
+                toast.add({ title: "Unable to load saved queries", description: "Saved queries could not be loaded from this device's database.", type: "error" });
+            });
+        return () => { cancelled = true; };
+    }, [selectedDatabaseId])
 
-    const handleSaveQuery = () => {
+    const handleSaveQuery = async () => {
         const queryText = String(activeSqlQuery || "").trim()
         const name = saveQueryName.trim()
-        if (!queryText || !name) return
+        if (!selectedDatabaseId || !queryText || !name) return
 
-        const nextSavedQueries = [
-            ...savedQueries.filter((savedQuery) => savedQuery.name.toLowerCase() !== name.toLowerCase()),
-            { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, query: queryText },
-        ]
         try {
-            window.localStorage.setItem(SAVED_QUERIES_STORAGE_KEY, JSON.stringify(nextSavedQueries))
-            setSavedQueries(nextSavedQueries)
+            const { data } = await axios.post("/api/saved-queries", { databaseId: selectedDatabaseId, name, query: queryText })
+            setSavedQueriesByDatabase((current) => ({
+                ...current,
+                [selectedDatabaseId]: [
+                    data.query,
+                    ...(current[selectedDatabaseId] || []).filter((savedQuery) => savedQuery.id !== data.query.id),
+                ],
+            }))
             setSaveQueryDialogOpen(false)
             toast.add({ title: "Query saved", description: `“${name}” is available in the Queries sidebar.`, type: "success" })
-        } catch {
-            toast.add({ title: "Unable to save query", description: "There was a problem saving this query on this device.", type: "error" })
+        } catch (error) {
+            toast.add({ title: "Unable to save query", description: error.response?.data?.error || "There was a problem saving this query to this device's database.", type: "error" })
         }
     }
 
-    const handleDeleteSavedQuery = (savedQueryId) => {
-        const nextSavedQueries = savedQueries.filter((savedQuery) => savedQuery.id !== savedQueryId)
+    const handleDeleteSavedQuery = async (savedQueryId, savedQueryDatabaseId = selectedDatabaseId) => {
+        if (!savedQueryDatabaseId) return;
         try {
-            window.localStorage.setItem(SAVED_QUERIES_STORAGE_KEY, JSON.stringify(nextSavedQueries))
-            setSavedQueries(nextSavedQueries)
+            await axios.delete("/api/saved-queries", { data: { id: savedQueryId, databaseId: savedQueryDatabaseId } })
+            setSavedQueriesByDatabase((current) => ({
+                ...current,
+                [savedQueryDatabaseId]: (current[savedQueryDatabaseId] || []).filter((savedQuery) => savedQuery.id !== savedQueryId),
+            }))
             toast.add({ title: "Query deleted", type: "success" })
-        } catch {
-            toast.add({ title: "Unable to delete query", description: "There was a problem updating saved queries on this device.", type: "error" })
+        } catch (error) {
+            toast.add({ title: "Unable to delete query", description: error.response?.data?.error || "There was a problem deleting this query from this device's database.", type: "error" })
         }
     }
     const activeTableSchema = useMemo(() => activeTab?.schema?.length
@@ -1194,7 +1205,7 @@ function PlaygroundPlayId(props) {
                                     <Button
                                         type="button"
                                         aria-label="Save query"
-                                        disabled={!String(activeSqlQuery || "").trim()}
+                                        disabled={!selectedDatabaseId || !String(activeSqlQuery || "").trim()}
                                         onClick={() => {
                                             setSaveQueryName(`Saved query ${savedQueries.length + 1}`)
                                             setSaveQueryDialogOpen(true)
@@ -1391,7 +1402,6 @@ function PlaygroundPlayId(props) {
                                     }}
                                     schema={sqlEditorSchema}
                                     tables={sqlEditorTables}
-                                    theme={theme}
                                     initialValue={activeSqlQuery}
                                 />
                             </div>

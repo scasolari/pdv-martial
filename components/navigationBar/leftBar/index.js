@@ -276,6 +276,8 @@ function LeftBar(props) {
         updateSidebarWidth(nextWidth, true);
     };
 
+    const hasSelectedDatabase = Object.keys(database ?? {}).length > 0;
+
     if (navigationHidden) return null;
 
     return (
@@ -476,102 +478,106 @@ function LeftBar(props) {
                         </TooltipProvider>
                     </div>
                     <div className="overflow-x-scroll flex flex-col h-[100vh]">
-                        <div className="h-[calc(100vh-100px)]">
-                            <Tabs defaultValue="tables">
-                                <div className="px-4">
-                                    <TabsList className="h-7 p-0.5 w-full">
-                                        <TabsTrigger value="tables" className="font-semibold text-xs w-full">Tables</TabsTrigger>
-                                        <TabsTrigger value="queries" className="font-semibold text-xs w-full">Queries</TabsTrigger>
-                                    </TabsList>
-                                </div>
-                                <TabsContent value="tables">
-                                    <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
-                                </TabsContent>
-                                <TabsContent value="queries">
-                                    {savedQueries.length === 0 ? (
-                                        <p className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">No saved queries yet.</p>
-                                    ) : (
-                                        <ul className="px-4 py-2 pt-0 flex flex-col gap-0.5 relative mt-1">
-                                            {savedQueries.map((savedQuery) => {
-                                                const isMenuOpen = openSavedQueryMenuId === savedQuery.id;
-                                                const openQuery = () => openSqlTab(savedQuery.query);
-                                                return (
-                                                    <div
-                                                        key={savedQuery.id}
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onKeyDown={(event) => {
-                                                            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
-                                                                event.preventDefault();
-                                                                openQuery();
-                                                            }
-                                                        }}
-                                                        onClick={openQuery}
-                                                        className={cn(
-                                                            "group flex flex-row items-center justify-between px-2.5 py-1 rounded-md text-xs font-semibold transition hover:cursor-pointer",
-                                                            "hover:bg-zinc-200 dark:hover:bg-zinc-900",
-                                                            isMenuOpen && "bg-zinc-100 dark:bg-zinc-900"
-                                                        )}
-                                                    >
-                                                        <div className="flex min-w-0 flex-row items-center gap-3">
-                                                            <CodeXml size={12} className="shrink-0" />
-                                                            <p className="!text-xs !font-semibold truncate">{savedQuery.name}</p>
-                                                        </div>
-                                                        <DropdownMenu
-                                                            open={isMenuOpen}
-                                                            onOpenChange={(open) => setOpenSavedQueryMenuId(open ? savedQuery.id : null)}
+                        {!hasSelectedDatabase
+                            ? <div className="h-[calc(100vh-100px)]">
+                            </div>
+                            : <div className="h-[calc(100vh-100px)]">
+                                <Tabs defaultValue="tables">
+                                    <div className="px-4">
+                                        <TabsList className="h-7 p-0.5 w-full">
+                                            <TabsTrigger value="tables" className="font-semibold text-xs w-full">Tables</TabsTrigger>
+                                            <TabsTrigger value="queries" className="font-semibold text-xs w-full">Queries</TabsTrigger>
+                                        </TabsList>
+                                    </div>
+                                    <TabsContent value="tables">
+                                        <TablesV2 openTab={openTab} openSqlTab={openSqlTab} activeTabName={activeTabName}/>
+                                    </TabsContent>
+                                    <TabsContent value="queries">
+                                        {savedQueries.length === 0 ? (
+                                            <p className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">No saved queries yet.</p>
+                                        ) : (
+                                            <ul className="px-4 py-2 pt-0 flex flex-col gap-0.5 relative mt-1">
+                                                {savedQueries.map((savedQuery) => {
+                                                    const isMenuOpen = openSavedQueryMenuId === savedQuery.id;
+                                                    const openQuery = () => openSqlTab(savedQuery.query);
+                                                    return (
+                                                        <div
+                                                            key={savedQuery.id}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onKeyDown={(event) => {
+                                                                if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                                                                    event.preventDefault();
+                                                                    openQuery();
+                                                                }
+                                                            }}
+                                                            onClick={openQuery}
+                                                            className={cn(
+                                                                "group flex flex-row items-center justify-between px-2.5 py-1 rounded-md text-xs font-semibold transition hover:cursor-pointer",
+                                                                "hover:bg-zinc-200 dark:hover:bg-zinc-900",
+                                                                isMenuOpen && "bg-zinc-100 dark:bg-zinc-900"
+                                                            )}
                                                         >
-                                                            <DropdownMenuTrigger asChild>
-                                                                <button
-                                                                    type="button"
-                                                                    aria-label={`Actions for ${savedQuery.name}`}
-                                                                    onClick={(event) => event.stopPropagation()}
-                                                                    onPointerDown={(event) => event.stopPropagation()}
-                                                                    className="relative opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-1 rounded-md"
-                                                                >
-                                                                    <EllipsisVertical size={12} />
-                                                                </button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="start" side="right" className="z-[10000] w-[200px] border border-neutral-200 dark:border-neutral-700">
-                                                                <DropdownMenuItem
-                                                                    className="text-xs font-semibold hover:cursor-pointer"
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        openQuery();
-                                                                    }}
-                                                                >
-                                                                    Open query in SQL editor
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    className="text-xs font-semibold hover:cursor-pointer"
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        window.navigator.clipboard.writeText(savedQuery.query)
-                                                                            .then(() => toast.add({ title: "Query copied", type: "success" }))
-                                                                            .catch(() => toast.add({ title: "Unable to copy query", type: "error" }));
-                                                                    }}
-                                                                >
-                                                                    Copy query
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    className="text-xs font-semibold text-red-600 hover:cursor-pointer focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        setQueryToDelete(savedQuery);
-                                                                    }}
-                                                                >
-                                                                    Delete query
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
-                                </TabsContent>
-                            </Tabs>
-                        </div>
+                                                            <div className="flex min-w-0 flex-row items-center gap-3">
+                                                                <CodeXml size={12} className="shrink-0" />
+                                                                <p className="!text-xs !font-semibold truncate">{savedQuery.name}</p>
+                                                            </div>
+                                                            <DropdownMenu
+                                                                open={isMenuOpen}
+                                                                onOpenChange={(open) => setOpenSavedQueryMenuId(open ? savedQuery.id : null)}
+                                                            >
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <button
+                                                                        type="button"
+                                                                        aria-label={`Actions for ${savedQuery.name}`}
+                                                                        onClick={(event) => event.stopPropagation()}
+                                                                        onPointerDown={(event) => event.stopPropagation()}
+                                                                        className="relative opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity p-1 rounded-md"
+                                                                    >
+                                                                        <EllipsisVertical size={12} />
+                                                                    </button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="start" side="right" className="z-[10000] w-[200px] border border-neutral-200 dark:border-neutral-700">
+                                                                    <DropdownMenuItem
+                                                                        className="text-xs font-semibold hover:cursor-pointer"
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            openQuery();
+                                                                        }}
+                                                                    >
+                                                                        Open query in SQL editor
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="text-xs font-semibold hover:cursor-pointer"
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            window.navigator.clipboard.writeText(savedQuery.query)
+                                                                                .then(() => toast.add({ title: "Query copied", type: "success" }))
+                                                                                .catch(() => toast.add({ title: "Unable to copy query", type: "error" }));
+                                                                        }}
+                                                                    >
+                                                                        Copy query
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="text-xs font-semibold text-red-600 hover:cursor-pointer focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            setQueryToDelete(savedQuery);
+                                                                        }}
+                                                                    >
+                                                                        Delete query
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
+                                    </TabsContent>
+                                </Tabs>
+                            </div>
+                        }
                         <div className="flex items-center justify-between px-4">
                             <p className="!text-xs !font-semibold text-zinc-700">Version: {packageJson.version}</p>
                             <TooltipProvider>
@@ -675,7 +681,7 @@ function LeftBar(props) {
                         <Button
                             type="button"
                             onClick={() => {
-                                if (queryToDelete) onDeleteSavedQuery?.(queryToDelete.id);
+                                if (queryToDelete) onDeleteSavedQuery?.(queryToDelete.id, queryToDelete.databaseId);
                                 setQueryToDelete(null);
                             }}
                             className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 !text-xs !font-semibold"

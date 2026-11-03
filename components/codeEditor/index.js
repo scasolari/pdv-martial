@@ -15,7 +15,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
     const lastValueRef = useRef('')
     const onChangeRef = useRef(onChange)
     onChangeRef.current = onChange
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     const themeCompartment = useRef(new Compartment()).current
     const highlightCompartment = useRef(new Compartment()).current
@@ -30,25 +30,25 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
         EditorView.theme(
             {
                 '&': {
-                    backgroundColor: theme === "dark" ? '#111111' : '#ffffff',
-                    color: theme === "dark" ? '#f5f5f5' : '#000000',
+                    backgroundColor: resolvedTheme === "dark" ? '#111111' : '#ffffff',
+                    color: resolvedTheme === "dark" ? '#f5f5f5' : '#000000',
                     height: '100%',
                 },
                 '.cm-content': {
-                    caretColor: theme === "dark" ? '#f5f5f5' : '#000000',
+                    caretColor: resolvedTheme === "dark" ? '#f5f5f5' : '#000000',
                     padding: '12px',
                 },
                 '.cm-gutters': {
-                    backgroundColor: theme === "dark" ? '#111111' : '#ffffff',
-                    color: theme === "dark" ? '#888888' : '#aaaaaa',
+                    backgroundColor: resolvedTheme === "dark" ? '#111111' : '#ffffff',
+                    color: resolvedTheme === "dark" ? '#888888' : '#aaaaaa',
                     border: 'none',
                 },
                 // Tooltip / autocomplete (selettori più aggressivi)
                 '.cm-tooltip, .cm-tooltip.cm-tooltip-autocomplete, .cm-tooltip-autocomplete': {
                     padding: '5px',
                     borderRadius: '10px',
-                    backgroundColor: theme === "dark" ? '#09090b' : '#ffffff',
-                    border: theme === "dark" ? '1px solid #374151' : '1px solid #e5e5e5',
+                    backgroundColor: resolvedTheme === "dark" ? '#09090b' : '#ffffff',
+                    border: resolvedTheme === "dark" ? '1px solid #374151' : '1px solid #e5e5e5',
                 },
                 '.cm-tooltip.cm-tooltip-autocomplete > ul > li': {
                     borderRadius: '5px',
@@ -61,23 +61,23 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
                     fontSize: '0.875rem',
                 },
                 '.cm-tooltip-autocomplete ul li[aria-selected]': {
-                    backgroundColor: theme === "dark" ? '#111111' : '#f5f5f5',
-                    color: theme === "dark" ? '#ffffff' : '#000000',
+                    backgroundColor: resolvedTheme === "dark" ? '#111111' : '#f5f5f5',
+                    color: resolvedTheme === "dark" ? '#ffffff' : '#000000',
                 },
             },
-            { dark: theme === "dark" }
-        ), [theme])
+            { dark: resolvedTheme === "dark" }
+        ), [resolvedTheme])
 
     const createHighlight = useCallback(() =>
         HighlightStyle.define([
-            { tag: t.keyword, color: theme === "dark" ? '#93c5fd' : '#2563eb', fontWeight: 'bold' },
-            { tag: t.operator, color: theme === "dark" ? '#ffcb6b' : '#6a1b9a', fontWeight: 'bold' },
-            { tag: t.string, color: theme === "dark" ? '#c3e88d' : '#2e7d32', fontWeight: 'bold' },
-            { tag: t.variableName, color: theme === "dark" ? '#ffffff' : '#000000', fontWeight: 'bold' },
-            { tag: t.literal, color: theme === "dark" ? '#ff5370' : '#c62828', fontWeight: 'bold' },
-            { tag: t.comment, color: theme === "dark" ? '#999999' : '#757575', fontStyle: 'italic', fontWeight: 'bold' },
+            { tag: t.keyword, color: resolvedTheme === "dark" ? '#93c5fd' : '#2563eb', fontWeight: 'bold' },
+            { tag: t.operator, color: resolvedTheme === "dark" ? '#ffcb6b' : '#6a1b9a', fontWeight: 'bold' },
+            { tag: t.string, color: resolvedTheme === "dark" ? '#c3e88d' : '#2e7d32', fontWeight: 'bold' },
+            { tag: t.variableName, color: resolvedTheme === "dark" ? '#ffffff' : '#000000', fontWeight: 'bold' },
+            { tag: t.literal, color: resolvedTheme === "dark" ? '#ff5370' : '#c62828', fontWeight: 'bold' },
+            { tag: t.comment, color: resolvedTheme === "dark" ? '#999999' : '#757575', fontStyle: 'italic', fontWeight: 'bold' },
             { tag: t.number, fontWeight: 'bold' },
-        ]), [theme])
+        ]), [resolvedTheme])
 
     // Init una sola volta
     useEffect(() => {
@@ -151,7 +151,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
                 themeCompartment.reconfigure(createTheme()),
             ],
         })
-    }, [theme, createHighlight, createTheme, highlightCompartment, themeCompartment])
+    }, [resolvedTheme, createHighlight, createTheme, highlightCompartment, themeCompartment])
 
     return (
         <div

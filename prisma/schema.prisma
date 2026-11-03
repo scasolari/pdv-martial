@@ -10,27 +10,29 @@ datasource db {
 
 // The desktop app has one local profile and no remote account system.
 model User {
-  id              String             @id @default(cuid())
-  name            String?
-  email           String?            @unique
-  admin           Boolean            @default(false)
-  token           String?
-  Database        Database[]
+  id               String             @id @default(cuid())
+  name             String?
+  email            String?            @unique
+  admin            Boolean            @default(false)
+  token            String?
+  Database         Database[]
   DatabaseAuditLog DatabaseAuditLog[]
-  LegalAcceptance LegalAcceptance[]
+  LegalAcceptance  LegalAcceptance[]
+  SavedQuery       SavedQuery[]
 }
 
 model Database {
-  id                         String   @id @default(cuid())
-  user_id                    String
-  db_name                    String
-  db_url_connection          String
-  preferences                String?
-  authorizationConfirmedAt   DateTime?
-  authorizationVersion       String?
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @default(now())
-  user                       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                       String       @id @default(cuid())
+  user_id                  String
+  db_name                  String
+  db_url_connection        String
+  preferences              String?
+  authorizationConfirmedAt DateTime?
+  authorizationVersion     String?
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @default(now())
+  user                     User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  SavedQuery               SavedQuery[]
 }
 
 model LegalAcceptance {
@@ -65,6 +67,21 @@ model DatabaseAuditLog {
   @@index([database_id, createdAt])
   @@index([status, createdAt])
   @@index([createdAt])
+}
+
+model SavedQuery {
+  id         String    @id @default(cuid())
+  userId     String
+  databaseId String?
+  name       String
+  query      String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  database   Database? @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+
+  @@unique([databaseId, name])
+  @@index([userId, databaseId, updatedAt])
 }
 
 model ExternalConnectionLease {
