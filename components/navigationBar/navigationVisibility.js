@@ -12,7 +12,7 @@ const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
 export function NavigationVisibilityProvider({ children }) {
     const dispatch = useDispatch();
-    const navigationHidden = useSelector((state) => state.navigationHidden);
+    const navigationHidden = useSelector((state) => state.settings.navigationHidden);
     const setNavigationHidden = useCallback((hidden) => dispatch(setNavigationHiddenAction(hidden)), [dispatch]);
     const [appSettingsOpen, setAppSettingsOpen] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);

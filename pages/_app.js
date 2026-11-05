@@ -7,10 +7,13 @@ import {ThemeProvider} from "next-themes";
 import {NavigationVisibilityProvider, useNavigationVisibility} from "@/components/navigationBar/navigationVisibility";
 import {Toaster} from "@/components/ui/base-toast";
 import {useEffect, useRef} from "react";
+import {useDispatch, useSelector} from "react-redux";
 import {useRouter} from "next/router";
 import {useTheme} from "next-themes";
 import GlobalCommandSearch from "@/components/globalCommandSearch";
+import TwoFactorGate from "@/components/twoFactorGate";
 import {captureAnalyticsEvent, isAnalyticsEnabled} from "@/lib/analytics";
+import {migrateLegacySettings} from "@/redux/actions/main";
 
 const AppSettingsDialog = dynamic(() => import("@/components/appSettingsDialog"));
 
@@ -21,25 +24,46 @@ function GlobalSettingsDialog() {
 }
 
 function NativeThemeSync() {
-    const {theme} = useTheme();
+    const {setTheme} = useTheme();
+    const dispatch = useDispatch();
+    const theme = useSelector((state) => state.settings.theme);
+    const legacySettingsMigrated = useSelector((state) => state.settings.legacySettingsMigrated);
 
     useEffect(() => {
-        if (theme && typeof window !== "undefined") {
-            window.desktopTheme?.setTheme(theme);
+        if (typeof window === "undefined") return;
+        let nextTheme = theme;
+        if (!legacySettingsMigrated) {
+            const legacyTheme = window.localStorage.getItem("theme");
+            const legacyWidth = Number.parseFloat(window.localStorage.getItem("placedv-query-sidebar-width"));
+            const legacyAnalytics = window.localStorage.getItem("placedv-usage-analytics-consent") === "enabled";
+            const validLegacyTheme = ["light", "dark", "system"].includes(legacyTheme) ? legacyTheme : null;
+            dispatch(migrateLegacySettings({
+                theme: validLegacyTheme,
+                analyticsEnabled: legacyAnalytics,
+                sidebarWidth: Number.isFinite(legacyWidth) ? legacyWidth : null,
+            }));
+            if (validLegacyTheme) nextTheme = validLegacyTheme;
+            window.localStorage.removeItem("placedv-query-sidebar-width");
+            window.localStorage.removeItem("placedv-usage-analytics-consent");
         }
-    }, [theme]);
+        if (nextTheme) {
+            setTheme(nextTheme);
+            window.desktopTheme?.setTheme(nextTheme);
+        }
+    }, [dispatch, legacySettingsMigrated, setTheme, theme]);
 
     return null;
 }
 
 function AnalyticsStartup() {
     const {pathname} = useRouter();
+    const analyticsEnabled = useSelector((state) => state.settings.analyticsEnabled);
     const appOpened = useRef(false);
     const lastScreen = useRef(null);
 
     useEffect(() => {
         const syncAnalytics = () => {
-            if (!isAnalyticsEnabled()) {
+            if (!analyticsEnabled || !isAnalyticsEnabled()) {
                 appOpened.current = false;
                 lastScreen.current = null;
                 return;
@@ -63,9 +87,7 @@ function AnalyticsStartup() {
         };
 
         syncAnalytics();
-        window.addEventListener("placedv-analytics-consent-changed", syncAnalytics);
-        return () => window.removeEventListener("placedv-analytics-consent-changed", syncAnalytics);
-    }, [pathname]);
+    }, [analyticsEnabled, pathname]);
 
     return null;
 }
@@ -88,9 +110,11 @@ export default function App({Component, pageProps}) {
                 <NativeThemeSync />
                 <AnalyticsStartup />
                 <NavigationVisibilityProvider>
-                    <Component {...pageProps} />
-                    <GlobalCommandSearch />
-                    <GlobalSettingsDialog />
+                    <TwoFactorGate>
+                        <Component {...pageProps} />
+                        <GlobalCommandSearch />
+                        <GlobalSettingsDialog />
+                    </TwoFactorGate>
                     <Toaster />
                 </NavigationVisibilityProvider>
             </ThemeProvider>

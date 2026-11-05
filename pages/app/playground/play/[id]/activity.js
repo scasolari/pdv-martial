@@ -19,7 +19,7 @@ import { toast } from "@/components/ui/base-toast";
 const ACTIVITY_FILTER_COLUMNS = Object.freeze(["Database", "Action", "Query", "Table", "Status", "Error code"]);
 const ACTIVITY_GROUP_COLUMNS = Object.freeze(["Date and time", "Database", "Action", "Query", "Table", "Rows", "Status", "Error code", "Finished at", "Duration"]);
 
-function ActivityHistoryPage({ database, setQueryTabs }) {
+function ActivityHistoryPage({ setQueryTabs }) {
     const router = useRouter();
     const { navigationHidden } = useNavigationVisibility();
     const databaseId = router.query.id;
@@ -244,7 +244,6 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
                                     </div>
                                 );
                             })()}
-                            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{database?.db_name || ""}</p>
                         </div>
                     </div>
                     {loading ? (
@@ -270,5 +269,4 @@ function ActivityHistoryPage({ database, setQueryTabs }) {
     );
 }
 
-const mapStateToProps = (state) => ({ database: state.database });
-export default connect(mapStateToProps, { setQueryTabs })(ActivityHistoryPage);
+export default connect(null, { setQueryTabs })(ActivityHistoryPage);

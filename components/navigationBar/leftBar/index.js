@@ -6,8 +6,9 @@ import {
     setQueryResults,
     setQueryTabs,
     setTables,
+    setSidebarWidth,
 } from "@/redux/actions/main";
-import { connect } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {useEffect, useRef, useState} from "react";
 import axios from "axios";
@@ -75,6 +76,7 @@ function LeftBar(props) {
     } = props;
 
     const router = useRouter();
+    const dispatch = useDispatch();
     const {
         navigationHidden,
         setNavigationHidden,
@@ -83,7 +85,6 @@ function LeftBar(props) {
         setUpdateStatus,
         checkForUpdates,
     } = useNavigationVisibility();
-    const [open, setOpen] = React.useState(false);
     const [openDb, setOpenDb] = React.useState(false);
     const [openSavedQueryMenuId, setOpenSavedQueryMenuId] = useState(null);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
@@ -97,7 +98,7 @@ function LeftBar(props) {
     const [, setDeleteDatasetError] = useState("");
     const sidebarRef = useRef(null);
     const resizeDragRef = useRef(null);
-    const [sidebarWidth, setSidebarWidth] = useState(null);
+    const sidebarWidth = useSelector((state) => state.settings.sidebarWidth);
     const [value, setValue] = React.useState("");
     const frameworks = databases;
     const compactDatabaseSelector = sidebarWidth !== null && sidebarWidth <= 300;
@@ -205,14 +206,13 @@ function LeftBar(props) {
         const minWidth = Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-min-width")) || 220;
         const maxWidth = Number.parseFloat(getComputedStyle(root).getPropertyValue("--electron-sidebar-max-width")) || 340;
         const defaultWidth = sidebarRef.current?.getBoundingClientRect().width || maxWidth;
-        const storedWidth = Number.parseFloat(localStorage.getItem("placedv-query-sidebar-width"));
-        const width = Number.isFinite(storedWidth)
-            ? Math.min(maxWidth, Math.max(minWidth, storedWidth))
+        const width = Number.isFinite(sidebarWidth)
+            ? Math.min(maxWidth, Math.max(minWidth, sidebarWidth))
             : defaultWidth;
 
         root.style.setProperty("--electron-sidebar-width", `${width}px`);
-        setSidebarWidth(width);
-    }, []);
+        if (sidebarWidth !== width) dispatch(setSidebarWidth(width));
+    }, [sidebarWidth, dispatch]);
 
     const getSidebarWidthLimits = () => {
         const root = document.documentElement;
@@ -222,12 +222,11 @@ function LeftBar(props) {
         };
     };
 
-    const updateSidebarWidth = (width, persist = false) => {
+    const updateSidebarWidth = (width) => {
         const { min, max } = getSidebarWidthLimits();
         const nextWidth = Math.min(max, Math.max(min, width));
         document.documentElement.style.setProperty("--electron-sidebar-width", `${nextWidth}px`);
-        setSidebarWidth(nextWidth);
-        if (persist) localStorage.setItem("placedv-query-sidebar-width", String(nextWidth));
+        dispatch(setSidebarWidth(nextWidth));
     };
 
     const handleResizePointerDown = (event) => {
@@ -244,7 +243,7 @@ function LeftBar(props) {
         if (event.clientX <= 32) {
             resizeDragRef.current = null;
             document.documentElement.classList.remove("electron-sidebar-resizing");
-            updateSidebarWidth(min, true);
+            updateSidebarWidth(min);
             if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
             setNavigationHidden(true);
             return;
@@ -257,8 +256,7 @@ function LeftBar(props) {
         resizeDragRef.current = null;
         document.documentElement.classList.remove("electron-sidebar-resizing");
         const width = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--electron-sidebar-width"));
-        if (Number.isFinite(width)) localStorage.setItem("placedv-query-sidebar-width", String(width));
-        setSidebarWidth(width);
+        if (Number.isFinite(width)) dispatch(setSidebarWidth(width));
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     };
 
@@ -273,7 +271,7 @@ function LeftBar(props) {
                         : null;
         if (nextWidth === null) return;
         event.preventDefault();
-        updateSidebarWidth(nextWidth, true);
+        updateSidebarWidth(nextWidth);
     };
 
     const hasSelectedDatabase = Object.keys(database ?? {}).length > 0;
@@ -285,7 +283,7 @@ function LeftBar(props) {
             <div ref={sidebarRef} className="electron-sidebar fixed top-0 h-[100vh] w-[240px] border-r bg-zinc-50 dark:bg-zinc-900/30">
                 <div
                     className="electron-sidebar-resize-handle"
-                    role="separator"
+                    role="slider"
                     aria-label="Resize navigation sidebar"
                     aria-orientation="vertical"
                     aria-valuemin={getSidebarWidthLimits().min}
@@ -369,8 +367,6 @@ function LeftBar(props) {
                                                         value={framework.db_name}
                                                         onSelect={(currentValue) => {
                                                             setValue(currentValue);
-                                                            setOpen(false);
-
                                                             const selectedFramework = frameworks.find(
                                                                 (f) => f.db_name === currentValue
                                                             );
@@ -484,7 +480,7 @@ function LeftBar(props) {
                             : <div className="h-[calc(100vh-100px)]">
                                 <Tabs defaultValue="tables">
                                     <div className="px-4">
-                                        <TabsList className="h-7 p-0.5 w-full">
+                                        <TabsList className="h-7 p-0.5">
                                             <TabsTrigger value="tables" className="font-semibold text-xs w-full">Tables</TabsTrigger>
                                             <TabsTrigger value="queries" className="font-semibold text-xs w-full">Queries</TabsTrigger>
                                         </TabsList>
@@ -635,14 +631,14 @@ function LeftBar(props) {
                             </AlertDialogCancel>
                         )}
                         {updateStatus.status === "available" && (
-                            <Button type="button" onClick={downloadUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Download update</Button>
+                            <Button type="button" onClick={downloadUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Download update</Button>
                         )}
                         {updateStatus.status === "downloaded" && (
-                            <Button type="button" onClick={installUpdate} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Restart and install</Button>
+                            <Button type="button" onClick={installUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Restart and install</Button>
                         )}
-                        {updateStatus.status === "installing" && <Button disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Restarting...</Button>}
-                        {updateStatus.status === "downloading" && <Button type="button" disabled className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
-                        {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 !text-xs !font-semibold">Check again</Button>}
+                        {updateStatus.status === "installing" && <Button disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Restarting...</Button>}
+                        {updateStatus.status === "downloading" && <Button type="button" disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
+                        {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Check again</Button>}
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

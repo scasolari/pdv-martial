@@ -2,6 +2,7 @@ import Link from "next/link";
 import {BiCode, BiPlus} from "react-icons/bi";
 import { useRouter } from "next/router";
 import { connect } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {useEffect} from "react";
 import Image from "next/image";
 import {setProfile} from "@/redux/actions/main";
@@ -19,13 +20,16 @@ import {
 import {LuCircleUserRound} from "react-icons/lu";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import LocalAvatar from "@/components/localAvatar";
+import { setThemePreference } from "@/redux/actions/main";
 
 
 
 function NavigationBar(props) {
     const { profile, setProfile } = props;
     const router = useRouter();
-    const {theme, setTheme} = useTheme()
+    const {setTheme} = useTheme()
+    const dispatch = useDispatch();
+    const theme = useSelector((state) => state.settings.theme);
     const {setAppSettingsOpen} = useNavigationVisibility();
 
     const linkActive = (path) => {
@@ -55,7 +59,11 @@ function NavigationBar(props) {
                             </button>
                         </li>
                         <li className="!text-sm w-full font-semibold dark:text-neutral-100">
-                            <button type="button" className="w-full text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded-lg" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+                            <button type="button" className="w-full text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 px-2 py-1 rounded-lg" onClick={() => {
+                                const nextTheme = theme === "light" ? "dark" : "light";
+                                dispatch(setThemePreference(nextTheme));
+                                setTheme(nextTheme);
+                            }}>
                                 {theme === "light" ? "Dark theme" : "Light theme"}
                             </button>
                         </li>
@@ -67,7 +75,7 @@ function NavigationBar(props) {
                     <li className="mb-3">
                         <Tooltip>
                             <TooltipTrigger>
-                                <Link href="/app/add/dataset" className="flex text-center justify-center items-center p-0 h-[32px] w-[32px] bg-blue-600 text-white shadow-none hover:bg-blue-700 rounded-lg">
+                                <Link href="/app/add/dataset" className="flex h-[32px] w-[32px] items-center justify-center rounded-lg border-0 bg-blue-600 p-0 text-center text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100">
                                     <BiPlus size={24}/>
                                 </Link>
                             </TooltipTrigger>

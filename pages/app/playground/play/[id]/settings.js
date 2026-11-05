@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/base-toast";
+import DatabasePreferences from "@/components/databasePreferences";
 
 function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, setQueryTabs, setTables }) {
     const router = useRouter();
@@ -291,7 +292,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                             <Button
                                 type="submit"
                                 disabled={saving || !dbName.trim() || (dbName.trim() === savedDbName && !connectionString.trim() && !sshSettingsChanged && !sslSettingsChanged)}
-                                className="h-7 border-0 bg-blue-600 px-3 text-white shadow-none hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold"
+                                className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold"
                             >
                                 {saving ? "Saving..." : "Save changes"}
                             </Button>
@@ -313,6 +314,9 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                             </div>
                         </form>
                     )}
+                    {!loading && !error && <div className="mt-8 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+                        <DatabasePreferences databaseId={databaseId} database={database} setDatabase={setDatabase} />
+                    </div>}
                 </section>
             </main>
             <AlertDialog open={deleteOpen} onOpenChange={(open) => { if (!deleting) setDeleteOpen(open); }}>

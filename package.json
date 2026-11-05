@@ -1,6 +1,6 @@
 {
   "name": "placedv-query",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
@@ -21,6 +21,7 @@
     "@codemirror/lang-sql": "^0.19.3",
     "@codemirror/state": "^0.19.3",
     "@codemirror/view": "^0.19.3",
+    "@otplib/preset-default": "^12.0.1",
     "@prisma/client": "^5.20.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.1",
@@ -50,6 +51,7 @@
     "next-themes": "^0.3.0",
     "pg": "^8.14.1",
     "posthog-js": "^1.443.0",
+    "qrcode": "^1.5.4",
     "prisma": "^5.22.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -69,7 +71,6 @@
     "@electron/rebuild": "^4.2.1",
     "@eslint/js": "^9.39.5",
     "@next/eslint-plugin-next": "^16.4.2",
-    "@otplib/preset-default": "^12.0.1",
     "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.5",
@@ -79,7 +80,6 @@
     "globals": "^16.4.0",
     "next-auth": "^4.24.8",
     "postcss": "^8",
-    "qrcode": "^1.5.4",
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "vitest": "^5.0.5"

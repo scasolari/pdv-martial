@@ -76,6 +76,7 @@ function PlaygroundPlayId(props) {
     const [tableMenuLoading, setTableMenuLoading] = useState(false)
     const [schemaRefreshing, setSchemaRefreshing] = useState(false)
     const [tableMenuSearch, setTableMenuSearch] = useState("")
+    const [savedQueryMenuSearch, setSavedQueryMenuSearch] = useState("")
     const [hiddenNavigationSchema, setHiddenNavigationSchema] = useState({ databaseId: null, data: [] })
     const [tableMenuError, setTableMenuError] = useState("")
     const [databaseMenuOpen, setDatabaseMenuOpen] = useState(false)
@@ -228,6 +229,7 @@ function PlaygroundPlayId(props) {
         setDatabaseMenuOpen(false)
         setDatabaseMenuSearch("")
         setTableMenuSearch("")
+        setSavedQueryMenuSearch("")
         router.push(`/app/playground/play/${encodeURIComponent(selectedDatabase.id)}`)
 
         loadHiddenNavigationTables(selectedDatabase.id, { force: true })
@@ -772,6 +774,9 @@ function PlaygroundPlayId(props) {
     const filteredHiddenNavigationTables = (hiddenSchemaBelongsToActiveDatabase ? hiddenNavigationSchema.data : []).filter((table) =>
         String(table.tableName || "").toLowerCase().includes(tableMenuSearch.trim().toLowerCase())
     )
+    const filteredSavedQueries = savedQueries.filter((savedQuery) =>
+        String(savedQuery.name || "").toLowerCase().includes(savedQueryMenuSearch.trim().toLowerCase())
+    )
 
     const fetchQuery = () => {
         setLoading(true)
@@ -1110,6 +1115,48 @@ function PlaygroundPlayId(props) {
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>}
+                            {navigationHidden && !showToolbarSkeleton && <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        aria-label="Saved queries"
+                                        title="Saved queries"
+                                        disabled={!database?.db_id}
+                                        className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    >
+                                        <CodeXml size={12} />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-56 overflow-hidden p-1">
+                                    <div className="sticky top-0 z-10 bg-popover pb-1">
+                                        <Input
+                                            value={savedQueryMenuSearch}
+                                            onChange={(event) => setSavedQueryMenuSearch(event.target.value)}
+                                            onKeyDown={(event) => event.stopPropagation()}
+                                            onClick={(event) => event.stopPropagation()}
+                                            placeholder="Search queries..."
+                                            aria-label="Search saved queries"
+                                            className="h-7 !text-xs !font-semibold"
+                                        />
+                                    </div>
+                                    <div className="max-h-[min(70vh,400px)] overflow-y-auto">
+                                        {filteredSavedQueries.length > 0
+                                            ? filteredSavedQueries.map((savedQuery) => (
+                                                <DropdownMenuItem
+                                                    key={savedQuery.id}
+                                                    onSelect={() => openSqlTab(savedQuery.query)}
+                                                    className="flex items-center gap-2 !text-xs !font-semibold"
+                                                >
+                                                    <CodeXml size={12} className="shrink-0" />
+                                                    <span className="min-w-0 truncate">{savedQuery.name}</span>
+                                                </DropdownMenuItem>
+                                            ))
+                                            : <DropdownMenuItem disabled className="!text-xs !font-semibold">
+                                                {savedQueries.length > 0 && savedQueryMenuSearch.trim() ? "No queries match your search" : "No saved queries for this database"}
+                                            </DropdownMenuItem>}
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>}
                             {showToolbarSkeleton ? null : <Button
                                 onClick={handleSqlClick}
                                 className="bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"
@@ -1131,8 +1178,36 @@ function PlaygroundPlayId(props) {
                         </AlertDialog>
                         <div data-command-search-right className="flex items-center gap-2 p-3 px-4">
                             {showToolbarSkeleton ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-20" /></div> : <>
-                            {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><History size={12} />History</Button>}
-                            {database?.db_id && <Button onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"><Settings2 size={12} />Settings</Button>}
+                            {database?.db_id && <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            aria-label="History"
+                                            onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)}
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                        ><History size={14} /></Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <p>History</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>}
+                            {database?.db_id && <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            aria-label="Settings"
+                                            onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)}
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                        ><Settings2 size={14} /></Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <p>Settings</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>}
                             <Button
                                 disabled={modifiedRowsCount === 0}
                                 className={`flex flex-row gap-3 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold ring-1 ${modifiedRowsCount > 0 ? 'ring-orange-500 dark:ring-orange-500' : 'ring-zinc-300 dark:ring-zinc-700'}`}
@@ -1162,7 +1237,7 @@ function PlaygroundPlayId(props) {
                                         activeTabIndex === i
                                             ? "!bg-zinc-100 dark:!bg-zinc-900"
                                             : ""
-                                    } p-3 px-4 cursor-pointer border-r flex items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-800/30 hover:dark:!bg-zinc-900 hover:!bg-zinc-100`}
+                                    } px-4 py-2 cursor-pointer border-r flex items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-800/30 hover:dark:!bg-zinc-900 hover:!bg-zinc-100`}
                                     onClick={() => setActiveTabIndex(i)}
                                 >
                                     <div>{tab.type === "table" ? <Table size={12} /> : <CodeXml size={12}/>}</div>
@@ -1543,7 +1618,7 @@ function PlaygroundPlayId(props) {
                             type="button"
                             disabled={!saveQueryName.trim() || !String(activeSqlQuery || "").trim()}
                             onClick={handleSaveQuery}
-                            className="h-7 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 !text-xs !font-semibold"
+                            className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold"
                         >Save query</Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>

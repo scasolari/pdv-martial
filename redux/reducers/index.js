@@ -9,7 +9,7 @@ import query from "@/redux/reducers/query";
 import tables from "@/redux/reducers/tables";
 import queryTabs from "@/redux/reducers/queryTabs";
 import queryResults from "@/redux/reducers/queryResults";
-import navigationHidden from "@/redux/reducers/navigationHidden";
+import settings from "@/redux/reducers/settings";
 
 const createNoopStorage = () => ({
     getItem: async () => null,
@@ -20,12 +20,17 @@ const createNoopStorage = () => ({
 const sessionStorageAdapter = typeof window === "undefined"
     ? createNoopStorage()
     : createWebStorage("session");
+const localStorageAdapter = typeof window === "undefined"
+    ? createNoopStorage()
+    : createWebStorage("local");
+
+const settingsPersistedReducer = persistReducer({ key: "settings", storage: localStorageAdapter, throttle: 300 }, settings);
 
 // WHITELIST
 const persistConfig = {
     key: "root",
     storage: sessionStorageAdapter,
-    whitelist: ["profile", "databases", "database", "query", "tables", "queryTabs", "queryResults", "navigationHidden"]
+    whitelist: ["profile", "databases", "database", "query", "tables", "queryTabs", "queryResults"]
 };
 
 const rootReducer = combineReducers({
@@ -37,7 +42,7 @@ const rootReducer = combineReducers({
     tables: tables,
     queryTabs: queryTabs,
     queryResults: queryResults,
-    navigationHidden: navigationHidden
+    settings: settingsPersistedReducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

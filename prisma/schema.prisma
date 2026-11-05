@@ -10,15 +10,22 @@ datasource db {
 
 // The desktop app has one local profile and no remote account system.
 model User {
-  id               String             @id @default(cuid())
-  name             String?
-  email            String?            @unique
-  admin            Boolean            @default(false)
-  token            String?
-  Database         Database[]
-  DatabaseAuditLog DatabaseAuditLog[]
-  LegalAcceptance  LegalAcceptance[]
-  SavedQuery       SavedQuery[]
+  id                       String             @id @default(cuid())
+  name                     String?
+  email                    String?            @unique
+  admin                    Boolean            @default(false)
+  token                    String?
+  is2FAEnabled             Boolean            @default(false)
+  twoFASecret              String?
+  twoFAPendingSecret        String?
+  twoFAPendingExpiresAt     DateTime?
+  twoFAFailedAttempts      Int                @default(0)
+  twoFALockedUntil          DateTime?
+  twoFALastVerifiedStep     BigInt?
+  Database                 Database[]
+  DatabaseAuditLog         DatabaseAuditLog[]
+  LegalAcceptance          LegalAcceptance[]
+  SavedQuery               SavedQuery[]
 }
 
 model Database {
