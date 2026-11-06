@@ -108,7 +108,7 @@ export default function Home({ release }) {
             </div>
             <section aria-label="Placedv Query dashboard preview" className="relative z-10 mx-auto -mt-[26vh] w-full max-w-[1160px] px-4 pb-8">
                 <Image
-                    src="/placedv-query-dashboard-preview-light.png"
+                    src="/placedv-query-dashboard-preview-light-v2.webp"
                     alt="Placedv Query database dashboard in light mode, with table navigation, filters, and records"
                     width={2000}
                     height={1356}
@@ -117,7 +117,7 @@ export default function Home({ release }) {
                     className="h-auto w-full dark:hidden"
                 />
                 <Image
-                    src="/placedv-query-dashboard-preview.png"
+                    src="/placedv-query-dashboard-preview-dark-v2.webp"
                     alt="Placedv Query database dashboard with table navigation, filters, and records"
                     width={2000}
                     height={1356}
