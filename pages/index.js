@@ -3,13 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaApple, FaLinux, FaWindows } from "react-icons/fa6";
 import { FaGithub } from "react-icons/fa";
-import { ChevronDown, Download, ExternalLink, Heart } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Download, ExternalLink, Heart } from "lucide-react";
 import { getLatestRelease } from "@/lib/githubRelease";
 import SiteTopbar from "@/components/siteTopbar";
 
@@ -22,16 +16,30 @@ export async function getStaticProps() {
 
 export default function Home({ release }) {
     const [operatingSystem, setOperatingSystem] = useState("mac");
+    const [macDownloadUrl, setMacDownloadUrl] = useState(release.url);
 
     useEffect(() => {
         const platform = `${navigator.userAgent} ${navigator.platform || ""}`.toLowerCase();
         if (platform.includes("win")) setOperatingSystem("windows");
         else if (platform.includes("linux") || platform.includes("x11")) setOperatingSystem("linux");
         else setOperatingSystem("mac");
-    }, []);
+
+        // User-Agent Client Hints exposes the CPU architecture in Chromium browsers.
+        // Safari and Firefox may not expose it, so send those users to the release
+        // page where both Mac builds are listed instead of guessing incorrectly.
+        const userAgentData = navigator.userAgentData;
+        if (typeof userAgentData?.getHighEntropyValues === "function") {
+            userAgentData.getHighEntropyValues(["architecture"])
+                .then(({ architecture }) => {
+                    if (/^(arm|aarch64)/i.test(architecture || "")) setMacDownloadUrl(release.appleSiliconUrl);
+                    else if (/^x86/i.test(architecture || "")) setMacDownloadUrl(release.intelUrl);
+                })
+                .catch(() => {});
+        }
+    }, [release.appleSiliconUrl, release.intelUrl, release.url]);
 
     const downloadConfig = {
-        mac: { label: "Download for Mac", icon: <FaApple aria-hidden="true" size={16} /> },
+        mac: { label: "Download for Mac", icon: <FaApple aria-hidden="true" size={16} />, url: macDownloadUrl },
         windows: { label: "Download for Windows", icon: <FaWindows aria-hidden="true" size={16} />, url: release.windowsUrl },
         linux: { label: "Download for Linux", icon: <FaLinux aria-hidden="true" size={16} />, url: release.linuxUrl },
     }[operatingSystem];
@@ -48,51 +56,14 @@ export default function Home({ release }) {
                         <h3 className="text-xl text-primary">Open-source desktop database client.</h3>
                         <p>No AI. No hype. Just a focused, open-source workspace to connect, explore and manage your databases.</p>
                     </div>
-                    {operatingSystem === "mac" ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button
-                                    type="button"
-                                    className="group inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
-                                >
-                                    {downloadConfig.icon}
-                                    <span className="text-xs font-semibold">{downloadConfig.label}</span>
-                                    <ChevronDown aria-hidden="true" className="size-4 opacity-70 transition-transform group-data-[state=open]:rotate-180" />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center" className="w-[var(--radix-dropdown-menu-trigger-width)]">
-                                <DropdownMenuItem asChild className="text-xs font-semibold">
-                                    <a href={release.appleSiliconUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Apple silicon`}>
-                                        <Download aria-hidden="true" className="mr-2 size-3.5" />
-                                        Apple silicon
-                                    </a>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="text-xs font-semibold">
-                                    <a href={release.intelUrl} target="_blank" rel="noreferrer" className="cursor-pointer" aria-label={`Download version ${release.version} for Intel Mac`}>
-                                        <Download aria-hidden="true" className="mr-2 size-3.5" />
-                                        Intel Mac
-                                    </a>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
-                        <a
-                            href={downloadConfig.url}
-                            className="inline-flex h-9 items-center gap-2 rounded-md bg-zinc-950 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:focus-visible:ring-offset-zinc-950"
-                            aria-label={`${downloadConfig.label}, version ${release.version}`}
-                        >
-                            {downloadConfig.icon}
-                            <span className="text-xs font-semibold">{downloadConfig.label}</span>
-                            {operatingSystem === "linux" && <Download aria-hidden="true" className="size-3.5 opacity-70" />}
-                        </a>
-                    )}
                     <a
-                        href={release.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="-mt-4 text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+                        href={downloadConfig.url}
+                        className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-600 px-3 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700 dark:focus-visible:ring-offset-zinc-950"
+                        aria-label={`${downloadConfig.label}, version ${release.version}`}
                     >
-                        Version {release.version}
+                        {downloadConfig.icon}
+                        <span className="text-xs font-semibold">{downloadConfig.label}</span>
+                        {operatingSystem === "linux" && <Download aria-hidden="true" className="size-3.5 opacity-70" />}
                     </a>
                     <a
                         href="https://github.com/scasolari/pdv-martial/tree/feature/electron"

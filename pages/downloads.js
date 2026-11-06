@@ -19,9 +19,9 @@ function DownloadOption({ href, label, detail }) {
             href={href}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between gap-4 text-xs font-semibold text-zinc-500 underline underline-offset-4 transition-colors hover:text-zinc-950 hover:no-underline dark:text-zinc-500 dark:hover:text-white"
+            className="group flex items-center justify-between gap-4 text-xs font-semibold text-zinc-500 underline underline-offset-4 transition-colors hover:text-zinc-950 hover:no-underline dark:text-zinc-500 dark:hover:text-white"
         >
-            <span>{label}<span className="ml-1 font-medium text-zinc-500 dark:text-zinc-400">{detail}</span></span>
+            <span>{label}<span className="ml-1 font-medium text-zinc-500 transition-colors group-hover:text-zinc-950 dark:text-zinc-400 dark:group-hover:text-white">{detail}</span></span>
             <Download aria-hidden="true" className="size-3.5 shrink-0 text-zinc-500" />
         </a>
     );
