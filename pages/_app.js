@@ -14,6 +14,7 @@ import GlobalCommandSearch from "@/components/globalCommandSearch";
 import TwoFactorGate from "@/components/twoFactorGate";
 import {captureAnalyticsEvent, isAnalyticsEnabled} from "@/lib/analytics";
 import {migrateLegacySettings} from "@/redux/actions/main";
+import DesktopSqliteOpener from "@/components/desktopSqliteOpener";
 
 const AppSettingsDialog = dynamic(() => import("@/components/appSettingsDialog"));
 
@@ -114,6 +115,7 @@ export default function App({Component, pageProps}) {
                         <Component {...pageProps} />
                         <GlobalCommandSearch />
                         <GlobalSettingsDialog />
+                        <DesktopSqliteOpener />
                     </TwoFactorGate>
                     <Toaster />
                 </NavigationVisibilityProvider>

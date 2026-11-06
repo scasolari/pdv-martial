@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, nativeTheme, safeStorage, utilityProcess } 
 const { autoUpdater } = require("electron-updater");
 const { spawn } = require("node:child_process");
 const { createServer } = require("node:net");
-const { join } = require("node:path");
+const { basename, extname, join } = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { readFile, writeFile, rename, rm } = require("node:fs/promises");
 const { mkdirSync } = require("node:fs");
@@ -16,6 +16,33 @@ let isQuitting = false;
 let localApiToken;
 const devMode = process.argv.includes("--dev");
 let updateCheckInProgress = false;
+const pendingSqliteFiles = [];
+let sqliteOpenEventsReady = false;
+
+function isSqliteFilePath(filePath) {
+    return typeof filePath === "string" && !filePath.startsWith("-") && [".db", ".sqlite", ".sqlite3"].includes(extname(filePath).toLowerCase());
+}
+
+function enqueueSqliteFiles(filePaths) {
+    for (const filePath of filePaths) {
+        if (!isSqliteFilePath(filePath) || pendingSqliteFiles.includes(filePath)) continue;
+        pendingSqliteFiles.push(filePath);
+    }
+    flushSqliteFiles();
+}
+
+function flushSqliteFiles() {
+    if (!sqliteOpenEventsReady || !mainWindow || mainWindow.isDestroyed()) return;
+    while (pendingSqliteFiles.length) {
+        const filePath = pendingSqliteFiles.shift();
+        mainWindow.webContents.send("desktop:open-sqlite-file", { path: filePath, name: basename(filePath) });
+    }
+}
+
+app.on("open-file", (event, filePath) => {
+    event.preventDefault();
+    enqueueSqliteFiles([filePath]);
+});
 
 // Development Electron and signed production builds can have different OS
 // keychain identities. Keep their encrypted keys and local data separate.
@@ -120,7 +147,8 @@ ipcMain.handle("desktop:update-install", (event) => {
 
 const hasAppLock = app.requestSingleInstanceLock();
 if (!hasAppLock) app.quit();
-else app.on("second-instance", () => {
+else app.on("second-instance", (_event, commandLine) => {
+    enqueueSqliteFiles(commandLine);
     if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
@@ -314,6 +342,10 @@ async function createWindow() {
             sandbox: true,
         },
     });
+    mainWindow.webContents.on("did-finish-load", () => {
+        sqliteOpenEventsReady = true;
+        flushSqliteFiles();
+    });
     mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     const localOrigin = new URL(url).origin;
     mainWindow.webContents.session.webRequest.onBeforeSendHeaders({ urls: ["http://127.0.0.1:*/api/*"] }, (details, callback) => {
@@ -351,6 +383,7 @@ async function createWindow() {
 }
 
 if (hasAppLock) {
+    enqueueSqliteFiles(process.argv);
     app.whenReady().then(createWindow).catch((error) => {
         console.error("Unable to start Placedv Query desktop app", error);
         app.quit();

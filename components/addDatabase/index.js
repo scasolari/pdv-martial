@@ -14,11 +14,11 @@ import { toast } from "@/components/ui/base-toast";
 
 
 function AddDatabase(props) {
-    const {databases, setDatabases, onSuccess, onClose} = props
-    const [connectionMode, setConnectionMode] = useState("remote");
+    const {databases, setDatabases, onSuccess, onClose, sqliteFilePath, sqliteFileName, initialDatabaseName} = props
+    const [connectionMode, setConnectionMode] = useState(sqliteFilePath ? "sqlite" : "remote");
     const [sqliteFile, setSqliteFile] = useState(null);
     const [form, setForm] = useState({
-        db_name: "",
+        db_name: initialDatabaseName || "",
         url_connection: "",
         authorizationConfirmed: false,
         ssl: { enabled: false, mode: "verify-full" },
@@ -31,28 +31,35 @@ function AddDatabase(props) {
     });
     const add_database = (e) => {
         e.preventDefault();
-        const request = connectionMode === "sqlite"
-            ? (() => {
+        let request;
+        if (connectionMode === "sqlite" && sqliteFilePath) {
+            request = axios.post("/api/database/add/sqlite", {
+                    db_name: form.db_name,
+                    authorizationConfirmed: form.authorizationConfirmed,
+                    filePath: sqliteFilePath,
+                });
+        } else if (connectionMode === "sqlite") {
                 if (!sqliteFile) {
                     toast.add({ title: "Select a SQLite file", description: "Choose a database file before saving.", type: "warning" });
-                    return Promise.reject(new Error("SQLite file is required."));
+                    return;
                 }
                 const upload = new FormData();
                 upload.append("db_name", form.db_name);
                 upload.append("authorizationConfirmed", String(form.authorizationConfirmed));
                 upload.append("file", sqliteFile);
-                return axios.post("/api/database/add/sqlite", upload);
-            })()
-            : axios.post(`/api/database/add`, { form });
+            request = axios.post("/api/database/add/sqlite", upload);
+        } else {
+            request = axios.post(`/api/database/add`, { form });
+        }
         request.then((res) => {
             setDatabases([res.data, ...databases])
             toast.add({ title: "Dataset added", description: "The database is ready to use.", type: "success" });
             if (onSuccess) {
-                onSuccess();
+                onSuccess(res.data);
             }
         }).catch((err) => {
             const message = err.response?.data?.error || "Unable to save dataset.";
-            if (err.message !== "SQLite file is required.") toast.add({ title: "Unable to add dataset", description: message, type: "error" });
+            toast.add({ title: "Unable to add dataset", description: message, type: "error" });
         })
     }
     const test_db_connection = () => {
@@ -93,12 +100,12 @@ function AddDatabase(props) {
                 className="shadow-none border-0 ring-1 ring-zinc-200 px-2 h-8 !text-xs !font-semibold dark:ring-zinc-700 focus-visible:dark:!ring-blue-500"
             />
         </div>
-        <Tabs value={connectionMode} onValueChange={setConnectionMode} className="w-fit">
+        {!sqliteFilePath && <Tabs value={connectionMode} onValueChange={setConnectionMode} className="w-fit">
             <TabsList className="h-7 p-0.5">
                 <TabsTrigger value="remote" className="h-6 px-2 py-0 !text-xs !font-semibold">Connection string</TabsTrigger>
                 <TabsTrigger value="sqlite" className="h-6 px-2 py-0 !text-xs !font-semibold">SQLite file</TabsTrigger>
             </TabsList>
-        </Tabs>
+        </Tabs>}
         {connectionMode === "remote" ? <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between">
                 <Label className="text-xs text-zinc-500 font-semibold">Database connection string</Label>
@@ -180,13 +187,17 @@ function AddDatabase(props) {
             </details>
         </div> : <div className="flex flex-col gap-1">
             <Label className="text-xs font-semibold text-zinc-500">SQLite database file</Label>
-            <Input
-                type="file"
-                accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3"
-                disabled={loadingCheckConnection}
-                onChange={(event) => setSqliteFile(event.target.files?.[0] || null)}
-                className="h-8 px-2 py-1 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700"
-            />
+            {sqliteFilePath ? (
+                <Input value={sqliteFileName || "SQLite database file"} readOnly className="h-8 px-2 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700" />
+            ) : (
+                <Input
+                    type="file"
+                    accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3"
+                    disabled={loadingCheckConnection}
+                    onChange={(event) => setSqliteFile(event.target.files?.[0] || null)}
+                    className="h-8 px-2 py-1 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700"
+                />
+            )}
             <p className="text-xs font-semibold text-zinc-500">The file is copied to private app storage for this account. Maximum size: 512 MB.</p>
         </div>}
         <div className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-zinc-600 dark:text-zinc-300">
@@ -204,7 +215,7 @@ function AddDatabase(props) {
             >
                 Cancel
             </Button>
-            <Button type="submit" disabled={!form.authorizationConfirmed || (connectionMode === "sqlite" && !sqliteFile)}
+            <Button type="submit" disabled={!form.authorizationConfirmed || (connectionMode === "sqlite" && !sqliteFile && !sqliteFilePath)}
                     className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
             >
                 Add dataset

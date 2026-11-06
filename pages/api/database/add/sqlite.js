@@ -1,6 +1,7 @@
 import Busboy from "busboy";
-import { createWriteStream } from "node:fs";
-import { open, rename, rm } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { open, realpath, rename, rm, stat } from "node:fs/promises";
+import { extname } from "node:path";
 import { pipeline } from "node:stream/promises";
 import db from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
@@ -11,6 +12,7 @@ import { DATABASE_AUTHORIZATION_VERSION } from "@/lib/databaseAuthorization";
 
 const MAX_SQLITE_UPLOAD_BYTES = 512 * 1024 * 1024;
 const SQLITE_HEADER = Buffer.from("SQLite format 3\0", "binary");
+const SQLITE_EXTENSIONS = new Set([".db", ".sqlite", ".sqlite3"]);
 
 export const config = { api: { bodyParser: false, responseLimit: false } };
 
@@ -48,13 +50,55 @@ async function parseUpload(req, temporaryPath) {
     if (!fileFound) throw new Error("Choose a SQLite database file to upload.");
     if (extraFileFound) throw new Error("Upload one SQLite database file at a time.");
     if (fileWasTooLarge) throw new Error("SQLite files must be 512 MB or smaller.");
-    if (typeof fields.db_name !== "string" || !fields.db_name.trim() || fields.db_name.trim().length > 120) {
+    return validateDatasetDetails(fields.db_name, fields.authorizationConfirmed);
+}
+
+function validateDatasetDetails(dbName, authorizationConfirmed) {
+    if (typeof dbName !== "string" || !dbName.trim() || dbName.trim().length > 120) {
         throw new Error("Dataset name must be between 1 and 120 characters.");
     }
-    if (fields.authorizationConfirmed !== "true") {
+    if (authorizationConfirmed !== true && authorizationConfirmed !== "true") {
         throw new Error("Confirm that you are authorised to connect this database.");
     }
-    return { dbName: fields.db_name.trim(), authorizationConfirmed: true };
+    return { dbName: dbName.trim(), authorizationConfirmed: true };
+}
+
+async function parseNativeFileRequest(req, temporaryPath) {
+    if (process.env.PDV_DESKTOP_APP !== "1") {
+        throw new Error("Opening a SQLite path is only available in the desktop app.");
+    }
+
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+        size += chunk.length;
+        if (size > 16 * 1024) throw new Error("Invalid SQLite file request.");
+        chunks.push(chunk);
+    }
+
+    let body;
+    try {
+        body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+        throw new Error("Invalid SQLite file request.");
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+        throw new Error("Invalid SQLite file request.");
+    }
+    const details = validateDatasetDetails(body.db_name, body.authorizationConfirmed);
+    if (typeof body.filePath !== "string" || !body.filePath.trim() || body.filePath.length > 4096) {
+        throw new Error("Choose a SQLite database file to open.");
+    }
+    if (!SQLITE_EXTENSIONS.has(extname(body.filePath).toLowerCase())) {
+        throw new Error("Choose a .db, .sqlite, or .sqlite3 file.");
+    }
+
+    const filePath = await realpath(body.filePath);
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) throw new Error("The selected SQLite path is not a file.");
+    if (fileStats.size > MAX_SQLITE_UPLOAD_BYTES) throw new Error("SQLite files must be 512 MB or smaller.");
+    await pipeline(createReadStream(filePath), createWriteStream(temporaryPath, { flags: "wx", mode: 0o600 }));
+    return details;
 }
 
 async function hasSqliteHeader(filePath) {
@@ -86,7 +130,10 @@ export default async function handler(req, res) {
         releaseConnectionSlot = await acquireExternalConnectionSlot();
         finalPath = await createSqliteUploadPath(session.id);
         temporaryPath = `${finalPath}.upload`;
-        const { dbName } = await parseUpload(req, temporaryPath);
+        const isNativeFile = req.headers["content-type"]?.toLowerCase().includes("application/json");
+        const { dbName } = isNativeFile
+            ? await parseNativeFileRequest(req, temporaryPath)
+            : await parseUpload(req, temporaryPath);
         if (!await hasSqliteHeader(temporaryPath)) throw new Error("The uploaded file is not a valid SQLite database.");
         await rename(temporaryPath, finalPath);
         const connectionString = createSqliteConnectionString(finalPath);

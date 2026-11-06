@@ -14,6 +14,22 @@ publish:
   owner: scasolari
   repo: pdv-martial
   releaseType: release
+fileAssociations:
+  - ext: db
+    name: SQLite database
+    description: SQLite database file
+    mimeType: application/vnd.sqlite3
+    role: Editor
+  - ext: sqlite
+    name: SQLite database
+    description: SQLite database file
+    mimeType: application/vnd.sqlite3
+    role: Editor
+  - ext: sqlite3
+    name: SQLite database
+    description: SQLite database file
+    mimeType: application/vnd.sqlite3
+    role: Editor
 mac:
   icon: assets/icons/placedv-query.icns
   category: public.app-category.developer-tools
