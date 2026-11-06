@@ -1,6 +1,5 @@
 import {
     setDatabase,
-    setDatabases,
     setProfile,
     setQuery,
     setQueryResults,
@@ -13,23 +12,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from "@/components/ui/command";
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxSeparator,
+    ComboboxTrigger,
+} from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { BiExpandVertical } from "react-icons/bi";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
-import { FaCheck } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/base-toast";
 import * as React from "react";
-import { CodeXml, Database, EllipsisVertical, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Trash2 } from "lucide-react";
+import { Check, CodeXml, Database, EllipsisVertical, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import LocalAvatar from "@/components/localAvatar";
@@ -49,10 +48,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import AddDatabase from "@/components/addDatabase";
-import useClear from "@/lib/clear";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 import packageJson from "../../../package.json";
@@ -64,7 +61,6 @@ function LeftBar(props) {
         database,
         setDatabase,
         databases,
-        setDatabases,
         setQuery,
         setQueryResults,
         setQueryTabs,
@@ -86,23 +82,18 @@ function LeftBar(props) {
         checkForUpdates,
     } = useNavigationVisibility();
     const [openDb, setOpenDb] = React.useState(false);
+    const [databaseSearch, setDatabaseSearch] = useState("");
     const [openSavedQueryMenuId, setOpenSavedQueryMenuId] = useState(null);
     const [openAdDataSet, setOpenAdDataSet] = useState(false);
     const [refreshingSchema, setRefreshingSchema] = useState(false);
     const schemaRefreshIconRef = useRef(null);
     const schemaRefreshIconAnimationRef = useRef(null);
-    const [datasetToDelete, setDatasetToDelete] = useState(null);
-    const [deleteDatasetOpen, setDeleteDatasetOpen] = useState(false);
-    const [deletingDataset, setDeletingDataset] = useState(false);
     const [queryToDelete, setQueryToDelete] = useState(null);
-    const [, setDeleteDatasetError] = useState("");
     const sidebarRef = useRef(null);
     const resizeDragRef = useRef(null);
     const sidebarWidth = useSelector((state) => state.settings.sidebarWidth);
-    const [value, setValue] = React.useState("");
     const frameworks = databases;
     const compactDatabaseSelector = sidebarWidth !== null && sidebarWidth <= 300;
-    const clearDatabaseState = useClear();
     const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
     const downloadPercent = Math.floor(Math.min(100, Math.max(0, Number(updateStatus.percent) || 0)));
 
@@ -170,30 +161,6 @@ function LeftBar(props) {
         } finally {
             setRefreshingSchema(false);
             stopRefreshIconAnimation(schemaRefreshIconRef.current, schemaRefreshIconAnimationRef);
-        }
-    };
-
-    const deleteDataset = async () => {
-        if (!datasetToDelete?.id || deletingDataset) return;
-        setDeletingDataset(true);
-        setDeleteDatasetError("");
-        try {
-            await axios.delete(`/api/database/${encodeURIComponent(datasetToDelete.id)}`);
-            toast.add({ title: "Dataset deleted", description: "The database was removed.", type: "success" });
-            setDatabases(frameworks.filter((dataset) => dataset.id !== datasetToDelete.id));
-            setDeleteDatasetOpen(false);
-            setDatasetToDelete(null);
-            if (database?.db_id === datasetToDelete.id) {
-                await clearDatabaseState();
-                setValue("");
-                router.push("/app/playground/play");
-            }
-        } catch (error) {
-            const message = error.response?.data?.error || "Unable to delete dataset.";
-            setDeleteDatasetError(message);
-            toast.add({ title: "Unable to delete dataset", description: message, type: "error" });
-        } finally {
-            setDeletingDataset(false);
         }
     };
 
@@ -328,123 +295,99 @@ function LeftBar(props) {
                                     </ul>
                                 </PopoverContent>
                             </Popover>
-                            <Popover open={openDb} onOpenChange={setOpenDb}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
-                                        title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
-                                        aria-expanded={openDb}
-                                        className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1" } h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
-                                    >
-                                        {compactDatabaseSelector ? (
-                                            <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
-                                        ) : (
-                                            <div className="min-w-0 flex-1 truncate text-left !text-xs !font-semibold">
-                                                {value || database?.db_name || "Select dataset..."}
-                                            </div>
+                            <Combobox
+                                open={openDb}
+                                onOpenChange={(open) => {
+                                    setOpenDb(open);
+                                    if (open) setDatabaseSearch("");
+                                }}
+                                items={frameworks}
+                                inputValue={databaseSearch}
+                                onInputValueChange={setDatabaseSearch}
+                                value={frameworks.find((item) => item.id === database?.db_id) ?? null}
+                                itemToStringValue={(item) => item?.db_name ?? ""}
+                                itemToStringLabel={(item) => item?.db_name ?? ""}
+                                isItemEqualToValue={(item, selected) => item?.id === selected?.id}
+                                onValueChange={(selectedFramework) => {
+                                    if (!selectedFramework) return;
+                                    setDatabaseSearch("");
+                                    setDatabase({
+                                        db_id: selectedFramework.id,
+                                        db_name: selectedFramework.db_name,
+                                        dialect: selectedFramework.dialect,
+                                    });
+                                    setQuery("");
+                                    setQueryResults(null);
+                                    setQueryTabs([]);
+                                    router.push(`/app/playground/play/${selectedFramework.id}`);
+                                }}
+                            >
+                                <ComboboxTrigger
+                                    render={
+                                        <Button
+                                            variant="outline"
+                                            aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
+                                            title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
+                                            className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                        >
+                                            {compactDatabaseSelector ? (
+                                                <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                            ) : (
+                                                <div className="min-w-0 flex-1 truncate text-left !text-xs !font-semibold">
+                                                    {database?.db_name || "Select dataset..."}
+                                                </div>
+                                            )}
+                                            {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
+                                        </Button>
+                                    }
+                                />
+                                <ComboboxContent className="p-0">
+                                    <div className="flex items-center border-b border-zinc-200 px-2 dark:border-zinc-800">
+                                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
+                                        <ComboboxInput placeholder="Search dataset..." className="h-9 !px-0 !py-1 !font-semibold !text-xs" />
+                                    </div>
+                                    <ComboboxEmpty>No dataset found.</ComboboxEmpty>
+                                    <ComboboxList>
+                                        {(framework) => (
+                                            <ComboboxItem key={framework.id} value={framework} className="!justify-between !px-2 !py-1">
+                                                <div className="flex min-w-0 items-center gap-2 truncate">
+                                                    <DatabaseEngineIcon dialect={framework.dialect} size={14} />
+                                                    <span className="truncate">{framework.db_name}</span>
+                                                </div>
+                                                <Check
+                                                    size={12}
+                                                    className={cn("ml-auto h-3 w-3 shrink-0", framework.id === database?.db_id ? "opacity-100" : "opacity-0")}
+                                                />
+                                            </ComboboxItem>
                                         )}
-                                        {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                    align="start"
-                                    className="p-0 w-[240px] rounded-md z-40 border-zinc-200 dark:border-zinc-700"
-                                >
-                                    <Command className="rounded-md [&_[cmdk-input-wrapper]]:px-2">
-                                        <CommandInput
-                                            placeholder="Search dataset..."
-                                            className="h-9 !py-1 !font-semibold !text-xs"
-                                        />
-                                        <CommandList>
-                                            <CommandEmpty className="px-2 !py-2 text-left text-xs font-semibold">No dataset found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {frameworks.map((framework) => (
-                                                    <CommandItem
-                                                        className="!font-semibold rounded-md !text-xs !px-2 !py-1 hover:cursor-pointer flex justify-between items-center"
-                                                        key={framework.id}
-                                                        value={framework.db_name}
-                                                        onSelect={(currentValue) => {
-                                                            setValue(currentValue);
-                                                            const selectedFramework = frameworks.find(
-                                                                (f) => f.db_name === currentValue
-                                                            );
-
-                                                            if (selectedFramework) {
-                                                                setDatabase({
-                                                                    db_id: selectedFramework.id,
-                                                                    db_name: selectedFramework.db_name,
-                                                                    dialect: selectedFramework.dialect,
-                                                                });
-                                                                setQuery("");
-                                                                setQueryResults(null);
-                                                                setQueryTabs([]);
-                                                                router.push(
-                                                                    `/app/playground/play/${selectedFramework.id}`
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <div className="!text-xs !font-semibold flex items-center gap-2 truncate">
-                                                            <DatabaseEngineIcon dialect={framework.dialect} size={14} />
-                                                            <div className="truncate">{framework.db_name}</div>
-                                                        </div>
-                                                        <div className="flex gap-1 items-center">
-                                                            <FaCheck
-                                                                size={12}
-                                                                className={cn(
-                                                                    "ml-auto h-3 w-3 shrink-0",
-                                                                    value === framework.db_name
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0"
-                                                                )}
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                aria-label={`Delete ${framework.db_name}`}
-                                                                title="Delete dataset"
-                                                                onPointerDown={(event) => event.stopPropagation()}
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    setDatasetToDelete(framework);
-                                                                    setDeleteDatasetError("");
-                                                                    setOpenDb(false);
-                                                                    setDeleteDatasetOpen(true);
-                                                                }}
-                                                                className="ml-1 h-5 w-5 shrink-0 p-1 text-zinc-500 shadow-none hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-950 dark:hover:text-red-300"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </Button>
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                                <CommandSeparator className="my-1" />
-                                                <AlertDialog open={openAdDataSet} onOpenChange={setOpenAdDataSet}>
-                                                    <AlertDialogTrigger className="w-full">
-                                                        <CommandItem className="w-full !px-2 !py-1 !text-xs hover:cursor-pointer">
-                                                            <div className="flex items-center gap-2 w-full">
-                                                                <Plus size={14} />
-                                                                <p className="!font-semibold !text-xs">Add dataset</p>
-                                                            </div>
-                                                        </CommandItem>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
-                                                            <AlertDialogDescription className="text-xs font-semibold text-muted-foreground">
-                                                                Connect to a database or upload a SQLite file.
-                                                            </AlertDialogDescription>
-                                                            <AddDatabase onClose={() => setOpenAdDataSet(false)} onSuccess={() => setOpenAdDataSet(false)}/>
-                                                        </AlertDialogHeader>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                                    </ComboboxList>
+                                    <ComboboxSeparator />
+                                    <div className="p-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setOpenDb(false);
+                                                setOpenAdDataSet(true);
+                                            }}
+                                            className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        >
+                                            <Plus size={14} />
+                                            <span>Add dataset</span>
+                                        </button>
+                                    </div>
+                                </ComboboxContent>
+                            </Combobox>
+                            <AlertDialog open={openAdDataSet} onOpenChange={setOpenAdDataSet}>
+                                <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
+                                        <AlertDialogDescription className="text-xs font-semibold text-muted-foreground">
+                                            Connect to a database or upload a SQLite file.
+                                        </AlertDialogDescription>
+                                        <AddDatabase onClose={() => setOpenAdDataSet(false)} onSuccess={() => setOpenAdDataSet(false)} />
+                                    </AlertDialogHeader>
+                                </AlertDialogContent>
+                            </AlertDialog>
                             <TooltipProvider>
                                 <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} aria-label="Refresh schema" className="hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                                     <Tooltip>
@@ -616,14 +559,6 @@ function LeftBar(props) {
                             {updateStatus.status === "error" && (updateStatus.message || "The update could not be completed.")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    {updateStatus.status === "downloading" && (
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-xs font-semibold"><span>Progress</span><span>{downloadPercent}%</span></div>
-                            <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadPercent} className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
-                                <div className="h-full bg-blue-600 transition-[width]" style={{ width: `${downloadPercent}%` }} />
-                            </div>
-                        </div>
-                    )}
                     <AlertDialogFooter>
                         {!["downloading", "installing"].includes(updateStatus.status) && (
                             <AlertDialogCancel className="!mt-0 h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-neutral-200 hover:bg-neutral-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-neutral-800 dark:hover:bg-zinc-900 !text-xs !font-semibold">
@@ -639,24 +574,6 @@ function LeftBar(props) {
                         {updateStatus.status === "installing" && <Button disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Restarting...</Button>}
                         {updateStatus.status === "downloading" && <Button type="button" disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
                         {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Check again</Button>}
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog open={deleteDatasetOpen} onOpenChange={(open) => {
-                if (!deletingDataset) setDeleteDatasetOpen(open);
-            }}>
-                <AlertDialogContent className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-sm font-semibold">Delete dataset?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-xs font-semibold">
-                            This removes “{datasetToDelete?.db_name}” and its saved connection from the workspace. The database and its data will not be deleted.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingDataset} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
-                        <Button onClick={deleteDataset} disabled={deletingDataset} className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 !text-xs !font-semibold">
-                            {deletingDataset ? "Deleting..." : "Delete"}
-                        </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -699,7 +616,6 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = {
     setProfile,
-    setDatabases,
     setDatabase,
     setQuery,
     setTables,
