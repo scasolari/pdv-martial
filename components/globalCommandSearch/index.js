@@ -206,11 +206,11 @@ export default function GlobalCommandSearch() {
                 top: searchPosition ? `${searchPosition.y}px` : "26.5px",
                 transition: "none",
             }}
-            className="electron-titlebar-no-drag fixed z-40 flex h-8 w-[min(26vw,320px)] max-sm:w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-start gap-3 rounded-lg border-zinc-300 bg-transparent px-1.5 text-xs font-semibold text-muted-foreground shadow-none hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 max-sm:justify-center max-sm:gap-0 max-sm:px-0"
+            className="electron-titlebar-no-drag fixed z-40 flex h-8 w-[min(26vw,320px)] max-sm:w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-start gap-3 rounded-lg border-input bg-background px-1.5 text-xs font-semibold text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground max-sm:justify-center max-sm:gap-0 max-sm:px-0"
         >
             <Search className="h-4 w-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-left max-sm:hidden">Search or run commands...</span>
-            <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border border-zinc-300 px-1.5 font-mono text-[10px] font-medium text-muted-foreground dark:border-zinc-700 max-sm:hidden">⌘ K</kbd>
+            <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border border-input px-1.5 font-mono text-[10px] font-medium text-muted-foreground max-sm:hidden">⌘ K</kbd>
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>
             <CommandInput placeholder="Search databases or commands..." className="!ring-0 !border-0"/>

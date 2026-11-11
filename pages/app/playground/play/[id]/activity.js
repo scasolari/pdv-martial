@@ -138,23 +138,23 @@ function ActivityHistoryPage({ setQueryTabs }) {
         <>
             <LeftBar openTab={openTable} openSqlTab={openSql} />
             <main className={`electron-main-with-sidebar ${navigationHidden ? "ml-0" : "ml-[240px]"} min-h-screen transition-[margin] duration-200`}>
-                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b bg-zinc-50 dark:bg-zinc-950">
+                <div className="sticky top-0 z-40 flex h-[53px] items-center justify-between border-b border-border bg-background">
                     <div data-command-search-left className={`electron-titlebar-no-drag ${navigationHidden ? "electron-titlebar-safe-left electron-titlebar-safe-left-controls" : ""} flex items-center gap-2 px-4`}>
                         <ShowNavigationButton />
                         <Button
                             onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
-                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground !text-xs !font-semibold"
                         >
                             <ArrowLeft size={12} className="mr-1" /> Back to database
                         </Button>
                     </div>
                     <ElectronTitlebarSpacer />
-                    <div data-command-search-right className="flex items-center gap-1 px-4 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    <div data-command-search-right className="flex items-center gap-1 px-4 text-xs font-semibold text-muted-foreground">
                         <History size={13} /> Activity history
                     </div>
                 </div>
                 <section className="flex h-[calc(100vh-53px)] min-h-0 flex-col overflow-hidden px-0">
-                    <div className="sticky top-0 z-30 mt-3 mb-3 flex shrink-0 items-center justify-between bg-white px-4 dark:bg-zinc-950">
+                    <div className="sticky top-0 z-30 mt-3 mb-3 flex shrink-0 items-center justify-between bg-background px-4">
                         <div className="flex items-center gap-2">
                             <Tabs value={activityFilter} onValueChange={(value) => {
                                 setPageIndex(0);
@@ -187,7 +187,7 @@ function ActivityHistoryPage({ setQueryTabs }) {
                             />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button disabled={events.length === 0 || loading} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                                    <Button disabled={events.length === 0 || loading} className="flex h-6 items-center gap-1 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold">
                                         <Download size={12} /> Export <ChevronDown size={12} />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -201,7 +201,7 @@ function ActivityHistoryPage({ setQueryTabs }) {
                             {(totalCount > 0 || events.length > 0) && (() => {
                                 const totalPages = Math.ceil(totalCount / pageSize);
                                 return (
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 dark:text-zinc-500">
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground dark:text-muted-foreground">
                                         <span>{countLoaded ? `Page ${pageIndex + 1} of ${totalPages}` : `Page ${pageIndex + 1}`}</span>
                                         <Select
                                             value={String(pageSize)}
@@ -210,7 +210,7 @@ function ActivityHistoryPage({ setQueryTabs }) {
                                                 setPageSize(Number(value));
                                             }}
                                         >
-                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-white px-2 py-0 text-xs font-semibold text-zinc-900 shadow-none ring-1 ring-zinc-300 focus:ring-1 focus:ring-zinc-400 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:focus:ring-zinc-500 [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
+                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-background px-2 py-0 text-xs font-semibold text-foreground shadow-none ring-1 ring-border focus:ring-1 focus:ring-ring [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
                                                 <SelectValue className="text-xs font-semibold" />
                                             </SelectTrigger>
                                             <SelectContent align="end" className="min-w-[92px] text-xs font-semibold">
@@ -222,24 +222,24 @@ function ActivityHistoryPage({ setQueryTabs }) {
                                             disabled={pageIndex === 0 || loading}
                                             aria-label="First page"
                                             title="First page"
-                                            className="h-6 w-6 border-0 bg-white p-1 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900"
+                                            className="h-6 w-6 border-0 bg-background p-1 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
                                         ><ChevronsLeft size={14} /></Button>
                                         <Button
                                             onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
                                             disabled={pageIndex === 0 || loading}
-                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold"
                                         >Previous</Button>
                                         <Button
                                             onClick={() => setPageIndex((page) => Math.min(totalPages - 1, page + 1))}
                                             disabled={(countLoaded ? pageIndex + 1 >= totalPages : !hasMore) || loading}
-                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold"
                                         >Next</Button>
                                         <Button
                                             onClick={() => setPageIndex(Math.max(0, totalPages - 1))}
                                             disabled={!countLoaded || totalPages === 0 || pageIndex >= totalPages - 1 || loading}
                                             aria-label="Last page"
                                             title="Last page"
-                                            className="h-6 w-6 border-0 bg-white p-1 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900"
+                                            className="h-6 w-6 border-0 bg-background p-1 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
                                         ><ChevronsRight size={14} /></Button>
                                     </div>
                                 );
@@ -247,13 +247,13 @@ function ActivityHistoryPage({ setQueryTabs }) {
                         </div>
                     </div>
                     {loading ? (
-                        <p className="px-4 text-xs font-semibold text-zinc-500">Loading activity...</p>
+                        <p className="px-4 text-xs font-semibold text-muted-foreground">Loading activity...</p>
                     ) : error ? (
                         null
                     ) : filteredEvents.length === 0 ? (
-                        <p className="px-4 text-xs font-semibold text-zinc-500">No activity recorded yet.</p>
+                        <p className="px-4 text-xs font-semibold text-muted-foreground">No activity recorded yet.</p>
                     ) : (
-                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-zinc-200 dark:border-zinc-800">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border dark:border-border">
                             <QueryResultsTable
                                 response={filteredEvents}
                                 databaseId={databaseId}
