@@ -1,4 +1,11 @@
 /** @type {import('tailwindcss').Config} */
+const dynamicPalette = Object.fromEntries(
+	[50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((shade) => [
+		shade,
+		`hsl(var(--palette-${shade}) / <alpha-value>)`,
+	])
+);
+
 module.exports = {
     darkMode: ["class"],
     content: [
@@ -9,6 +16,12 @@ module.exports = {
   theme: {
   	extend: {
   		colors: {
+			// Blue utility classes are the app's current accent color; make them
+			// follow the neutral palette selected in Appearance.
+			blue: dynamicPalette,
+			// Existing neutral utility classes follow the palette selected in settings.
+			zinc: dynamicPalette,
+			neutral: dynamicPalette,
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

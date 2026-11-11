@@ -28,6 +28,7 @@ function NativeThemeSync() {
     const {setTheme} = useTheme();
     const dispatch = useDispatch();
     const theme = useSelector((state) => state.settings.theme);
+    const colorTheme = useSelector((state) => state.settings.colorTheme);
     const legacySettingsMigrated = useSelector((state) => state.settings.legacySettingsMigrated);
 
     useEffect(() => {
@@ -52,6 +53,14 @@ function NativeThemeSync() {
             window.desktopTheme?.setTheme(nextTheme);
         }
     }, [dispatch, legacySettingsMigrated, setTheme, theme]);
+
+    useEffect(() => {
+        if (typeof document === "undefined") return;
+        const allowedColorThemes = ["zinc", "olive", "neutral", "emerald", "teal", "indigo", "rose", "slate", "gray"];
+        document.documentElement.dataset.colorTheme = allowedColorThemes.includes(colorTheme)
+            ? colorTheme
+            : "olive";
+    }, [colorTheme]);
 
     return null;
 }

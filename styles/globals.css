@@ -4,25 +4,36 @@
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
-        --primary: 240 5.9% 10%;
+        --palette-50: 80 20% 99%;
+        --palette-100: 80 15% 97%;
+        --palette-200: 80 12% 93%;
+        --palette-300: 80 10% 88%;
+        --palette-400: 80 8% 74%;
+        --palette-500: 80 7% 58%;
+        --palette-600: 80 8% 47%;
+        --palette-700: 80 9% 39%;
+        --palette-800: 80 9% 29%;
+        --palette-900: 80 9% 23%;
+        --palette-950: 80 8% 15%;
+        --background: var(--palette-50);
+        --foreground: var(--palette-950);
+        --card: var(--palette-50);
+        --card-foreground: var(--palette-950);
+        --popover: var(--palette-50);
+        --popover-foreground: var(--palette-950);
+        --primary: var(--palette-900);
         --primary-foreground: 0 0% 98%;
-        --secondary: 240 4.8% 95.9%;
-        --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
-        --accent-foreground: 240 5.9% 10%;
+        --secondary: var(--palette-100);
+        --secondary-foreground: var(--palette-900);
+        --muted: var(--palette-100);
+        --muted-foreground: var(--palette-600);
+        --accent: var(--palette-200);
+        --accent-foreground: var(--palette-900);
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
-        --ring: 240 10% 3.9%;
+        --border: var(--palette-200);
+        --input: var(--palette-200);
+        --ring: var(--palette-900);
         --chart-1: 12 76% 61%;
         --chart-2: 173 58% 39%;
         --chart-3: 197 37% 24%;
@@ -30,26 +41,74 @@
         --chart-5: 27 87% 67%;
         --radius: 0.5rem;
     }
+    :root[data-color-theme="zinc"] {
+        --palette-50: 240 5% 98%; --palette-100: 240 5% 96%; --palette-200: 240 6% 90%;
+        --palette-300: 240 5% 84%; --palette-400: 240 5% 65%; --palette-500: 240 4% 46%;
+        --palette-600: 240 5% 34%; --palette-700: 240 5% 26%; --palette-800: 240 4% 16%;
+        --palette-900: 240 6% 10%; --palette-950: 240 10% 4%;
+    }
+    :root[data-color-theme="neutral"] {
+        --palette-50: 0 0% 98%; --palette-100: 0 0% 96%; --palette-200: 0 0% 90%;
+        --palette-300: 0 0% 83%; --palette-400: 0 0% 64%; --palette-500: 0 0% 45%;
+        --palette-600: 0 0% 32%; --palette-700: 0 0% 25%; --palette-800: 0 0% 15%;
+        --palette-900: 0 0% 9%; --palette-950: 0 0% 4%;
+    }
+    :root[data-color-theme="slate"] {
+        --palette-50: 210 40% 98%; --palette-100: 210 40% 96%; --palette-200: 214 32% 91%;
+        --palette-300: 213 27% 84%; --palette-400: 215 20% 65%; --palette-500: 215 16% 47%;
+        --palette-600: 215 19% 35%; --palette-700: 215 25% 27%; --palette-800: 217 33% 17%;
+        --palette-900: 222 47% 11%; --palette-950: 229 84% 5%;
+    }
+    :root[data-color-theme="gray"] {
+        --palette-50: 210 20% 98%; --palette-100: 220 14% 96%; --palette-200: 220 13% 91%;
+        --palette-300: 216 12% 84%; --palette-400: 218 11% 65%; --palette-500: 220 9% 46%;
+        --palette-600: 215 14% 34%; --palette-700: 217 19% 27%; --palette-800: 215 28% 17%;
+        --palette-900: 221 39% 11%; --palette-950: 224 71% 4%;
+    }
+    :root[data-color-theme="emerald"] {
+        --palette-50: 152 81% 96%; --palette-100: 149 80% 90%; --palette-200: 152 76% 80%;
+        --palette-300: 156 72% 67%; --palette-400: 158 64% 52%; --palette-500: 160 84% 39%;
+        --palette-600: 161 94% 30%; --palette-700: 163 94% 24%; --palette-800: 163 88% 20%;
+        --palette-900: 164 86% 16%; --palette-950: 166 91% 9%;
+    }
+    :root[data-color-theme="teal"] {
+        --palette-50: 166 76% 97%; --palette-100: 167 85% 89%; --palette-200: 168 84% 78%;
+        --palette-300: 170 77% 64%; --palette-400: 172 66% 50%; --palette-500: 173 80% 40%;
+        --palette-600: 175 84% 32%; --palette-700: 175 77% 26%; --palette-800: 176 69% 22%;
+        --palette-900: 176 61% 19%; --palette-950: 179 84% 10%;
+    }
+    :root[data-color-theme="indigo"] {
+        --palette-50: 226 100% 97%; --palette-100: 226 100% 94%; --palette-200: 228 96% 89%;
+        --palette-300: 230 94% 82%; --palette-400: 234 89% 74%; --palette-500: 239 84% 67%;
+        --palette-600: 243 75% 59%; --palette-700: 245 58% 51%; --palette-800: 244 55% 41%;
+        --palette-900: 242 47% 34%; --palette-950: 243 47% 20%;
+    }
+    :root[data-color-theme="rose"] {
+        --palette-50: 356 100% 97%; --palette-100: 356 100% 95%; --palette-200: 353 96% 90%;
+        --palette-300: 353 96% 82%; --palette-400: 351 95% 71%; --palette-500: 350 89% 60%;
+        --palette-600: 347 77% 50%; --palette-700: 345 83% 41%; --palette-800: 343 80% 34%;
+        --palette-900: 342 75% 30%; --palette-950: 343 88% 16%;
+    }
     .dark {
-        --background: 240 10% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 240 10% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 240 5.9% 10%;
-        --secondary: 240 3.7% 15.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 240 3.7% 15.9%;
-        --muted-foreground: 240 5% 64.9%;
-        --accent: 240 3.7% 15.9%;
-        --accent-foreground: 0 0% 98%;
+        --background: var(--palette-950);
+        --foreground: var(--palette-50);
+        --card: var(--palette-950);
+        --card-foreground: var(--palette-50);
+        --popover: var(--palette-900);
+        --popover-foreground: var(--palette-50);
+        --primary: var(--palette-50);
+        --primary-foreground: var(--palette-900);
+        --secondary: var(--palette-900);
+        --secondary-foreground: var(--palette-50);
+        --muted: var(--palette-900);
+        --muted-foreground: var(--palette-300);
+        --accent: var(--palette-800);
+        --accent-foreground: var(--palette-50);
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
-        --ring: 240 4.9% 83.9%;
+        --border: var(--palette-800);
+        --input: var(--palette-800);
+        --ring: var(--palette-300);
         --chart-1: 220 70% 50%;
         --chart-2: 160 60% 45%;
         --chart-3: 30 80% 55%;
@@ -139,7 +198,7 @@ html[data-electron-platform="darwin"] {
 
 .electron-sidebar-resize-handle:hover::after,
 .electron-sidebar-resize-handle:focus-visible::after {
-    background-color: rgb(59 130 246 / 0.95);
+    background-color: hsl(var(--palette-600) / 0.95);
 }
 
 /* CodeMirror editor base */

@@ -7,13 +7,16 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 import { Check, Computer, Copy, Download, LockKeyhole, Menu, Moon, RefreshCw, Shield, X } from "lucide-react";
 import { toast } from "@/components/ui/base-toast";
 import { disableAnalytics, enableAnalytics, isAnalyticsConfigured, isAnalyticsEnvironmentAllowed } from "@/lib/analytics";
-import { setThemePreference } from "@/redux/actions/main";
+import { setColorThemePreference, setThemePreference } from "@/redux/actions/main";
+
+const COLOR_THEMES = ["Zinc", "Olive", "Neutral", "Emerald", "Teal", "Indigo", "Rose", "Slate", "Gray"];
 
 function formatByteSize(bytes) {
     if (!Number.isFinite(bytes)) return "Unknown";
@@ -31,6 +34,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
     const { setTheme } = useTheme();
     const dispatch = useDispatch();
     const theme = useSelector((state) => state.settings.theme);
+    const colorTheme = useSelector((state) => state.settings.colorTheme || "olive");
     const analyticsEnabled = useSelector((state) => state.settings.analyticsEnabled);
     const {
         navigationHidden,
@@ -431,7 +435,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                             <h2 className="text-sm font-semibold">Appearance</h2>
                             <div className="flex items-center justify-between gap-4">
                                 <div className="space-y-1 text-left">
-                                    <p className="text-xs font-semibold">Theme</p>
+                                    <p className="text-xs font-semibold">Color mode</p>
                                     <p className="text-xs font-semibold text-muted-foreground">Choose how the app looks on this device.</p>
                                 </div>
                                 <Tabs value={theme || "system"} onValueChange={(value) => {
@@ -444,6 +448,24 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                         <TabsTrigger value="system" className="h-6 px-2 py-0 !text-xs !font-semibold">System</TabsTrigger>
                                     </TabsList>
                                 </Tabs>
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="space-y-1 text-left">
+                                    <p className="text-xs font-semibold">Color theme</p>
+                                    <p className="text-xs font-semibold text-muted-foreground">Choose the app’s color palette.</p>
+                                </div>
+                                <Select value={colorTheme} onValueChange={(value) => dispatch(setColorThemePreference(value))}>
+                                    <SelectTrigger className="h-7 w-36 px-2 text-xs font-semibold">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent align="end">
+                                        {COLOR_THEMES.map((color) => (
+                                            <SelectItem key={color} value={color.toLowerCase()} className="text-xs font-semibold">
+                                                {color}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </section>
                     ) : (

@@ -64,6 +64,7 @@ export const setNavigationHidden = (navigationHidden) => dispatch => {
 }
 
 export const setThemePreference = (theme) => dispatch => dispatch({ type: t.SET_THEME_PREFERENCE, payload: theme });
+export const setColorThemePreference = (theme) => dispatch => dispatch({ type: t.SET_COLOR_THEME_PREFERENCE, payload: theme });
 export const setAnalyticsPreference = (enabled) => dispatch => dispatch({ type: t.SET_ANALYTICS_PREFERENCE, payload: enabled });
 export const setSidebarWidth = (width) => dispatch => dispatch({ type: t.SET_SIDEBAR_WIDTH, payload: width });
 export const migrateLegacySettings = (settings) => dispatch => dispatch({ type: t.MIGRATE_LEGACY_SETTINGS, payload: settings });

@@ -1,6 +1,7 @@
 import {
     MIGRATE_LEGACY_SETTINGS,
     SET_ANALYTICS_PREFERENCE,
+    SET_COLOR_THEME_PREFERENCE,
     SET_NAVIGATION_HIDDEN,
     SET_SIDEBAR_WIDTH,
     SET_THEME_PREFERENCE,
@@ -8,6 +9,7 @@ import {
 
 const initialState = {
     theme: "system",
+    colorTheme: "olive",
     analyticsEnabled: false,
     navigationHidden: false,
     sidebarWidth: null,
@@ -18,6 +20,8 @@ export default function settings(state = initialState, action) {
     switch (action.type) {
         case SET_THEME_PREFERENCE:
             return { ...state, theme: action.payload };
+        case SET_COLOR_THEME_PREFERENCE:
+            return { ...state, colorTheme: action.payload };
         case SET_ANALYTICS_PREFERENCE:
             return { ...state, analyticsEnabled: Boolean(action.payload) };
         case SET_NAVIGATION_HIDDEN:
