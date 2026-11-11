@@ -1,11 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { FaApple, FaLinux, FaWindows } from "react-icons/fa6";
 import { FaGithub } from "react-icons/fa";
 import { Download, ExternalLink, Heart } from "lucide-react";
 import { getLatestRelease } from "@/lib/githubRelease";
 import SiteTopbar from "@/components/siteTopbar";
+
+const themePreviews = [
+    { id: "graphite", src: "/placedv-query-theme-graphite.webp", alt: "Database workspace with the graphite dark theme", swatch: "radial-gradient(circle at 32% 26%, #686868 0%, #252525 58%, #090909 100%)" },
+    { id: "olive", src: "/placedv-query-theme-olive.webp", alt: "Database workspace with an olive theme", swatch: "radial-gradient(circle at 32% 26%, #c4ceb0 0%, #858b70 58%, #505744 100%)" },
+    { id: "green", src: "/placedv-query-theme-green.webp", alt: "Database workspace with a green theme", swatch: "radial-gradient(circle at 32% 26%, #72e3b7 0%, #00a979 58%, #006548 100%)" },
+    { id: "red", src: "/placedv-query-theme-red.webp", alt: "Database workspace with a red theme", swatch: "radial-gradient(circle at 32% 26%, #ff91a8 0%, #e11d48 58%, #98102e 100%)" },
+    { id: "blue", src: "/placedv-query-theme-blue.webp", alt: "Database workspace with a blue theme", swatch: "radial-gradient(circle at 32% 26%, #8bb5ff 0%, #315fc1 58%, #1b3473 100%)" },
+];
 
 export async function getStaticProps() {
     return {
@@ -15,8 +24,11 @@ export async function getStaticProps() {
 }
 
 export default function Home({ release }) {
+    const { resolvedTheme } = useTheme();
     const [operatingSystem, setOperatingSystem] = useState("mac");
     const [macDownloadUrl, setMacDownloadUrl] = useState(release.url);
+    const [activePreviewId, setActivePreviewId] = useState("graphite");
+    const activePreview = themePreviews.find(({ id }) => id === activePreviewId) || themePreviews[0];
 
     useEffect(() => {
         const platform = `${navigator.userAgent} ${navigator.platform || ""}`.toLowerCase();
@@ -78,24 +90,46 @@ export default function Home({ release }) {
                 </div>
             </div>
             <section aria-label="Placedv Query dashboard preview" className="relative z-10 mx-auto -mt-[26vh] w-full max-w-[1160px] px-4 pb-8">
-                <Image
-                    src="/placedv-query-dashboard-preview-light-v2.webp"
-                    alt="Placedv Query database dashboard in light mode, with table navigation, filters, and records"
-                    width={2000}
-                    height={1356}
-                    sizes="(max-width: 1192px) 100vw, 1128px"
-                    quality={90}
-                    className="h-auto w-full dark:hidden"
-                />
-                <Image
-                    src="/placedv-query-dashboard-preview-dark-v2.webp"
-                    alt="Placedv Query database dashboard with table navigation, filters, and records"
-                    width={2000}
-                    height={1356}
-                    sizes="(max-width: 1192px) 100vw, 1128px"
-                    quality={90}
-                    className="hidden h-auto w-full dark:block"
-                />
+                {resolvedTheme === "dark" ? (
+                    <Image
+                        key={activePreviewId}
+                        src={activePreview.src}
+                        alt={activePreview.alt}
+                        width={2000}
+                        height={1356}
+                        sizes="(max-width: 1192px) 100vw, 1128px"
+                        quality={90}
+                        priority
+                        className="landing-preview-image-change h-auto w-full"
+                    />
+                ) : (
+                    <Image
+                        src="/placedv-query-dashboard-preview-light-v2.webp"
+                        alt="Placedv Query database dashboard in light mode, with table navigation, filters, and records"
+                        width={2000}
+                        height={1356}
+                        sizes="(max-width: 1192px) 100vw, 1128px"
+                        quality={90}
+                        priority
+                        className="h-auto w-full"
+                    />
+                )}
+                {resolvedTheme === "dark" && (
+                    <div role="group" aria-label="Choose a dashboard color theme" className="mt-4 flex items-center justify-center gap-2">
+                        {themePreviews.map(({ id, swatch }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                aria-label={`Show ${id} theme`}
+                                aria-pressed={activePreviewId === id}
+                                onClick={() => setActivePreviewId(id)}
+                                className={`group flex size-8 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007aff] focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 ${activePreviewId === id ? "ring-2 ring-[#007aff] ring-offset-1 ring-offset-zinc-950" : ""}`}
+                            >
+                                <span aria-hidden="true" className="size-6 rounded-full border border-black/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.55),0_1px_3px_rgba(0,0,0,0.35)] transition-[filter] group-hover:brightness-110 dark:border-white/20" style={{ background: swatch }} />
+                            </button>
+                        ))}
+                    </div>
+                )}
             </section>
             <footer className="mx-auto flex w-full max-w-[1160px] items-center justify-center gap-2 px-4 pb-8 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                 <Link href="/privacy" className="hover:text-zinc-950 dark:hover:text-zinc-100">Privacy</Link>
