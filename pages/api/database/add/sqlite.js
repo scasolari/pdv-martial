@@ -1,5 +1,5 @@
 import Busboy from "busboy";
-import { createReadStream, createWriteStream } from "node:fs";
+import { createWriteStream } from "node:fs";
 import { open, realpath, rename, rm, stat } from "node:fs/promises";
 import { extname } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -9,6 +9,7 @@ import { acquireExternalConnectionSlot, acquireExternalSequelize, releaseExterna
 import { createSqliteConnectionString, createSqliteUploadPath } from "@/lib/sqliteStorage";
 import { requireTwoFactorApi } from "@/lib/requireTwoFactorApi";
 import { DATABASE_AUTHORIZATION_VERSION } from "@/lib/databaseAuthorization";
+import { serializeConnectionConfig } from "@/lib/databaseConnectionConfig";
 
 const MAX_SQLITE_UPLOAD_BYTES = 512 * 1024 * 1024;
 const SQLITE_HEADER = Buffer.from("SQLite format 3\0", "binary");
@@ -63,7 +64,7 @@ function validateDatasetDetails(dbName, authorizationConfirmed) {
     return { dbName: dbName.trim(), authorizationConfirmed: true };
 }
 
-async function parseNativeFileRequest(req, temporaryPath) {
+async function parseNativeFileRequest(req) {
     if (process.env.PDV_DESKTOP_APP !== "1") {
         throw new Error("Opening a SQLite path is only available in the desktop app.");
     }
@@ -97,8 +98,8 @@ async function parseNativeFileRequest(req, temporaryPath) {
     const fileStats = await stat(filePath);
     if (!fileStats.isFile()) throw new Error("The selected SQLite path is not a file.");
     if (fileStats.size > MAX_SQLITE_UPLOAD_BYTES) throw new Error("SQLite files must be 512 MB or smaller.");
-    await pipeline(createReadStream(filePath), createWriteStream(temporaryPath, { flags: "wx", mode: 0o600 }));
-    return details;
+    if (!await hasSqliteHeader(filePath)) throw new Error("The selected file is not a valid SQLite database.");
+    return { ...details, filePath };
 }
 
 async function hasSqliteHeader(filePath) {
@@ -128,23 +129,30 @@ export default async function handler(req, res) {
     let savedDataset = false;
     try {
         releaseConnectionSlot = await acquireExternalConnectionSlot();
-        finalPath = await createSqliteUploadPath(session.id);
-        temporaryPath = `${finalPath}.upload`;
         const isNativeFile = req.headers["content-type"]?.toLowerCase().includes("application/json");
-        const { dbName } = isNativeFile
-            ? await parseNativeFileRequest(req, temporaryPath)
-            : await parseUpload(req, temporaryPath);
-        if (!await hasSqliteHeader(temporaryPath)) throw new Error("The uploaded file is not a valid SQLite database.");
-        await rename(temporaryPath, finalPath);
-        const connectionString = createSqliteConnectionString(finalPath);
-        await validateExternalDatabaseUrl(connectionString, session.id);
-        sequelize = await acquireExternalSequelize(connectionString, session.id);
+        let dbName;
+        let sqliteFilePath;
+        if (isNativeFile) {
+            ({ dbName, filePath: sqliteFilePath } = await parseNativeFileRequest(req));
+        } else {
+            finalPath = await createSqliteUploadPath(session.id);
+            temporaryPath = `${finalPath}.upload`;
+            ({ dbName } = await parseUpload(req, temporaryPath));
+            if (!await hasSqliteHeader(temporaryPath)) throw new Error("The uploaded file is not a valid SQLite database.");
+            await rename(temporaryPath, finalPath);
+            sqliteFilePath = finalPath;
+        }
+        const connectionString = createSqliteConnectionString(sqliteFilePath);
+        const sqliteExternalFile = isNativeFile;
+        const connectionOptions = { sqliteExternalFile };
+        await validateExternalDatabaseUrl(connectionString, session.id, { allowExternalSqlite: sqliteExternalFile });
+        sequelize = await acquireExternalSequelize(connectionString, session.id, connectionOptions);
         await sequelize.authenticate();
         const dataset = await db.database.create({
             data: {
                 user_id: session.id,
                 db_name: dbName,
-                db_url_connection: encrypt(connectionString),
+                db_url_connection: encrypt(serializeConnectionConfig({ connectionString, sqliteExternalFile })),
                 authorizationConfirmedAt: new Date(),
                 authorizationVersion: DATABASE_AUTHORIZATION_VERSION,
             },

@@ -324,11 +324,12 @@ export default async function handler(req, res) {
     } catch (error) {
         performanceStatus = error.statusCode === 400 ? "rejected" : "error";
         performanceErrorCode = safeDatabaseErrorCode(error);
+        console.error("Unable to load database table rows", performanceErrorCode);
         if (auditId) {
             try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         console.error("Unable to fetch database table page", error?.original?.code || error?.name || "unknown");
-        return res.status(error.statusCode || 400).json({ error: "Unable to load table rows." });
+        return res.status(error.statusCode || 400).json({ error: "Unable to load table rows.", code: performanceErrorCode });
     } finally {
         if (sequelize) {
             try {

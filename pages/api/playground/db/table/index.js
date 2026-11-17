@@ -186,12 +186,14 @@ export default async function handler(req, res) {
         });
     } catch (error) {
         performanceErrorCode = safeDatabaseErrorCode(error);
+        console.error("Unable to load database schema", performanceErrorCode);
         if (auditId) {
             try { await finishDatabaseAudit(auditId, { status: "failed", errorCode: safeDatabaseErrorCode(error) }); } catch (auditError) { console.error("Unable to finalize database audit", safeDatabaseErrorCode(auditError)); }
         }
         return res.status(error.statusCode || 400).json({
             message: "Database connection failed",
             error: "Database connection failed.",
+            code: performanceErrorCode,
         });
     } finally {
         if (sequelize) {

@@ -44,6 +44,9 @@ contextBridge.exposeInMainWorld("desktopUpdates", {
 });
 
 contextBridge.exposeInMainWorld("desktopFiles", {
+    selectSqliteFile() {
+        return ipcRenderer.invoke("desktop:select-sqlite-file");
+    },
     onOpenSqliteFile(listener) {
         if (typeof listener !== "function") return () => {};
         sqliteFileListeners.add(listener);

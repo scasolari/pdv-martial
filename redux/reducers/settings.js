@@ -9,7 +9,7 @@ import {
 
 const initialState = {
     theme: "system",
-    colorTheme: "olive",
+    colorTheme: "neutral",
     analyticsEnabled: false,
     navigationHidden: false,
     sidebarWidth: null,

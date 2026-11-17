@@ -109,7 +109,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                                <Button aria-label="Select database" title={database?.db_name || "Select database"} className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                                <Button aria-label="Select database" title={database?.db_name || "Select database"} className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-100 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600">
                                     <DatabaseEngineIcon dialect={database?.dialect || databases?.find((item) => item.id === database?.db_id)?.dialect} size={14} />
                                     <span className={`truncate text-xs font-semibold ${database?.db_name ? "" : "text-zinc-500 dark:text-zinc-400"}`}>
                                         {database?.db_name || "Select database"}
@@ -139,7 +139,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button aria-label="Refresh schema" disabled={!database?.db_id || schemaLoading} onClick={() => loadSchema()} className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                        <Button aria-label="Refresh schema" disabled={!database?.db_id || schemaLoading} onClick={() => loadSchema()} className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-100 hover:ring-1 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600">
                             <RefreshCcw size={14} className={schemaLoading ? "animate-spin" : ""} />
                         </Button>
                     </TooltipTrigger>
@@ -151,7 +151,7 @@ function PlaygroundPlay({ database, databases, setDatabase, setDatabases, setQue
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                                <Button aria-label="Show database tables" disabled={!database?.db_id} className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                                <Button aria-label="Show database tables" disabled={!database?.db_id} className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-100 hover:ring-1 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600">
                                     <Columns3 size={14} />
                                 </Button>
                             </DropdownMenuTrigger>

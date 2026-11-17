@@ -56,10 +56,10 @@ function NativeThemeSync() {
 
     useEffect(() => {
         if (typeof document === "undefined") return;
-        const allowedColorThemes = ["zinc", "olive", "neutral", "emerald", "teal", "indigo", "rose", "slate", "gray"];
+        const allowedColorThemes = ["zinc", "olive", "neutral", "emerald", "teal", "indigo", "purple", "rose", "slate", "gray"];
         document.documentElement.dataset.colorTheme = allowedColorThemes.includes(colorTheme)
             ? colorTheme
-            : "olive";
+            : "neutral";
     }, [colorTheme]);
 
     return null;

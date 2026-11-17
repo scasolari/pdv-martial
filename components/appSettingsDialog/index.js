@@ -16,7 +16,7 @@ import { toast } from "@/components/ui/base-toast";
 import { disableAnalytics, enableAnalytics, isAnalyticsConfigured, isAnalyticsEnvironmentAllowed } from "@/lib/analytics";
 import { setColorThemePreference, setThemePreference } from "@/redux/actions/main";
 
-const COLOR_THEMES = ["Zinc", "Olive", "Neutral", "Emerald", "Teal", "Indigo", "Rose", "Slate", "Gray"];
+const COLOR_THEMES = ["Zinc", "Olive", "Neutral", "Emerald", "Teal", "Indigo", "Purple", "Rose", "Slate", "Gray"];
 
 function formatByteSize(bytes) {
     if (!Number.isFinite(bytes)) return "Unknown";
@@ -34,7 +34,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
     const { setTheme } = useTheme();
     const dispatch = useDispatch();
     const theme = useSelector((state) => state.settings.theme);
-    const colorTheme = useSelector((state) => state.settings.colorTheme || "olive");
+    const colorTheme = useSelector((state) => state.settings.colorTheme || "neutral");
     const analyticsEnabled = useSelector((state) => state.settings.analyticsEnabled);
     const {
         navigationHidden,

@@ -4,17 +4,17 @@
 
 @layer base {
     :root {
-        --palette-50: 80 20% 99%;
-        --palette-100: 80 15% 97%;
-        --palette-200: 80 12% 93%;
-        --palette-300: 80 10% 88%;
-        --palette-400: 80 8% 74%;
-        --palette-500: 80 7% 58%;
-        --palette-600: 80 8% 47%;
-        --palette-700: 80 9% 39%;
-        --palette-800: 80 9% 29%;
-        --palette-900: 80 9% 23%;
-        --palette-950: 80 8% 15%;
+        --palette-50: 0 0% 98%;
+        --palette-100: 0 0% 96%;
+        --palette-200: 0 0% 90%;
+        --palette-300: 0 0% 83%;
+        --palette-400: 0 0% 64%;
+        --palette-500: 0 0% 45%;
+        --palette-600: 0 0% 32%;
+        --palette-700: 0 0% 25%;
+        --palette-800: 0 0% 15%;
+        --palette-900: 0 0% 9%;
+        --palette-950: 0 0% 4%;
         --background: var(--palette-50);
         --foreground: var(--palette-950);
         --card: var(--palette-50);
@@ -53,6 +53,12 @@
         --palette-600: 0 0% 32%; --palette-700: 0 0% 25%; --palette-800: 0 0% 15%;
         --palette-900: 0 0% 9%; --palette-950: 0 0% 4%;
     }
+    :root[data-color-theme="olive"] {
+        --palette-50: 80 20% 99%; --palette-100: 80 15% 97%; --palette-200: 80 12% 93%;
+        --palette-300: 80 10% 88%; --palette-400: 80 8% 74%; --palette-500: 80 7% 58%;
+        --palette-600: 80 8% 47%; --palette-700: 80 9% 39%; --palette-800: 80 9% 29%;
+        --palette-900: 80 9% 23%; --palette-950: 80 8% 15%;
+    }
     :root[data-color-theme="slate"] {
         --palette-50: 210 40% 98%; --palette-100: 210 40% 96%; --palette-200: 214 32% 91%;
         --palette-300: 213 27% 84%; --palette-400: 215 20% 65%; --palette-500: 215 16% 47%;
@@ -82,6 +88,12 @@
         --palette-300: 230 94% 82%; --palette-400: 234 89% 74%; --palette-500: 239 84% 67%;
         --palette-600: 243 75% 59%; --palette-700: 245 58% 51%; --palette-800: 244 55% 41%;
         --palette-900: 242 47% 34%; --palette-950: 243 47% 20%;
+    }
+    :root[data-color-theme="purple"] {
+        --palette-50: 270 100% 98%; --palette-100: 269 100% 95%; --palette-200: 269 100% 92%;
+        --palette-300: 269 97% 85%; --palette-400: 270 95% 75%; --palette-500: 270 91% 65%;
+        --palette-600: 271 81% 56%; --palette-700: 272 72% 47%; --palette-800: 273 67% 39%;
+        --palette-900: 274 66% 32%; --palette-950: 274 87% 21%;
     }
     :root[data-color-theme="rose"] {
         --palette-50: 356 100% 97%; --palette-100: 356 100% 95%; --palette-200: 353 96% 90%;

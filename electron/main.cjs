@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, safeStorage, utilityProcess } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage, utilityProcess } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { spawn } = require("node:child_process");
 const { createServer } = require("node:net");
@@ -67,6 +67,17 @@ function assertMainWindowSender(event) {
         throw new Error("Update requests are only allowed from the desktop window.");
     }
 }
+
+ipcMain.handle("desktop:select-sqlite-file", async (event) => {
+    assertMainWindowSender(event);
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ["openFile"],
+        filters: [{ name: "SQLite databases", extensions: ["db", "sqlite", "sqlite3"] }],
+    });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const filePath = result.filePaths[0];
+    return { path: filePath, name: basename(filePath) };
+});
 
 function sendUpdateStatus(status) {
     if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;

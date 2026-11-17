@@ -70,7 +70,11 @@ export default async function handler(req, res) {
                 try {
                     nextSsh = validateSshConfig(nextSsh);
                     releaseConnectionSlot = await acquireExternalConnectionSlot();
-                    sequelize = await acquireExternalSequelize(nextConnectionString, session.id, { ssh: nextSsh, ssl: nextSsl });
+                    sequelize = await acquireExternalSequelize(nextConnectionString, session.id, {
+                        ssh: nextSsh,
+                        ssl: nextSsl,
+                        sqliteExternalFile: previousConfig.sqliteExternalFile,
+                    });
                     await sequelize.authenticate();
                 } catch {
                     return res.status(400).json({ error: "Unable to connect with the new settings. Check the connection string, SSH host key, and database permissions." });
@@ -91,7 +95,12 @@ export default async function handler(req, res) {
                 data: {
                     db_name: dbName.trim(),
                     ...(updateConnectionConfig ? {
-                        db_url_connection: encrypt(serializeConnectionConfig({ connectionString: nextConnectionString, ssh: nextSsh, ssl: nextSsl })),
+                        db_url_connection: encrypt(serializeConnectionConfig({
+                            connectionString: nextConnectionString,
+                            ssh: nextSsh,
+                            ssl: nextSsl,
+                            sqliteExternalFile: previousConfig.sqliteExternalFile,
+                        })),
                         authorizationConfirmedAt: new Date(),
                         authorizationVersion: DATABASE_AUTHORIZATION_VERSION,
                     } : {}),

@@ -528,14 +528,30 @@ function PlaygroundPlayId(props) {
         <TableGrouping columns={activeResultColumns} grouping={activeGrouping} onChange={updateActiveGrouping} />
     )
     const directSelectMatch = activeTab?.type === "sql"
-        ? String(executedSqlQuery).match(/^\s*SELECT\s+\*\s+FROM\s+(`(?:``|[^`])+`|[A-Za-z_][A-Za-z0-9_$]*)\s*;?\s*$/i)
+        ? String(executedSqlQuery).match(/^\s*SELECT\s+\*\s+FROM\s+(`(?:``|[^`])+`|"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)\s*;?\s*$/i)
         : null;
     const querySourceTable = directSelectMatch
         ? directSelectMatch[1].startsWith("`")
             ? directSelectMatch[1].slice(1, -1).replace(/``/g, "`")
-            : directSelectMatch[1]
+            : directSelectMatch[1].startsWith('"')
+                ? directSelectMatch[1].slice(1, -1).replace(/""/g, '"')
+                : directSelectMatch[1]
         : null;
-    const querySourceSchema = useMemo(() => tables?.data?.find((table) => table.tableName === querySourceTable)?.details?.columns || EMPTY_COLUMNS, [querySourceTable, tables?.data]);
+    const querySourceTableQuoted = Boolean(directSelectMatch?.[1]?.startsWith("`") || directSelectMatch?.[1]?.startsWith('"'));
+    const querySourceMetadata = useMemo(() => {
+        if (!querySourceTable) return null;
+        const availableTables = tables?.data || EMPTY_COLUMNS;
+        const exactMatch = availableTables.find((table) => table.tableName === querySourceTable);
+        if (exactMatch) return exactMatch;
+        if (!querySourceTableQuoted) {
+            const normalizedName = querySourceTable.toLowerCase();
+            const caseInsensitiveMatches = availableTables.filter((table) => String(table.tableName).toLowerCase() === normalizedName);
+            if (caseInsensitiveMatches.length === 1) return caseInsensitiveMatches[0];
+        }
+        return null;
+    }, [querySourceTable, querySourceTableQuoted, tables?.data]);
+    const resolvedQuerySourceTable = querySourceMetadata?.tableName || null;
+    const querySourceSchema = querySourceMetadata?.details?.columns || EMPTY_COLUMNS;
     const querySourcePrimaryKeys = useMemo(() => querySourceSchema.filter((column) => column.key === "PRI"), [querySourceSchema]);
     const canEditQueryResults = Boolean(querySourceTable && querySourceSchema.length > 0);
     const sqlResultPageData = useMemo(() => {
@@ -992,7 +1008,7 @@ function PlaygroundPlayId(props) {
                                                 <Button
                                                     aria-label="Select database"
                                                     title={database?.db_name || "Select database"}
-                                                    className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    className="flex h-7 max-w-[220px] items-center gap-2 border-0 bg-transparent px-2 py-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                                 >
                                                     <DatabaseEngineIcon dialect={database?.dialect || databases?.find((item) => item.id === database?.db_id)?.dialect} size={14} />
                                                     {database?.db_name && <span className="truncate text-xs font-semibold">{database.db_name}</span>}
@@ -1053,7 +1069,7 @@ function PlaygroundPlayId(props) {
                                             aria-label="Refresh schema"
                                             disabled={!database?.db_id || schemaRefreshing}
                                             onClick={() => loadHiddenNavigationTables(database?.db_id, { force: true, showRefreshLoading: true })}
-                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                         >
                                             <RefreshCcw ref={schemaRefreshIconRef} size={14} />
                                         </Button>
@@ -1076,7 +1092,7 @@ function PlaygroundPlayId(props) {
                                                 <Button
                                                     aria-label="Show database tables"
                                                     disabled={!database?.db_id}
-                                                    className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                                 >
                                                     <Columns3 size={14} />
                                                 </Button>
@@ -1122,7 +1138,7 @@ function PlaygroundPlayId(props) {
                                         aria-label="Saved queries"
                                         title="Saved queries"
                                         disabled={!database?.db_id}
-                                        className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                        className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                     >
                                         <CodeXml size={12} />
                                     </Button>
@@ -1185,7 +1201,7 @@ function PlaygroundPlayId(props) {
                                             type="button"
                                             aria-label="History"
                                             onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/activity`)}
-                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                         ><History size={14} /></Button>
                                     </TooltipTrigger>
                                     <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
@@ -1200,7 +1216,7 @@ function PlaygroundPlayId(props) {
                                             type="button"
                                             aria-label="Settings"
                                             onClick={() => router.push(`/app/playground/play/${encodeURIComponent(database.db_id)}/settings`)}
-                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                            className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                         ><Settings2 size={14} /></Button>
                                     </TooltipTrigger>
                                     <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
@@ -1560,7 +1576,7 @@ function PlaygroundPlayId(props) {
                                     }
                                     <QueryResultsTable
                                         response={sqlResultPageData}
-                                        tableName={canEditQueryResults ? querySourceTable : activeTab.name}
+                                        tableName={canEditQueryResults ? resolvedQuerySourceTable : activeTab.name}
                                         schema={canEditQueryResults ? querySourceSchema : []}
                                         databaseId={database?.db_id}
                                         sensitiveColumns={database?.preferences?.sensitiveColumns || activeTab.sensitiveColumns || []}

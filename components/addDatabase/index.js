@@ -3,7 +3,7 @@ import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import axios from "axios";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {setDatabases} from "@/redux/actions/main";
 import {connect} from "react-redux";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,13 @@ function AddDatabase(props) {
     const {databases, setDatabases, onSuccess, onClose, sqliteFilePath, sqliteFileName, initialDatabaseName} = props
     const [connectionMode, setConnectionMode] = useState(sqliteFilePath ? "sqlite" : "remote");
     const [sqliteFile, setSqliteFile] = useState(null);
+    const [selectedSqliteFile, setSelectedSqliteFile] = useState(sqliteFilePath
+        ? { path: sqliteFilePath, name: sqliteFileName || "SQLite database file" }
+        : null);
+    const [hasDesktopFilePicker, setHasDesktopFilePicker] = useState(false);
+    useEffect(() => {
+        setHasDesktopFilePicker(Boolean(window.desktopFiles?.selectSqliteFile));
+    }, []);
     const [form, setForm] = useState({
         db_name: initialDatabaseName || "",
         url_connection: "",
@@ -32,11 +39,12 @@ function AddDatabase(props) {
     const add_database = (e) => {
         e.preventDefault();
         let request;
-        if (connectionMode === "sqlite" && sqliteFilePath) {
+        const directSqlitePath = selectedSqliteFile?.path || sqliteFilePath;
+        if (connectionMode === "sqlite" && directSqlitePath) {
             request = axios.post("/api/database/add/sqlite", {
                     db_name: form.db_name,
                     authorizationConfirmed: form.authorizationConfirmed,
-                    filePath: sqliteFilePath,
+                    filePath: directSqlitePath,
                 });
         } else if (connectionMode === "sqlite") {
                 if (!sqliteFile) {
@@ -62,6 +70,16 @@ function AddDatabase(props) {
             toast.add({ title: "Unable to add dataset", description: message, type: "error" });
         })
     }
+    const chooseSqliteFile = async () => {
+        try {
+            const selectedFile = await window.desktopFiles.selectSqliteFile();
+            if (!selectedFile) return;
+            setSelectedSqliteFile(selectedFile);
+            setSqliteFile(null);
+        } catch {
+            toast.add({ title: "Unable to select SQLite file", description: "Choose the database file again.", type: "error" });
+        }
+    };
     const test_db_connection = () => {
         if(form.url_connection.length === 0) return null
         setLoadingCheckConnection(true)
@@ -187,8 +205,11 @@ function AddDatabase(props) {
             </details>
         </div> : <div className="flex flex-col gap-1">
             <Label className="text-xs font-semibold text-zinc-500">SQLite database file</Label>
-            {sqliteFilePath ? (
-                <Input value={sqliteFileName || "SQLite database file"} readOnly className="h-8 px-2 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700" />
+            {hasDesktopFilePicker ? (
+                <div className="flex gap-2">
+                    <Input value={selectedSqliteFile?.name || "No file selected"} readOnly className="h-8 min-w-0 flex-1 px-2 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700" />
+                    <Button type="button" onClick={chooseSqliteFile} className="h-8 shrink-0 px-3 !text-xs !font-semibold">Choose file</Button>
+                </div>
             ) : (
                 <Input
                     type="file"
@@ -198,7 +219,11 @@ function AddDatabase(props) {
                     className="h-8 px-2 py-1 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700"
                 />
             )}
-            <p className="text-xs font-semibold text-zinc-500">The file is copied to private app storage for this account. Maximum size: 512 MB.</p>
+            <p className="text-xs font-semibold text-zinc-500">
+                {hasDesktopFilePicker
+                    ? "The database stays at its original path. Changes are saved directly to that file. Maximum size: 512 MB."
+                    : "The file is copied to private app storage for this account. Maximum size: 512 MB."}
+            </p>
         </div>}
         <div className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-zinc-600 dark:text-zinc-300">
             <Checkbox id="database-authorization-confirmation" checked={form.authorizationConfirmed} onCheckedChange={(checked) => setForm({ ...form, authorizationConfirmed: checked === true })} className="mt-0.5 h-3.5 w-3.5 shrink-0 border-zinc-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600" />
@@ -215,7 +240,7 @@ function AddDatabase(props) {
             >
                 Cancel
             </Button>
-            <Button type="submit" disabled={!form.authorizationConfirmed || (connectionMode === "sqlite" && !sqliteFile && !sqliteFilePath)}
+            <Button type="submit" disabled={!form.authorizationConfirmed || (connectionMode === "sqlite" && !sqliteFile && !selectedSqliteFile && !sqliteFilePath)}
                     className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
             >
                 Add dataset

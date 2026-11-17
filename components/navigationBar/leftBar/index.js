@@ -328,7 +328,7 @@ function LeftBar(props) {
                                             variant="outline"
                                             aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
                                             title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
-                                            className={`ring-1 ring-zinc-200 dark:ring-zinc-800 dark:hover:ring-zinc-800 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                            className={`ring-1 ring-zinc-400 dark:ring-zinc-600 dark:hover:ring-zinc-600 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
                                         >
                                             {compactDatabaseSelector ? (
                                                 <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -389,7 +389,7 @@ function LeftBar(props) {
                                 </AlertDialogContent>
                             </AlertDialog>
                             <TooltipProvider>
-                                <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} aria-label="Refresh schema" className="hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                                <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} aria-label="Refresh schema" className="hover:ring-1 ring-zinc-400 dark:hover:ring-zinc-600 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                         <span>
@@ -406,7 +406,7 @@ function LeftBar(props) {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none ml-auto hover:ring-1 ring-zinc-200 dark:hover:ring-zinc-800 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
+                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none ml-auto hover:ring-1 ring-zinc-400 dark:hover:ring-zinc-600 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
                                         <PanelRightOpen size={16} />
                                     </Button>
                                 </TooltipTrigger>
