@@ -328,7 +328,12 @@ function LeftBar(props) {
                                             variant="outline"
                                             aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
                                             title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
-                                            className={`ring-1 ring-zinc-400 dark:ring-zinc-600 dark:hover:ring-zinc-600 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                            className={cn(
+                                                "flex h-7 min-w-0 flex-row items-center overflow-hidden rounded-md !font-semibold shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900",
+                                                compactDatabaseSelector
+                                                    ? "w-7 shrink-0 justify-center border-0 p-1.5 hover:ring-1 hover:ring-zinc-400 dark:hover:ring-zinc-500"
+                                                    : "min-w-0 flex-1 border-zinc-400 dark:border-zinc-600"
+                                            )}
                                         >
                                             {compactDatabaseSelector ? (
                                                 <Database className="h-4 w-4 shrink-0" aria-hidden="true" />

@@ -206,7 +206,7 @@ export default function GlobalCommandSearch() {
                 top: searchPosition ? `${searchPosition.y}px` : "26.5px",
                 transition: "none",
             }}
-            className="electron-titlebar-no-drag fixed z-40 flex h-8 w-[min(26vw,320px)] max-sm:w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-start gap-3 rounded-lg border-input bg-background px-1.5 text-xs font-semibold text-muted-foreground shadow-none hover:bg-accent hover:text-accent-foreground max-sm:justify-center max-sm:gap-0 max-sm:px-0"
+            className="electron-titlebar-no-drag fixed z-40 flex h-8 w-[min(26vw,320px)] max-sm:w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-start gap-3 rounded-lg border-input bg-background px-1.5 text-xs font-semibold text-muted-foreground shadow-none transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 dark:hover:text-accent-foreground max-sm:justify-center max-sm:gap-0 max-sm:px-0"
         >
             <Search className="h-4 w-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-left max-sm:hidden">Search or run commands...</span>
@@ -214,7 +214,7 @@ export default function GlobalCommandSearch() {
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>
             <CommandInput placeholder="Search databases or commands..." className="!ring-0 !border-0"/>
-            <CommandList className="rounded-t-xl">
+            <CommandList className="max-h-[460px] rounded-t-xl">
                 <CommandEmpty>No results found.</CommandEmpty>
                 {databases.length > 0 && <CommandGroup heading="Databases">
                     {databases.map((item) => <CommandItem
