@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight } from "lucide-react";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 
 
 function AddDatabase(props) {
@@ -115,13 +115,13 @@ function AddDatabase(props) {
                     db_name: e.target.value
                 })}
                 placeholder="Enter dataset name..."
-                className="shadow-none border-0 ring-1 ring-zinc-200 px-2 h-8 !text-xs !font-semibold dark:ring-zinc-700 focus-visible:dark:!ring-blue-500"
+                className="shadow-none border-0 ring-1 ring-zinc-200 px-2 h-8 text-xs! font-semibold! dark:ring-zinc-700 dark:focus-visible:ring-blue-500!"
             />
         </div>
         {!sqliteFilePath && <Tabs value={connectionMode} onValueChange={setConnectionMode} className="w-fit">
             <TabsList className="h-7 p-0.5">
-                <TabsTrigger value="remote" className="h-6 px-2 py-0 !text-xs !font-semibold">Connection string</TabsTrigger>
-                <TabsTrigger value="sqlite" className="h-6 px-2 py-0 !text-xs !font-semibold">SQLite file</TabsTrigger>
+                <TabsTrigger value="remote" className="h-6 px-2 py-0 text-xs! font-semibold!">Connection string</TabsTrigger>
+                <TabsTrigger value="sqlite" className="h-6 px-2 py-0 text-xs! font-semibold!">SQLite file</TabsTrigger>
             </TabsList>
         </Tabs>}
         {connectionMode === "remote" ? <div className="flex flex-col gap-1">
@@ -132,7 +132,7 @@ function AddDatabase(props) {
                             variant="ghost"
                             size="sm"
                     disabled={loadingCheckConnection || !form.url_connection || !form.authorizationConfirmed}
-                            className={`!h-6 !px-1.5 !py-0 !text-xs !font-semibold text-zinc-500 shadow-none hover:text-zinc-950 dark:hover:text-neutral-300 disabled:cursor-not-allowed ${loadingCheckConnection ? "!text-zinc-500" : ""}`}
+                            className={`h-6! px-1.5! py-0! text-xs! font-semibold! text-zinc-500 shadow-none hover:text-zinc-950 dark:hover:text-neutral-300 disabled:cursor-not-allowed ${loadingCheckConnection ? "text-zinc-500!" : ""}`}
                     onClick={test_db_connection}
                 >
                     <span className="flex items-center gap-1.5">
@@ -159,7 +159,7 @@ function AddDatabase(props) {
                     url_connection: e.target.value
                 })}
                 placeholder="mysql://, mariadb://, postgresql:// or mssql://"
-                className="shadow-none border-0 ring-1 ring-zinc-200 px-2 h-8 !text-xs !font-semibold dark:ring-zinc-700 focus-visible:dark:!ring-blue-500"
+                className="shadow-none border-0 ring-1 ring-zinc-200 px-2 h-8 text-xs! font-semibold! dark:ring-zinc-700 dark:focus-visible:ring-blue-500!"
             />
             <div>
                 {connectionResponse &&
@@ -178,11 +178,11 @@ function AddDatabase(props) {
                     {form.ssl.enabled && <div className="flex flex-col gap-1">
                         <Label className="text-xs font-semibold text-zinc-500">Certificate verification</Label>
                         <Select value={form.ssl.mode} onValueChange={(value) => setForm({ ...form, ssl: { ...form.ssl, mode: value } })}>
-                            <SelectTrigger className="h-8 !text-xs !font-semibold"><SelectValue /></SelectTrigger>
-                            <SelectContent className="z-[1100] !text-xs !font-semibold">
-                                <SelectItem value="verify-full" className="!text-xs !font-semibold">Verify certificate and hostname</SelectItem>
-                                <SelectItem value="verify-ca" className="!text-xs !font-semibold">Verify certificate</SelectItem>
-                                <SelectItem value="require" className="!text-xs !font-semibold">Encrypt without certificate verification</SelectItem>
+                            <SelectTrigger className="h-8 text-xs!"><SelectValue /></SelectTrigger>
+                            <SelectContent className="z-1100">
+                                <SelectItem value="verify-full" className="">Verify certificate and hostname</SelectItem>
+                                <SelectItem value="verify-ca" className="">Verify certificate</SelectItem>
+                                <SelectItem value="require" className="">Encrypt without certificate verification</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>}
@@ -191,15 +191,15 @@ function AddDatabase(props) {
                         Connect through an SSH tunnel
                     </div>
                     {form.ssh.enabled && <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH host</Label><Input required value={form.ssh.host} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, host: event.target.value } })} placeholder="bastion.example.com" className="h-8 !text-xs !font-semibold" /></div>
-                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH port</Label><Input required type="number" min="1" max="65535" value={form.ssh.port} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, port: event.target.value } })} className="h-8 !text-xs !font-semibold" /></div>
-                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH username</Label><Input required value={form.ssh.username} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, username: event.target.value } })} autoComplete="off" className="h-8 !text-xs !font-semibold" /></div>
-                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">Authentication</Label><Select value={form.ssh.authType} onValueChange={(value) => setForm({ ...form, ssh: { ...form.ssh, authType: value } })}><SelectTrigger className="h-8 !text-xs !font-semibold"><SelectValue /></SelectTrigger><SelectContent className="z-[1100] !text-xs !font-semibold"><SelectItem value="password" className="!text-xs !font-semibold">Password</SelectItem><SelectItem value="privateKey" className="!text-xs !font-semibold">Private key</SelectItem></SelectContent></Select></div>
-                        {form.ssh.authType === "password" ? <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH password</Label><Input required type="password" value={form.ssh.password} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, password: event.target.value } })} autoComplete="new-password" className="h-8 !text-xs !font-semibold" /></div> : <>
-                            <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH private key</Label><Textarea required value={form.ssh.privateKey} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, privateKey: event.target.value } })} rows={4} autoComplete="off" className="min-h-0 resize-y rounded-md border-0 bg-white p-2 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 dark:bg-zinc-950 dark:ring-zinc-700" /></div>
-                            <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">Key passphrase (if required)</Label><Input type="password" value={form.ssh.passphrase} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, passphrase: event.target.value } })} autoComplete="new-password" className="h-8 !text-xs !font-semibold" /></div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH host</Label><Input required value={form.ssh.host} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, host: event.target.value } })} placeholder="bastion.example.com" className="h-8 text-xs! font-semibold!" /></div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH port</Label><Input required type="number" min="1" max="65535" value={form.ssh.port} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, port: event.target.value } })} className="h-8 text-xs! font-semibold!" /></div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH username</Label><Input required value={form.ssh.username} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, username: event.target.value } })} autoComplete="off" className="h-8 text-xs! font-semibold!" /></div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">Authentication</Label><Select value={form.ssh.authType} onValueChange={(value) => setForm({ ...form, ssh: { ...form.ssh, authType: value } })}><SelectTrigger className="h-8 text-xs!"><SelectValue /></SelectTrigger><SelectContent className="z-1100"><SelectItem value="password" className="">Password</SelectItem><SelectItem value="privateKey" className="">Private key</SelectItem></SelectContent></Select></div>
+                        {form.ssh.authType === "password" ? <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH password</Label><Input required type="password" value={form.ssh.password} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, password: event.target.value } })} autoComplete="new-password" className="h-8 text-xs! font-semibold!" /></div> : <>
+                            <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH private key</Label><Textarea required value={form.ssh.privateKey} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, privateKey: event.target.value } })} rows={4} autoComplete="off" className="min-h-0 resize-y rounded-md border-0 bg-white p-2 text-xs! font-semibold! shadow-none ring-1 ring-zinc-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 dark:bg-zinc-950 dark:ring-zinc-700" /></div>
+                            <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">Key passphrase (if required)</Label><Input type="password" value={form.ssh.passphrase} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, passphrase: event.target.value } })} autoComplete="new-password" className="h-8 text-xs! font-semibold!" /></div>
                         </>}
-                        <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH server SHA-256 fingerprint</Label><Input required value={form.ssh.hostFingerprint} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, hostFingerprint: event.target.value } })} placeholder="SHA256:..." className="h-8 !text-xs !font-semibold" /><p className="text-xs font-semibold text-zinc-500">Used to verify the SSH server identity before sending credentials.</p></div>
+                        <div className="col-span-2 flex flex-col gap-1"><Label className="text-xs font-semibold text-zinc-500">SSH server SHA-256 fingerprint</Label><Input required value={form.ssh.hostFingerprint} onChange={(event) => setForm({ ...form, ssh: { ...form.ssh, hostFingerprint: event.target.value } })} placeholder="SHA256:..." className="h-8 text-xs! font-semibold!" /><p className="text-xs font-semibold text-zinc-500">Used to verify the SSH server identity before sending credentials.</p></div>
                     </div>}
                 </div>
             </details>
@@ -207,8 +207,8 @@ function AddDatabase(props) {
             <Label className="text-xs font-semibold text-zinc-500">SQLite database file</Label>
             {hasDesktopFilePicker ? (
                 <div className="flex gap-2">
-                    <Input value={selectedSqliteFile?.name || "No file selected"} readOnly className="h-8 min-w-0 flex-1 px-2 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700" />
-                    <Button type="button" onClick={chooseSqliteFile} className="h-8 shrink-0 px-3 !text-xs !font-semibold">Choose file</Button>
+                    <Input value={selectedSqliteFile?.name || "No file selected"} readOnly className="h-8 min-w-0 flex-1 px-2 text-xs! font-semibold! shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700" />
+                    <Button type="button" onClick={chooseSqliteFile} className="h-8 shrink-0 px-3 text-xs! font-semibold!">Choose file</Button>
                 </div>
             ) : (
                 <Input
@@ -216,7 +216,7 @@ function AddDatabase(props) {
                     accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3"
                     disabled={loadingCheckConnection}
                     onChange={(event) => setSqliteFile(event.target.files?.[0] || null)}
-                    className="h-8 px-2 py-1 !text-xs !font-semibold shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700"
+                    className="h-8 px-2 py-1 text-xs! font-semibold! shadow-none ring-1 ring-zinc-200 dark:ring-zinc-700"
                 />
             )}
             <p className="text-xs font-semibold text-zinc-500">
@@ -236,12 +236,12 @@ function AddDatabase(props) {
                             onClose();
                         }
                     }}
-                    className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                    className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!"
             >
                 Cancel
             </Button>
             <Button type="submit" disabled={!form.authorizationConfirmed || (connectionMode === "sqlite" && !sqliteFile && !selectedSqliteFile && !sqliteFilePath)}
-                    className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
+                    className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 text-xs! font-semibold!"
             >
                 Add dataset
             </Button>

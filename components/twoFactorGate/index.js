@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 
 function TwoFactorGate({ children }) {
     const [state, setState] = useState("checking");
@@ -56,7 +56,7 @@ function TwoFactorGate({ children }) {
     if (state === "unlocked") return children;
 
     return (
-        <div className="fixed inset-0 z-[20000] flex items-center justify-center bg-zinc-50 p-4 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+        <div className="fixed inset-0 z-20000 flex items-center justify-center bg-zinc-50 p-4 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
             <form onSubmit={submitCode} className="w-full max-w-xs space-y-5 text-center">
                 <div className="space-y-1">
                     <h1 className="text-sm font-semibold">{state === "checking" ? "Checking app security…" : state === "error" ? "App is locked" : "Unlock Placedv Query"}</h1>
@@ -74,11 +74,11 @@ function TwoFactorGate({ children }) {
                     </div>
                 )}
                 {state === "locked" ? (
-                    <Button type="submit" disabled={code.length !== 6 || submitting} className="flex h-6 w-full items-center justify-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">
+                    <Button type="submit" disabled={code.length !== 6 || submitting} className="flex h-6 w-full items-center justify-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!">
                         {submitting ? "Checking code…" : "Unlock"}
                     </Button>
                 ) : state === "error" ? (
-                    <Button type="button" onClick={() => window.location.reload()} className="flex h-6 w-full items-center justify-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Retry</Button>
+                    <Button type="button" onClick={() => window.location.reload()} className="flex h-6 w-full items-center justify-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">Retry</Button>
                 ) : null}
             </form>
         </div>

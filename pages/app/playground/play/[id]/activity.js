@@ -14,7 +14,7 @@ import { setQueryTabs } from "@/redux/actions/main";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ShowNavigationButton, useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 
 const ACTIVITY_FILTER_COLUMNS = Object.freeze(["Database", "Action", "Query", "Table", "Status", "Error code"]);
 const ACTIVITY_GROUP_COLUMNS = Object.freeze(["Date and time", "Database", "Action", "Query", "Table", "Rows", "Status", "Error code", "Finished at", "Duration"]);
@@ -143,7 +143,7 @@ function ActivityHistoryPage({ setQueryTabs }) {
                         <ShowNavigationButton />
                         <Button
                             onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
-                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground !text-xs !font-semibold"
+                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground text-xs! font-semibold!"
                         >
                             <ArrowLeft size={12} className="mr-1" /> Back to database
                         </Button>
@@ -165,7 +165,7 @@ function ActivityHistoryPage({ setQueryTabs }) {
                                         <TabsTrigger
                                             key={value}
                                             value={value}
-                                            className="h-6 px-2 py-0 !text-xs !font-semibold"
+                                            className="h-6 px-2 py-0 text-xs! font-semibold!"
                                         >
                                             {label}
                                         </TabsTrigger>
@@ -187,13 +187,13 @@ function ActivityHistoryPage({ setQueryTabs }) {
                             />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button disabled={events.length === 0 || loading} className="flex h-6 items-center gap-1 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold">
+                                    <Button disabled={events.length === 0 || loading} className="flex h-6 items-center gap-1 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent hover:text-accent-foreground disabled:opacity-50 text-xs! font-semibold!">
                                         <Download size={12} /> Export <ChevronDown size={12} />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start">
-                                    <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActivity("json")}>JSON</DropdownMenuItem>
-                                    <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActivity("csv")}>CSV</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActivity("json")}>JSON</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActivity("csv")}>CSV</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
@@ -210,11 +210,11 @@ function ActivityHistoryPage({ setQueryTabs }) {
                                                 setPageSize(Number(value));
                                             }}
                                         >
-                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-background px-2 py-0 text-xs font-semibold text-foreground shadow-none ring-1 ring-border focus:ring-1 focus:ring-ring [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
-                                                <SelectValue className="text-xs font-semibold" />
+                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-background px-2 py-0 text-xs text-foreground shadow-none ring-1 ring-border focus:ring-1 focus:ring-ring [&>span]:text-xs [&>svg]:h-3 [&>svg]:w-3">
+                                                <SelectValue className="text-xs" />
                                             </SelectTrigger>
-                                            <SelectContent align="end" className="min-w-[92px] text-xs font-semibold">
-                                                {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="py-1.5 text-xs font-semibold">{size} rows</SelectItem>)}
+                                            <SelectContent align="end" className="min-w-[92px]">
+                                                {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="py-1.5">{size} rows</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         <Button
@@ -227,12 +227,12 @@ function ActivityHistoryPage({ setQueryTabs }) {
                                         <Button
                                             onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
                                             disabled={pageIndex === 0 || loading}
-                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold"
+                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 text-xs! font-semibold!"
                                         >Previous</Button>
                                         <Button
                                             onClick={() => setPageIndex((page) => Math.min(totalPages - 1, page + 1))}
                                             disabled={(countLoaded ? pageIndex + 1 >= totalPages : !hasMore) || loading}
-                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 !text-xs !font-semibold"
+                                            className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 text-xs! font-semibold!"
                                         >Next</Button>
                                         <Button
                                             onClick={() => setPageIndex(Math.max(0, totalPages - 1))}

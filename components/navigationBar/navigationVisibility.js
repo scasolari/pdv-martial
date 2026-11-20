@@ -116,7 +116,7 @@ export function ShowNavigationButton() {
         <div className="flex items-center gap-2">
             <TooltipProvider>
                 <Tooltip>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger render={<span className="inline-flex" />}>
                         <Button
                             onClick={() => setNavigationHidden(false)}
                             aria-label="Show navigation"
@@ -125,7 +125,7 @@ export function ShowNavigationButton() {
                             <PanelLeftOpen size={14} />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                    <TooltipContent className="font-semibold border">
                         <p>Show navigator</p>
                     </TooltipContent>
                 </Tooltip>
@@ -136,13 +136,13 @@ export function ShowNavigationButton() {
                         <LocalAvatar size={24} />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent align="start" side="bottom" className="z-[99999999] w-[276px] rounded-lg border-zinc-200 p-0 dark:border-zinc-700">
+                <PopoverContent align="start" side="bottom" className="z-99999999 w-[276px] rounded-lg border-zinc-200 p-0 dark:border-zinc-700">
                     <div className="p-3 pb-0 pt-2">
                         <p className="text-xs font-semibold text-zinc-500">Local desktop</p>
                     </div>
                     <ul className="p-1">
                         <li>
-                            <button type="button" onClick={() => setAppSettingsOpen(true)} className="flex w-full rounded-md px-2 py-1 text-left !text-xs !font-semibold hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-900">
+                            <button type="button" onClick={() => setAppSettingsOpen(true)} className="flex w-full rounded-md px-2 py-1 text-left text-xs! font-semibold! hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-900">
                                 Settings
                             </button>
                         </li>

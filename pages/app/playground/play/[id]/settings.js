@@ -13,7 +13,7 @@ import useClear from "@/lib/clear";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 import DatabasePreferences from "@/components/databasePreferences";
 
 function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, setQueryTabs, setTables }) {
@@ -172,7 +172,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                     <ShowNavigationButton />
                     <Button
                         onClick={() => router.push(`/app/playground/play/${encodeURIComponent(databaseId)}`)}
-                        className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground !text-xs !font-semibold"
+                        className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground text-xs! font-semibold!"
                     >
                         <ArrowLeft size={12} className="mr-1" /> Back to database
                     </Button>
@@ -225,11 +225,11 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                                     {sslEnabled && <div className="space-y-1">
                                         <div className="text-xs font-semibold text-muted-foreground">Certificate verification</div>
                                         <Select value={sslMode} onValueChange={(value) => { setSslMode(value); setSaved(false); }}>
-                                            <SelectTrigger aria-label="Certificate verification" className="h-8 w-full !text-xs !font-semibold"><SelectValue /></SelectTrigger>
-                                            <SelectContent className="z-[1100] !text-xs !font-semibold">
-                                                <SelectItem value="verify-full" className="!text-xs !font-semibold">Verify certificate and hostname</SelectItem>
-                                                <SelectItem value="verify-ca" className="!text-xs !font-semibold">Verify certificate</SelectItem>
-                                                <SelectItem value="require" className="!text-xs !font-semibold">Encrypt without certificate verification</SelectItem>
+                                            <SelectTrigger aria-label="Certificate verification" className="h-8 w-full text-xs!"><SelectValue /></SelectTrigger>
+                                            <SelectContent className="z-1100">
+                                                <SelectItem value="verify-full" className="">Verify certificate and hostname</SelectItem>
+                                                <SelectItem value="verify-ca" className="">Verify certificate</SelectItem>
+                                                <SelectItem value="require" className="">Encrypt without certificate verification</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>}
@@ -244,18 +244,18 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                                     </div>
                                     {sshEnabled && sshConfigured && !replaceSshSettings && <div className="space-y-2">
                                         <p className="text-xs font-semibold text-muted-foreground">An SSH tunnel is configured. Its credentials are encrypted and hidden.</p>
-                                        <Button type="button" onClick={() => setReplaceSshSettings(true)} className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground !text-xs !font-semibold">Replace SSH credentials</Button>
+                                        <Button type="button" onClick={() => setReplaceSshSettings(true)} className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-1 ring-border hover:bg-accent hover:text-accent-foreground text-xs! font-semibold!">Replace SSH credentials</Button>
                                     </div>}
                                     {sshEnabled && (!sshConfigured || replaceSshSettings) && <div className="grid grid-cols-2 gap-2">
-                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH host</span><Input aria-label="SSH host" required value={ssh.host} onChange={(event) => setSsh({ ...ssh, host: event.target.value })} placeholder="bastion.example.com" className="h-8 !text-xs !font-semibold" /></div>
-                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH port</span><Input aria-label="SSH port" required type="number" min="1" max="65535" value={ssh.port} onChange={(event) => setSsh({ ...ssh, port: event.target.value })} className="h-8 !text-xs !font-semibold" /></div>
-                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH username</span><Input aria-label="SSH username" required value={ssh.username} onChange={(event) => setSsh({ ...ssh, username: event.target.value })} className="h-8 !text-xs !font-semibold" /></div>
-                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>Authentication</span><Select value={ssh.authType} onValueChange={(value) => setSsh({ ...ssh, authType: value })}><SelectTrigger aria-label="Authentication" className="h-8 w-full !text-xs !font-semibold"><SelectValue /></SelectTrigger><SelectContent className="z-[1100] !text-xs !font-semibold"><SelectItem value="password" className="!text-xs !font-semibold">Password</SelectItem><SelectItem value="privateKey" className="!text-xs !font-semibold">Private key</SelectItem></SelectContent></Select></div>
-                                        {ssh.authType === "password" ? <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH password</span><Input aria-label="SSH password" required type="password" value={ssh.password} onChange={(event) => setSsh({ ...ssh, password: event.target.value })} autoComplete="new-password" className="h-8 !text-xs !font-semibold" /></div> : <>
+                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH host</span><Input aria-label="SSH host" required value={ssh.host} onChange={(event) => setSsh({ ...ssh, host: event.target.value })} placeholder="bastion.example.com" className="h-8 text-xs! font-semibold!" /></div>
+                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH port</span><Input aria-label="SSH port" required type="number" min="1" max="65535" value={ssh.port} onChange={(event) => setSsh({ ...ssh, port: event.target.value })} className="h-8 text-xs! font-semibold!" /></div>
+                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH username</span><Input aria-label="SSH username" required value={ssh.username} onChange={(event) => setSsh({ ...ssh, username: event.target.value })} className="h-8 text-xs! font-semibold!" /></div>
+                                        <div className="flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>Authentication</span><Select value={ssh.authType} onValueChange={(value) => setSsh({ ...ssh, authType: value })}><SelectTrigger aria-label="Authentication" className="h-8 w-full text-xs!"><SelectValue /></SelectTrigger><SelectContent className="z-1100"><SelectItem value="password" className="">Password</SelectItem><SelectItem value="privateKey" className="">Private key</SelectItem></SelectContent></Select></div>
+                                        {ssh.authType === "password" ? <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH password</span><Input aria-label="SSH password" required type="password" value={ssh.password} onChange={(event) => setSsh({ ...ssh, password: event.target.value })} autoComplete="new-password" className="h-8 text-xs! font-semibold!" /></div> : <>
                                             <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH private key</span><textarea aria-label="SSH private key" required rows={4} value={ssh.privateKey} onChange={(event) => setSsh({ ...ssh, privateKey: event.target.value })} className="w-full rounded-md bg-background p-2 text-xs font-semibold text-foreground ring-1 ring-border" /></div>
-                                            <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>Key passphrase (if required)</span><Input aria-label="Key passphrase" type="password" value={ssh.passphrase} onChange={(event) => setSsh({ ...ssh, passphrase: event.target.value })} autoComplete="new-password" className="h-8 !text-xs !font-semibold" /></div>
+                                            <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>Key passphrase (if required)</span><Input aria-label="Key passphrase" type="password" value={ssh.passphrase} onChange={(event) => setSsh({ ...ssh, passphrase: event.target.value })} autoComplete="new-password" className="h-8 text-xs! font-semibold!" /></div>
                                         </>}
-                                        <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH server SHA-256 fingerprint</span><Input aria-label="SSH server SHA-256 fingerprint" required value={ssh.hostFingerprint} onChange={(event) => setSsh({ ...ssh, hostFingerprint: event.target.value })} placeholder="SHA256:..." className="h-8 !text-xs !font-semibold" /></div>
+                                        <div className="col-span-2 flex flex-col gap-2 text-xs font-semibold text-muted-foreground"><span>SSH server SHA-256 fingerprint</span><Input aria-label="SSH server SHA-256 fingerprint" required value={ssh.hostFingerprint} onChange={(event) => setSsh({ ...ssh, hostFingerprint: event.target.value })} placeholder="SHA256:..." className="h-8 text-xs! font-semibold!" /></div>
                                     </div>}
                                 </div>
                             </details>
@@ -292,7 +292,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                             <Button
                                 type="submit"
                                 disabled={saving || !dbName.trim() || (dbName.trim() === savedDbName && !connectionString.trim() && !sshSettingsChanged && !sslSettingsChanged)}
-                                className="flex h-6 items-center gap-1 border-0 bg-primary p-1 px-2 text-primary-foreground shadow-none ring-1 ring-ring hover:bg-primary/90 disabled:opacity-50 !text-xs !font-semibold"
+                                className="flex h-6 items-center gap-1 border-0 bg-primary p-1 px-2 text-primary-foreground shadow-none ring-1 ring-ring hover:bg-primary/90 disabled:opacity-50 text-xs! font-semibold!"
                             >
                                 {saving ? "Saving..." : "Save changes"}
                             </Button>
@@ -306,7 +306,7 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                                     type="button"
                                     onClick={() => { setDeleteError(""); setDeleteOpen(true); }}
                                     disabled={deleting}
-                                    className="flex h-7 items-center gap-1 border-0 bg-destructive px-3 text-destructive-foreground shadow-none ring-1 ring-destructive hover:bg-destructive/90 disabled:opacity-50 !text-xs !font-semibold"
+                                    className="flex h-7 items-center gap-1 border-0 bg-destructive px-3 text-destructive-foreground shadow-none ring-1 ring-destructive hover:bg-destructive/90 disabled:opacity-50 text-xs! font-semibold!"
                                 >
                                     <Trash2 size={12} />
                                     Delete database
@@ -328,11 +328,11 @@ function DatabaseSettingsPage({ database, databases, setDatabase, setDatabases, 
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deleting} className="!mt-0 h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent hover:text-accent-foreground !text-xs !font-semibold">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deleting} className="mt-0! h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent hover:text-accent-foreground text-xs! font-semibold!">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             disabled={deleting}
                             onClick={(event) => { event.preventDefault(); deleteDatabase(); }}
-                            className="h-6 border-0 bg-destructive p-1 px-2 text-destructive-foreground shadow-none ring-1 ring-destructive hover:bg-destructive/90 disabled:opacity-50 !text-xs !font-semibold"
+                            className="h-6 border-0 bg-destructive p-1 px-2 text-destructive-foreground shadow-none ring-1 ring-destructive hover:bg-destructive/90 disabled:opacity-50 text-xs! font-semibold!"
                         >
                             {deleting ? "Deleting..." : "Delete"}
                         </AlertDialogAction>

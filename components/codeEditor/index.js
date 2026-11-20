@@ -156,7 +156,7 @@ export default function MinimalEditor({ onChange, initialValue = '', schema = EM
     return (
         <div
             ref={editorRef}
-            className="!text-sm h-[200px] overflow-y-auto bg-zinc-50 dark:bg-zinc-900/30"
+            className="text-sm! h-[200px] overflow-y-auto bg-zinc-50 dark:bg-zinc-900/30"
         />
     )
 }

@@ -11,24 +11,13 @@ import { connect, useDispatch, useSelector } from "react-redux";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {useEffect, useRef, useState} from "react";
 import axios from "axios";
-import {
-    Combobox,
-    ComboboxContent,
-    ComboboxEmpty,
-    ComboboxInput,
-    ComboboxItem,
-    ComboboxList,
-    ComboboxSeparator,
-    ComboboxTrigger,
-} from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { BiExpandVertical } from "react-icons/bi";
-import DatabaseEngineIcon from "@/components/databaseEngineIcon";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 import * as React from "react";
-import { Check, CodeXml, Database, EllipsisVertical, PanelRightOpen, RefreshCcw, RefreshCw, Plus, Search } from "lucide-react";
+import { CodeXml, Database, EllipsisVertical, PanelRightOpen, RefreshCcw, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import LocalAvatar from "@/components/localAvatar";
@@ -39,6 +28,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TablesV2 from "@/components/tables/v2";
+import DatabaseDropdownContent from "@/components/databaseDropdownContent";
 import { useRouter } from "next/router";
 import {
     AlertDialog,
@@ -247,7 +237,7 @@ function LeftBar(props) {
 
     return (
         <>
-            <div ref={sidebarRef} className="electron-sidebar fixed top-0 h-[100vh] w-[240px] border-r bg-zinc-50 dark:bg-zinc-900/30">
+            <div ref={sidebarRef} className="electron-sidebar fixed top-0 h-screen w-[240px] border-r bg-zinc-50 dark:bg-zinc-900/30">
                 <div
                     className="electron-sidebar-resize-handle"
                     role="slider"
@@ -275,10 +265,10 @@ function LeftBar(props) {
                                 <PopoverContent
                                     align="start"
                                     side="bottom"
-                                    className="w-[276px] p-0 border-zinc-200 dark:border-zinc-700 z-[99999999]"
+                                    className="w-[276px] p-0 border-zinc-200 dark:border-zinc-700 z-99999999"
                                 >
                                     <div className="p-3 pb-0 pt-2">
-                                        <p className="text-xs text-zinc-500 !font-semibold">
+                                        <p className="text-xs text-zinc-500 font-semibold!">
                                             {profile?.user?.email}
                                         </p>
                                     </div>
@@ -287,7 +277,7 @@ function LeftBar(props) {
                                             <button
                                                 type="button"
                                                 onClick={() => setAppSettingsOpen(true)}
-                                                className="!text-xs flex w-full text-left hover:cursor-pointer dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md"
+                                                className="text-xs! flex w-full text-left hover:cursor-pointer dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 px-2 py-1 rounded-md"
                                             >
                                                 Settings
                                             </button>
@@ -295,90 +285,49 @@ function LeftBar(props) {
                                     </ul>
                                 </PopoverContent>
                             </Popover>
-                            <Combobox
-                                open={openDb}
-                                onOpenChange={(open) => {
-                                    setOpenDb(open);
-                                    if (open) setDatabaseSearch("");
-                                }}
-                                items={frameworks}
-                                inputValue={databaseSearch}
-                                onInputValueChange={setDatabaseSearch}
-                                value={frameworks.find((item) => item.id === database?.db_id) ?? null}
-                                itemToStringValue={(item) => item?.db_name ?? ""}
-                                itemToStringLabel={(item) => item?.db_name ?? ""}
-                                isItemEqualToValue={(item, selected) => item?.id === selected?.id}
-                                onValueChange={(selectedFramework) => {
-                                    if (!selectedFramework) return;
-                                    setDatabaseSearch("");
-                                    setDatabase({
-                                        db_id: selectedFramework.id,
-                                        db_name: selectedFramework.db_name,
-                                        dialect: selectedFramework.dialect,
-                                    });
-                                    setQuery("");
-                                    setQueryResults(null);
-                                    setQueryTabs([]);
-                                    router.push(`/app/playground/play/${selectedFramework.id}`);
-                                }}
-                            >
-                                <ComboboxTrigger
-                                    render={
-                                        <Button
-                                            variant="outline"
-                                            aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
-                                            title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
-                                            className={`ring-1 ring-zinc-400 dark:ring-zinc-600 dark:hover:ring-zinc-600 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md !font-semibold border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
-                                        >
-                                            {compactDatabaseSelector ? (
-                                                <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
-                                            ) : (
-                                                <div className="min-w-0 flex-1 truncate text-left !text-xs !font-semibold">
-                                                    {database?.db_name || "Select dataset..."}
-                                                </div>
-                                            )}
-                                            {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
-                                        </Button>
-                                    }
-                                />
-                                <ComboboxContent className="p-0">
-                                    <div className="flex items-center border-b border-zinc-200 px-2 dark:border-zinc-800">
-                                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
-                                        <ComboboxInput placeholder="Search dataset..." className="h-9 !px-0 !py-1 !font-semibold !text-xs" />
-                                    </div>
-                                    <ComboboxEmpty>No dataset found.</ComboboxEmpty>
-                                    <ComboboxList>
-                                        {(framework) => (
-                                            <ComboboxItem key={framework.id} value={framework} className="!justify-between !px-2 !py-1">
-                                                <div className="flex min-w-0 items-center gap-2 truncate">
-                                                    <DatabaseEngineIcon dialect={framework.dialect} size={14} />
-                                                    <span className="truncate">{framework.db_name}</span>
-                                                </div>
-                                                <Check
-                                                    size={12}
-                                                    className={cn("ml-auto h-3 w-3 shrink-0", framework.id === database?.db_id ? "opacity-100" : "opacity-0")}
-                                                />
-                                            </ComboboxItem>
+                            <DropdownMenu open={openDb} onOpenChange={(open) => {
+                                setOpenDb(open);
+                                if (open) setDatabaseSearch("");
+                            }}>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        aria-label={compactDatabaseSelector ? `Select database${database?.db_name ? `: ${database.db_name}` : ""}` : undefined}
+                                        title={compactDatabaseSelector ? database?.db_name || "Select database" : undefined}
+                                        className={`ring-1 ring-zinc-400 dark:ring-zinc-600 dark:hover:ring-zinc-600 flex min-w-0 overflow-hidden flex-row items-center ${compactDatabaseSelector ? "h-7 w-7 ring-0 hover:ring-1 shrink-0 justify-center p-1.5" : "min-w-0 flex-1"} h-7 rounded-md font-semibold! border-0 shadow-none bg-transparent hover:bg-zinc-100 dark:bg-transparent dark:hover:bg-zinc-900`}
+                                    >
+                                        {compactDatabaseSelector ? (
+                                            <Database className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                        ) : (
+                                            <div className="min-w-0 flex-1 truncate text-left text-xs! font-semibold!">
+                                                {database?.db_name || "Select dataset..."}
+                                            </div>
                                         )}
-                                    </ComboboxList>
-                                    <ComboboxSeparator />
-                                    <div className="p-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setOpenDb(false);
-                                                setOpenAdDataSet(true);
-                                            }}
-                                            className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                        >
-                                            <Plus size={14} />
-                                            <span>Add dataset</span>
-                                        </button>
-                                    </div>
-                                </ComboboxContent>
-                            </Combobox>
+                                        {!compactDatabaseSelector && <BiExpandVertical className="h-4 w-4 shrink-0" size={16} />}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" side="bottom" sideOffset={6} className="w-56 max-w-[calc(100vw-2rem)] overflow-hidden p-1">
+                                    <DatabaseDropdownContent
+                                        databases={frameworks}
+                                        selectedDatabaseId={database?.db_id}
+                                        search={databaseSearch}
+                                        onSearchChange={setDatabaseSearch}
+                                        onSelectDatabase={(framework) => {
+                                            setDatabase({ db_id: framework.id, db_name: framework.db_name, dialect: framework.dialect });
+                                            setQuery("");
+                                            setQueryResults(null);
+                                            setQueryTabs([]);
+                                            router.push(`/app/playground/play/${framework.id}`);
+                                        }}
+                                        onAddDatabase={() => {
+                                            setOpenDb(false);
+                                            setOpenAdDataSet(true);
+                                        }}
+                                    />
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <AlertDialog open={openAdDataSet} onOpenChange={setOpenAdDataSet}>
-                                <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
+                                <AlertDialogContent className="z-1000 bg-white text-zinc-900 outline-hidden focus:outline-hidden focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
                                         <AlertDialogDescription className="text-xs font-semibold text-muted-foreground">
@@ -391,12 +340,12 @@ function LeftBar(props) {
                             <TooltipProvider>
                                 <Button onClick={refreshDatabaseSchema} disabled={!database?.db_id || refreshingSchema} aria-label="Refresh schema" className="hover:ring-1 ring-zinc-400 dark:hover:ring-zinc-600 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-950 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                                     <Tooltip>
-                                        <TooltipTrigger asChild>
+                                        <TooltipTrigger render={<span className="inline-flex" />}>
                                         <span>
                                             <RefreshCcw ref={schemaRefreshIconRef} size={16} />
                                         </span>
                                         </TooltipTrigger>
-                                        <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <TooltipContent className="font-semibold border">
                                             <p>{refreshingSchema ? "Refreshing schema..." : "Refresh schema"}</p>
                                         </TooltipContent>
                                     </Tooltip>
@@ -405,18 +354,18 @@ function LeftBar(props) {
                         </div>
                         <TooltipProvider>
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="!transition-none ml-auto hover:ring-1 ring-zinc-400 dark:hover:ring-zinc-600 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
+                                <TooltipTrigger render={<span className="inline-flex" />}>
+                                    <Button onClick={() => setNavigationHidden(true)} aria-label="Hide navigation" className="transition-none! ml-auto hover:ring-1 ring-zinc-400 dark:hover:ring-zinc-600 h-7 w-7 shrink-0 p-1.5 shadow-none bg-transparent text-zinc-900 hover:bg-zinc-100 dark:bg-transparent dark:text-white dark:hover:bg-zinc-900 dark:hover:text-white">
                                         <PanelRightOpen size={16} />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="z-[99999999] mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                <TooltipContent className="z-99999999 font-semibold border">
                                     <p>Hide navigator</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    <div className="overflow-x-scroll flex flex-col h-[100vh]">
+                    <div className="overflow-x-scroll flex flex-col h-screen">
                         {!hasSelectedDatabase
                             ? <div className="h-[calc(100vh-100px)]">
                             </div>
@@ -459,7 +408,7 @@ function LeftBar(props) {
                                                         >
                                                             <div className="flex min-w-0 flex-row items-center gap-3">
                                                                 <CodeXml size={12} className="shrink-0" />
-                                                                <p className="!text-xs !font-semibold truncate">{savedQuery.name}</p>
+                                                                <p className="text-xs! font-semibold! truncate">{savedQuery.name}</p>
                                                             </div>
                                                             <DropdownMenu
                                                                 open={isMenuOpen}
@@ -476,7 +425,7 @@ function LeftBar(props) {
                                                                         <EllipsisVertical size={12} />
                                                                     </button>
                                                                 </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="start" side="right" className="z-[10000] w-[200px] border border-neutral-200 dark:border-neutral-700">
+                                                                <DropdownMenuContent align="start" side="right" className="z-10000 w-[200px] border border-neutral-200 dark:border-neutral-700">
                                                                     <DropdownMenuItem
                                                                         className="text-xs font-semibold hover:cursor-pointer"
                                                                         onClick={(event) => {
@@ -518,10 +467,10 @@ function LeftBar(props) {
                             </div>
                         }
                         <div className="flex items-center justify-between px-4">
-                            <p className="!text-xs !font-semibold text-zinc-700">Version: {packageJson.version}</p>
+                            <p className="text-xs! font-semibold! text-zinc-700">Version: {packageJson.version}</p>
                             <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
+                                    <TooltipTrigger render={<span className="inline-flex" />}>
                                         <Button
                                             type="button"
                                             aria-label={updateStatus.status === "available" ? `Update ${updateStatus.version} available` : "Check for updates"}
@@ -535,7 +484,7 @@ function LeftBar(props) {
                                             )}
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <TooltipContent className="border font-semibold">
                                         <p>{updateStatus.status === "available" ? `Version ${updateStatus.version} available — click to update` : updateStatus.status === "checking" ? "Checking for updates..." : updateStatus.status === "unsupported" ? "Update checks are available in the installed desktop app" : "Check for updates"}</p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -561,19 +510,19 @@ function LeftBar(props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         {!["downloading", "installing"].includes(updateStatus.status) && (
-                            <AlertDialogCancel className="!mt-0 h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-neutral-200 hover:bg-neutral-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-neutral-800 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                            <AlertDialogCancel className="mt-0! h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-neutral-200 hover:bg-neutral-100 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-neutral-800 dark:hover:bg-zinc-900 text-xs! font-semibold!">
                                 {updateStatus.status === "downloaded" ? "Later" : "Cancel"}
                             </AlertDialogCancel>
                         )}
                         {updateStatus.status === "available" && (
-                            <Button type="button" onClick={downloadUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Download update</Button>
+                            <Button type="button" onClick={downloadUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">Download update</Button>
                         )}
                         {updateStatus.status === "downloaded" && (
-                            <Button type="button" onClick={installUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Restart and install</Button>
+                            <Button type="button" onClick={installUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">Restart and install</Button>
                         )}
-                        {updateStatus.status === "installing" && <Button disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Restarting...</Button>}
-                        {updateStatus.status === "downloading" && <Button type="button" disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 !text-xs !font-semibold">Downloading... {downloadPercent}%</Button>}
-                        {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Check again</Button>}
+                        {updateStatus.status === "installing" && <Button disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 text-xs! font-semibold!">Restarting...</Button>}
+                        {updateStatus.status === "downloading" && <Button type="button" disabled className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 dark:text-zinc-100 text-xs! font-semibold!">Downloading... {downloadPercent}%</Button>}
+                        {updateStatus.status === "error" && <Button type="button" onClick={handleUpdateButtonClick} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">Check again</Button>}
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -588,7 +537,7 @@ function LeftBar(props) {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                        <AlertDialogCancel className="mt-0! h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">
                             Cancel
                         </AlertDialogCancel>
                         <Button
@@ -597,7 +546,7 @@ function LeftBar(props) {
                                 if (queryToDelete) onDeleteSavedQuery?.(queryToDelete.id, queryToDelete.databaseId);
                                 setQueryToDelete(null);
                             }}
-                            className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 !text-xs !font-semibold"
+                            className="h-6 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 text-xs! font-semibold!"
                         >
                             Delete
                         </Button>

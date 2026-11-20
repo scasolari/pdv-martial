@@ -63,9 +63,9 @@ function ProductOverview() {
                         <span className="absolute bottom-0 left-1/2 flex h-8 w-8 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full bg-violet-200 text-xs font-bold text-zinc-900">3</span>
                         <span className="absolute left-0 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-violet-200 text-xs font-bold text-zinc-900">4</span>
                         <span className="absolute -top-9 left-1/2 w-36 -translate-x-1/2 text-center text-[10px] font-semibold text-zinc-300">Connect database</span>
-                        <span className="absolute -right-[112px] top-1/2 w-20 -translate-y-1/2 text-left text-[10px] font-semibold leading-tight text-zinc-300">Explore<br />tables</span>
+                        <span className="absolute right-[-112px] top-1/2 w-20 -translate-y-1/2 text-left text-[10px] font-semibold leading-tight text-zinc-300">Explore<br />tables</span>
                         <span className="absolute -bottom-9 left-1/2 w-32 -translate-x-1/2 text-center text-[10px] font-semibold text-zinc-300">Run SQL</span>
-                        <span className="absolute -left-[112px] top-1/2 w-20 -translate-y-1/2 text-right text-[10px] font-semibold leading-tight text-zinc-300">Review<br />changes</span>
+                        <span className="absolute left-[-112px] top-1/2 w-20 -translate-y-1/2 text-right text-[10px] font-semibold leading-tight text-zinc-300">Review<br />changes</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-semibold leading-tight">
                         <div className="rounded-lg bg-white px-2 py-3 text-zinc-900">Connect</div>
@@ -103,7 +103,7 @@ export default function Home() {
                 <span>Placedv Query</span>
             </a>
             <div className="flex items-center gap-4">
-                <button onClick={openApp} className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-950 px-3 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
+                <button onClick={openApp} className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-950 px-3 text-xs! font-semibold! text-white transition-colors hover:bg-zinc-700">
                     Get started
                 </button>
             </div>
@@ -115,7 +115,7 @@ export default function Home() {
                     Your databases, in one focused workspace
                 </h1>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <button onClick={openApp} className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 !text-xs !font-semibold text-white transition-colors hover:bg-zinc-700">
+                    <button onClick={openApp} className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-xs! font-semibold! text-white transition-colors hover:bg-zinc-700">
                         Get started
                     </button>
                     <a href="#product" className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300 px-4 text-xs font-semibold text-zinc-900 transition-colors hover:bg-zinc-50">

@@ -9,10 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
-import { Check, Computer, Copy, Download, LockKeyhole, Menu, Moon, RefreshCw, Shield, X } from "lucide-react";
-import { toast } from "@/components/ui/base-toast";
+import { Check, Computer, Copy, Download, LockKeyhole, Menu, Moon, RefreshCw, Shield } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { disableAnalytics, enableAnalytics, isAnalyticsConfigured, isAnalyticsEnvironmentAllowed } from "@/lib/analytics";
 import { setColorThemePreference, setThemePreference } from "@/redux/actions/main";
 
@@ -231,7 +231,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="grid h-[500px] w-[800px] max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] grid-cols-[255px_minmax(0,1fr)] gap-0 overflow-hidden p-0">
+            <DialogContent className="grid h-[500px] w-[min(800px,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-[800px] grid-cols-[255px_minmax(0,1fr)] gap-0 overflow-hidden p-0">
                 <DialogTitle className="sr-only">Application settings</DialogTitle>
                 <DialogDescription className="sr-only">
                     Manage application appearance, updates, privacy, security, and navigation settings.
@@ -244,7 +244,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                 type="button"
                                 aria-current={activeSection === id ? "page" : undefined}
                                 onClick={() => setActiveSection(id)}
-                                className={`flex h-7 w-full items-center gap-2 rounded-lg px-2 py-0 text-left !text-xs !font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-800 ${activeSection === id ? "bg-neutral-200 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100" : "text-neutral-600 dark:text-neutral-400"}`}
+                                className={`flex h-7 w-full items-center gap-2 rounded-lg px-2 py-0 text-left text-xs! font-semibold! hover:bg-neutral-200 dark:hover:bg-neutral-800 ${activeSection === id ? "bg-neutral-200 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100" : "text-neutral-600 dark:text-neutral-400"}`}
                             >
                                 <Icon size={14} />
                                 {label}
@@ -297,7 +297,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                             ) : updateStatus.status === "available" ? (
                                 <div className="space-y-3">
                                     <p className="text-xs font-semibold">Version {updateStatus.version} is available.</p>
-                                    <Button type="button" onClick={downloadUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">
+                                    <Button type="button" onClick={downloadUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">
                                         <Download size={13} /> Download update
                                     </Button>
                                 </div>
@@ -311,7 +311,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                             ) : updateStatus.status === "downloaded" ? (
                                 <div className="space-y-3">
                                     <p className="flex items-center gap-1.5 text-xs font-semibold"><Check size={14} className="text-green-600" />Version {updateStatus.version} is ready to install.</p>
-                                    <Button type="button" onClick={installUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold">Restart and install</Button>
+                                    <Button type="button" onClick={installUpdate} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!">Restart and install</Button>
                                 </div>
                             ) : updateStatus.status === "not-available" ? (
                                 <p className="flex items-center gap-1.5 text-xs font-semibold"><Check size={14} className="text-green-600" />You’re up to date.</p>
@@ -327,7 +327,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                             <Button
                                 type="button"
                                 onClick={checkForUpdates}
-                                className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 !text-xs !font-semibold"
+                                className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 dark:text-zinc-100 text-xs! font-semibold!"
                             >
                                 <RefreshCw size={13} /> Check for updates
                             </Button>
@@ -358,7 +358,7 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                             <dt className="shrink-0 text-xs font-semibold text-muted-foreground">{label}</dt>
                                             <dd className={`${label === "SQLite database path" ? "flex min-w-0 items-start gap-2" : "truncate text-right"} text-xs font-semibold`} title={value || "Unknown"}>
                                                 <span className={label === "SQLite database path" ? "min-w-0 flex-1 break-all text-right" : ""}>{value || "Unknown"}</span>
-                                                {label === "SQLite database path" && value && <Button type="button" variant="outline" size="sm" className="h-6 shrink-0 gap-1 px-2 !text-xs" onClick={() => copySqlitePath(value)} aria-label="Copy SQLite database path">
+                                                {label === "SQLite database path" && value && <Button type="button" variant="outline" size="sm" className="h-6 shrink-0 gap-1 px-2 text-xs!" onClick={() => copySqlitePath(value)} aria-label="Copy SQLite database path">
                                                     <Copy size={12} /> Copy
                                                 </Button>}
                                             </dd>
@@ -379,9 +379,9 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                     <p className="text-xs font-semibold text-muted-foreground">{twoFAEnabled ? "Enabled. You’ll be asked for a code each time the app starts." : "Disabled. Enable it to require an authenticator code when the app starts."}</p>
                                 </div>
                                 {twoFAEnabled ? (
-                                    <Button type="button" onClick={() => { setDisableCode(""); setDisableOpen(true); }} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 !text-xs !font-semibold">Disable 2FA</Button>
+                                    <Button type="button" onClick={() => { setDisableCode(""); setDisableOpen(true); }} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 text-xs! font-semibold!">Disable 2FA</Button>
                                 ) : (
-                                    <Button type="button" disabled={setupLoading} onClick={beginTwoFactorSetup} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">{setupLoading ? "Starting..." : "Enable 2FA"}</Button>
+                                    <Button type="button" disabled={setupLoading} onClick={beginTwoFactorSetup} className="flex h-6 shrink-0 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!">{setupLoading ? "Starting..." : "Enable 2FA"}</Button>
                                 )}
                             </div>
 
@@ -404,8 +404,8 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                         </InputOTP>
                                     </div>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel disabled={twoFAActionLoading} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
-                                        <Button type="button" onClick={confirmTwoFactorSetup} disabled={twoFAActionLoading || setupCode.length !== 6} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">{twoFAActionLoading ? "Verifying..." : "Confirm setup"}</Button>
+                                        <AlertDialogCancel disabled={twoFAActionLoading} className="mt-0! h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 text-xs! font-semibold!">Cancel</AlertDialogCancel>
+                                        <Button type="button" onClick={confirmTwoFactorSetup} disabled={twoFAActionLoading || setupCode.length !== 6} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!">{twoFAActionLoading ? "Verifying..." : "Confirm setup"}</Button>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -424,8 +424,8 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                         <InputOTPGroup>{[0, 1, 2, 3, 4, 5].map((index) => <InputOTPSlot key={index} index={index} />)}</InputOTPGroup>
                                     </InputOTP>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel disabled={twoFAActionLoading} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
-                                        <Button type="button" onClick={disableTwoFactor} disabled={twoFAActionLoading || disableCode.length !== 6} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">{twoFAActionLoading ? "Disabling..." : "Disable 2FA"}</Button>
+                                        <AlertDialogCancel disabled={twoFAActionLoading} className="mt-0! h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 text-xs! font-semibold!">Cancel</AlertDialogCancel>
+                                        <Button type="button" onClick={disableTwoFactor} disabled={twoFAActionLoading || disableCode.length !== 6} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!">{twoFAActionLoading ? "Disabling..." : "Disable 2FA"}</Button>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -443,9 +443,9 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                     setTheme(value);
                                 }} className="w-fit">
                                     <TabsList className="h-7 p-0.5">
-                                        <TabsTrigger value="light" className="h-6 px-2 py-0 !text-xs !font-semibold">Light</TabsTrigger>
-                                        <TabsTrigger value="dark" className="h-6 px-2 py-0 !text-xs !font-semibold">Dark</TabsTrigger>
-                                        <TabsTrigger value="system" className="h-6 px-2 py-0 !text-xs !font-semibold">System</TabsTrigger>
+                                        <TabsTrigger value="light" className="h-6 px-2 py-0 text-xs! font-semibold!">Light</TabsTrigger>
+                                        <TabsTrigger value="dark" className="h-6 px-2 py-0 text-xs! font-semibold!">Dark</TabsTrigger>
+                                        <TabsTrigger value="system" className="h-6 px-2 py-0 text-xs! font-semibold!">System</TabsTrigger>
                                     </TabsList>
                                 </Tabs>
                             </div>
@@ -455,12 +455,12 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                                     <p className="text-xs font-semibold text-muted-foreground">Choose the app’s color palette.</p>
                                 </div>
                                 <Select value={colorTheme} onValueChange={(value) => dispatch(setColorThemePreference(value))}>
-                                    <SelectTrigger className="h-7 w-36 px-2 text-xs font-semibold">
+                                    <SelectTrigger className="h-7 w-36 px-2 text-xs">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent align="end">
                                         {COLOR_THEMES.map((color) => (
-                                            <SelectItem key={color} value={color.toLowerCase()} className="text-xs font-semibold">
+                                            <SelectItem key={color} value={color.toLowerCase()} className="">
                                                 {color}
                                             </SelectItem>
                                         ))}
@@ -486,11 +486,6 @@ function AppSettingsDialog({ open = false, onOpenChange = () => {} }) {
                         </section>
                     )}
                 </main>
-                <DialogClose asChild>
-                    <Button aria-label="Close settings" variant="ghost" className="absolute right-4 top-4 h-7 w-7 p-0 text-muted-foreground shadow-none hover:text-foreground">
-                        <X size={14} />
-                    </Button>
-                </DialogClose>
             </DialogContent>
         </Dialog>
     );

@@ -20,12 +20,12 @@ The app uses Zinc neutrals, with blue for primary actions and red for destructiv
 | Destructive action | `bg-red-600`, hover `bg-red-700` | Same red, light foreground | Delete and destructive confirmation |
 | Pending state | Existing orange accent | `dark:ring-orange-500` | Unsaved changes indicator |
 
-Global semantic colors are defined as HSL variables in `styles/globals.css`; Tailwind maps them in `tailwind.config.js`. App screens also use explicit Zinc and blue classes. Keep these in sync when changing the palette.
+Global semantic colors and Tailwind v4 theme mappings are defined as HSL variables in `styles/globals.css`. App screens also use explicit Zinc and blue classes. Keep these in sync when changing the palette.
 
 ### Typography
 
 - The general body defaults to 16px and weight 500 in `styles/globals.css`.
-- Compact application controls, table data, dropdown items, and supporting text use `text-xs font-semibold` (use `!text-xs !font-semibold` where the component base styles override them).
+- Compact application controls, table data, dropdown items, and supporting text use `text-xs font-semibold` (use `text-xs! font-semibold!` where the component base styles override them).
 - Page and dialog headings use `text-sm font-semibold`.
 - The SQL editor uses a monospace font at 14px.
 - Keep labels and values compact. Do not increase text size to emphasize a control; use the existing color, weight, or border treatment.
@@ -91,7 +91,7 @@ Global semantic colors are defined as HSL variables in `styles/globals.css`; Tai
 ## Source files
 
 - Global palette and base styles: `styles/globals.css`
-- Tailwind semantic color mapping: `tailwind.config.js`
+- Tailwind theme and semantic color mapping: `styles/globals.css`
 - Shared control primitives: `components/ui/`
 - Canonical table and cell editor: `components/queryResults/table/index.js`
 - Main table/query workspace: `pages/app/playground/play/[id]/index.js`

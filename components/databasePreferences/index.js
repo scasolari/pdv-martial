@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 
 function DatabasePreferences({ databaseId, database, setDatabase }) {
     const storedPreferences = useSelector((state) => state.database.db_id === databaseId ? state.database.preferences : null);
@@ -89,9 +89,9 @@ function DatabasePreferences({ databaseId, database, setDatabase }) {
                     <p className="text-xs font-semibold text-muted-foreground">Default size when opening a table.</p>
                 </div>
                 <Select disabled={loading || !databaseId} value={String(preferences.pageSize)} onValueChange={(value) => updatePreferences({ pageSize: Number(value) })}>
-                    <SelectTrigger className="h-7 w-[100px] text-xs font-semibold [&>span]:text-xs [&>span]:font-semibold"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-7 w-[100px] text-xs [&>span]:text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent align="end">
-                        {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="text-xs font-semibold">{size} rows</SelectItem>)}
+                        {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="">{size} rows</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -103,7 +103,7 @@ function DatabasePreferences({ databaseId, database, setDatabase }) {
                 {columns.length ? (
                     <DropdownMenu onOpenChange={(isOpen) => { if (!isOpen) setColumnSearch(""); }}>
                         <DropdownMenuTrigger asChild>
-                            <Button type="button" variant="outline" disabled={loading || !databaseId} className="flex h-7 w-[260px] items-center justify-between gap-2 px-2 !text-xs !font-semibold">
+                            <Button type="button" variant="outline" disabled={loading || !databaseId} className="flex h-7 w-[260px] items-center justify-between gap-2 px-2 text-xs! font-semibold!">
                                 <span className="truncate">{preferences.sensitiveColumns.length ? `${preferences.sensitiveColumns.length} columns selected` : "Select columns"}</span>
                                 <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
                             </Button>
@@ -111,13 +111,13 @@ function DatabasePreferences({ databaseId, database, setDatabase }) {
                         <DropdownMenuContent align="end" className="w-[320px] p-1">
                             <div className="relative p-1">
                                 <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <Input value={columnSearch} onChange={(event) => setColumnSearch(event.target.value)} onKeyDown={(event) => event.stopPropagation()} placeholder="Search columns..." aria-label="Search sensitive columns" className="h-7 rounded-md pl-7 pr-2 !text-xs !font-semibold" />
+                                <Input value={columnSearch} onChange={(event) => setColumnSearch(event.target.value)} onKeyDown={(event) => event.stopPropagation()} placeholder="Search columns..." aria-label="Search sensitive columns" className="h-7 rounded-md pl-7 pr-2 text-xs! font-semibold!" />
                             </div>
                             <div className="max-h-56 overflow-y-auto">
                                 {filteredColumns.length ? filteredColumns.map((column) => (
                                     <DropdownMenuCheckboxItem key={column} checked={preferences.sensitiveColumns.includes(column)} onCheckedChange={(checked) => updatePreferences({
                                         sensitiveColumns: checked ? [...new Set([...preferences.sensitiveColumns, column])] : preferences.sensitiveColumns.filter((item) => item !== column),
-                                    })} onSelect={(event) => event.preventDefault()} className="!py-1.5 !font-mono !text-xs !font-semibold">
+                                    })} onSelect={(event) => event.preventDefault()} className="py-1.5! font-mono! text-xs! font-semibold!">
                                         {column}
                                     </DropdownMenuCheckboxItem>
                                 )) : <p className="px-2 py-4 text-center text-xs font-semibold text-muted-foreground">No columns match.</p>}

@@ -27,7 +27,7 @@ function DesktopSqliteOpener() {
 
     return (
         <AlertDialog open onOpenChange={(open) => { if (!open) close(); }}>
-            <AlertDialogContent className="z-[1000] max-h-[90vh] overflow-y-auto bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+            <AlertDialogContent className="z-1000 max-h-[90vh] overflow-y-auto bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-sm font-semibold">Open SQLite database</AlertDialogTitle>
                     <AlertDialogDescription className="text-xs font-semibold text-muted-foreground">

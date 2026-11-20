@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from "@/components/ui/command";
+import { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from "@/components/ui/command";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
-import { Check, CodeXml, Database, History, LayoutDashboard, Plus, Search, Settings2, Table } from "lucide-react";
+import { Check, CodeXml, History, Plus, Search, Settings2, Table } from "lucide-react";
 import { setDatabase, setDatabases, setQuery, setQueryResults, setQueryTabs } from "@/redux/actions/main";
 import { useNavigationVisibility } from "@/components/navigationBar/navigationVisibility";
 
@@ -194,6 +194,7 @@ export default function GlobalCommandSearch() {
             type="button"
             variant="outline"
             aria-label="Search or run commands"
+            aria-haspopup="dialog"
             onClick={() => setOpen(true)}
             onDoubleClick={(event) => {
                 event.preventDefault();
@@ -213,7 +214,8 @@ export default function GlobalCommandSearch() {
             <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border border-input px-1.5 font-mono text-[10px] font-medium text-muted-foreground max-sm:hidden">⌘ K</kbd>
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>
-            <CommandInput placeholder="Search databases or commands..." className="!ring-0 !border-0"/>
+          <Command>
+            <CommandInput placeholder="Search databases or commands..." className="ring-0! border-0!"/>
             <CommandList className="rounded-t-xl">
                 <CommandEmpty>No results found.</CommandEmpty>
                 {databases.length > 0 && <CommandGroup heading="Databases">
@@ -226,8 +228,8 @@ export default function GlobalCommandSearch() {
                         }}
                     >
                         <DatabaseEngineIcon dialect={item.dialect} size={14} />
-                        <span className="truncate">{item.db_name}</span>
-                        {item.id === database?.db_id && <Check className="ml-auto h-2 w-2" />}
+                        <span className="min-w-0 flex-1 truncate">{item.db_name}</span>
+                        {item.id === database?.db_id && <Check className="ml-auto h-4 w-4 shrink-0" />}
                     </CommandItem>)}
                 </CommandGroup>}
                 {database?.db_id && tables?._databaseId === database.db_id && Array.isArray(tables?.data) && tables.data.length > 0 && <>
@@ -265,6 +267,7 @@ export default function GlobalCommandSearch() {
                     </CommandItem>
                 </CommandGroup>
             </CommandList>
+          </Command>
         </CommandDialog>
     </>;
 }

@@ -19,7 +19,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import {Button} from "@/components/ui/button";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -30,7 +30,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const cellInputClassName = 'disabled:opacity-100 disabled:cursor-text p-2 px-3 rounded-none h-8 !border-0 !shadow-none !font-semibold !text-xs focus:relative focus:z-[6] focus-visible:ring-blue-500 focus-visible:bg-blue-50 focus-visible:dark:bg-blue-950/20'
+const cellInputClassName = 'disabled:opacity-100 disabled:cursor-text p-2 px-3 rounded-none h-8 border-0! shadow-none! font-semibold! text-xs! focus:relative focus:z-6 focus-visible:ring-blue-500 focus-visible:bg-blue-50 dark:focus-visible:bg-blue-950/20'
 const CELL_EDIT_EVENT = 'database-table:edit-cell'
 const EMPTY_FILTER_RULES = Object.freeze([])
 const EMPTY_GROUPING = Object.freeze([])
@@ -122,7 +122,7 @@ const EditableTableCell = React.memo(function EditableTableCell({ row, colId, va
             onChange={editable ? (event) => setDraft(event.target.value) : undefined}
             onBlur={editable ? (event) => onInlineBlur(row, colId, event.currentTarget.value) : undefined}
             onDoubleClick={(event) => editable && onStartEdit(editorId, row, colId, event.currentTarget.value, event.currentTarget.getBoundingClientRect())}
-            className={`${cellInputClassName} ${isDirtyCell ? 'focus-visible:!bg-orange-50 focus-visible:!ring-orange-400 dark:!bg-orange-950' : ''}`}
+            className={`${cellInputClassName} ${isDirtyCell ? 'focus-visible:bg-orange-50! focus-visible:ring-orange-400! dark:bg-orange-950!' : ''}`}
         />
     )
 })
@@ -187,7 +187,7 @@ const CellEditorOverlay = React.memo(function CellEditorOverlay({ editorId, edit
             }
         }}
         style={{ position: 'fixed', zIndex: 99999, overflowWrap: 'anywhere' }}
-        className="!box-border min-h-10 resize-none overflow-hidden whitespace-pre-wrap break-words rounded-none border-0 !px-3 !py-2 !text-xs !font-semibold !leading-normal text-zinc-800 outline-none ring-1 ring-blue-500 dark:bg-zinc-950 dark:text-zinc-100"
+        className="box-border! min-h-10 resize-none overflow-hidden whitespace-pre-wrap wrap-break-word rounded-none border-0 px-3! py-2! text-xs! font-semibold! leading-normal! text-zinc-800 outline-hidden ring-1 ring-blue-500 dark:bg-zinc-950 dark:text-zinc-100"
     />
 })
 
@@ -842,8 +842,8 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={deletingRows} className="!mt-0 h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
-                    <Button onClick={handleDeleteSelectedRows} disabled={deletingRows || selectedRowsCount === 0} className="flex h-6 items-center gap-1 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 !text-xs !font-semibold">
+                    <AlertDialogCancel disabled={deletingRows} className="mt-0! h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">Cancel</AlertDialogCancel>
+                    <Button onClick={handleDeleteSelectedRows} disabled={deletingRows || selectedRowsCount === 0} className="flex h-6 items-center gap-1 border-0 bg-red-600 p-1 px-2 text-white shadow-none ring-1 ring-red-500 hover:bg-red-700 dark:text-zinc-100 text-xs! font-semibold!">
                         {deletingRows ? 'Deleting...' : 'Delete'}
                     </Button>
                 </AlertDialogFooter>
@@ -853,7 +853,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
             <SheetContent className="flex w-full min-w-0 max-w-none flex-col gap-0 overflow-hidden border-l border-zinc-200 bg-white p-0 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 sm:w-[520px] sm:max-w-[520px]">
                 <SheetHeader className="space-y-1 px-5 pb-4 pt-5 text-left">
                     <div className="flex items-center gap-2 pr-7">
-                        <SheetTitle className="!text-base !font-semibold">Pending changes</SheetTitle>
+                        <SheetTitle className="text-base! font-semibold!">Pending changes</SheetTitle>
                         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                             {payload.meta.modifiedRows} {payload.meta.modifiedRows === 1 ? "row" : "rows"}
                         </span>
@@ -920,7 +920,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                             <span className="border-r border-emerald-200 py-1.5 text-center font-mono text-xs font-semibold dark:border-emerald-950">+</span>
                                             <div className="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3 px-2 py-1.5">
                                                 <span className="truncate font-mono text-xs font-semibold">{field}</span>
-                                                <span title={displayValue} className="max-h-20 overflow-auto break-words font-mono text-xs font-semibold">{displayValue}</span>
+                                                <span title={displayValue} className="max-h-20 overflow-auto wrap-break-word font-mono text-xs font-semibold">{displayValue}</span>
                                             </div>
                                         </div>
                                     )
@@ -935,9 +935,9 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                             {hasChanges ? "Review these values before applying them." : "Nothing to commit."}
                         </p>
                         <div className="flex shrink-0 items-center gap-2">
-                            <Button onClick={() => onOpenChange(false)} disabled={saving} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</Button>
+                            <Button onClick={() => onOpenChange(false)} disabled={saving} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">Cancel</Button>
                             {payload.meta.modifiedRows > 0 && canSave && (
-                                <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold">
+                                <Button disabled={!hasChanges || saving} onClick={handleSave} className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!">
                                     {saving ? "Committing…" : "Commit changes"}
                                 </Button>
                             )}
@@ -962,7 +962,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                 <thead className="bg-zinc-100 dark:bg-zinc-900">
                     {table.getHeaderGroups().map((headerGroup, headerGroupIndex) => (
                         <tr key={headerGroup.id}>
-                            {showSelection && <th style={selectionColumnStyle} className="group/selection sticky left-0 top-0 z-[7] w-9 min-w-9 border-r-0 bg-zinc-100 align-middle shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]" aria-label="Row selection">
+                            {showSelection && <th style={selectionColumnStyle} className="group/selection sticky left-0 top-0 z-7 w-9 min-w-9 border-r-0 bg-zinc-100 align-middle shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]" aria-label="Row selection">
                                 {headerGroupIndex === 0 && selectablePageRows.length > 0 && (
                                     <Checkbox
                                         checked={pageSelectionState}
@@ -972,15 +972,15 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                         className="mx-auto block h-4 w-4 opacity-0 transition-opacity group-hover/selection:opacity-100"
                                     />
                                 )}
-                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
+                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-5 w-px bg-zinc-200 dark:bg-zinc-800" />
                             </th>}
                             {headerGroup.headers.map((header) => {
                                 const isPinnedLeft = header.column.getIsPinned?.() === 'left'
                                 const left = isPinnedLeft ? header.column.getStart('left') + selectionColumnWidth : undefined
                                 return (
-                                    <th key={header.id} data-column-id={header.column.id} className={`sticky top-0 ${isPinnedLeft ? 'border-r-0' : 'border-r'} p-2 px-3 text-left font-semibold !text-xs text-zinc-700 shadow-[inset_0_-1px_0_0_#e4e4e7] dark:border-zinc-800 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]`} style={{ width: `${header.getSize()}px`, left, zIndex: isPinnedLeft ? 6 : 5 }}>
+                                    <th key={header.id} data-column-id={header.column.id} className={`sticky top-0 ${isPinnedLeft ? 'border-r-0' : 'border-r'} p-2 px-3 text-left font-semibold text-xs! text-zinc-700 shadow-[inset_0_-1px_0_0_#e4e4e7] dark:border-zinc-800 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]`} style={{ width: `${header.getSize()}px`, left, zIndex: isPinnedLeft ? 6 : 5 }}>
                                         {!header.isPlaceholder && (
-                                            <button type="button" className={header.column.getCanSort() ? 'cursor-pointer select-none flex items-center gap-1 bg-transparent p-0 text-left !text-xs !font-semibold' : 'flex items-center gap-1 bg-transparent p-0 text-left !text-xs !font-semibold'} onClick={header.column.getToggleSortingHandler()}>
+                                            <button type="button" className={header.column.getCanSort() ? 'cursor-pointer select-none flex items-center gap-1 bg-transparent p-0 text-left text-xs! font-semibold!' : 'flex items-center gap-1 bg-transparent p-0 text-left text-xs! font-semibold!'} onClick={header.column.getToggleSortingHandler()}>
                                                 <div className={header.column.getIsSorted() ? 'text-blue-600 flex items-center gap-2' : 'flex items-center gap-2'}>
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
                                                     {{ asc: <ArrowUp size={12} />, desc: <ArrowDown size={12} /> }[header.column.getIsSorted()] ?? null}
@@ -996,7 +996,7 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                                     event.stopPropagation()
                                                     header.column.resetSize()
                                                 }}
-                                                className="group/resize absolute inset-y-0 right-0 z-[40] w-2 cursor-col-resize select-none touch-none"
+                                                className="group/resize absolute inset-y-0 right-0 z-40 w-2 cursor-col-resize select-none touch-none"
                                                 aria-label={`Resize ${header.column.id} column`}
                                                 title={`Resize ${header.column.id} column`}
                                             >
@@ -1004,8 +1004,8 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                             </button>
                                         )}
                                         {isPinnedLeft && <>
-                                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[31] w-px bg-zinc-200 dark:bg-zinc-800" />
-                                            {hasHorizontalScroll && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-[-8px] z-[30] w-2 bg-gradient-to-r from-black/20 to-transparent dark:from-white/10" />}
+                                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-31 w-px bg-zinc-200 dark:bg-zinc-800" />
+                                            {hasHorizontalScroll && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-[-8px] z-30 w-2 bg-linear-to-r from-black/20 to-transparent dark:from-white/10" />}
                                         </>}
                                     </th>
                                 )
@@ -1016,16 +1016,16 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                 <tbody>
                     {rowsToRender.map((row) => row.getIsGrouped() ? (
                         <tr key={row.id} className="border-b bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/70">
-                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-zinc-50 align-middle dark:bg-zinc-900">
-                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
+                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-3 w-9 min-w-9 border-r-0 bg-zinc-50 align-middle dark:bg-zinc-900">
+                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-5 w-px bg-zinc-200 dark:bg-zinc-800" />
                             </td>}
                             <td colSpan={Math.max(row.getVisibleCells().length, 1)} className="px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                                 <div className="flex items-center justify-between gap-3" style={{ paddingLeft: `${row.depth * 16}px` }}>
-                                    <button type="button" onClick={row.getToggleExpandedHandler()} className="inline-flex items-center gap-2 text-left !text-xs !font-semibold">
+                                    <button type="button" onClick={row.getToggleExpandedHandler()} className="inline-flex items-center gap-2 text-left text-xs! font-semibold!">
                                         {row.getIsExpanded() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                         <span className="flex flex-col items-start gap-0.5">
                                             <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{row.groupingColumnId}</span>
-                                            <span className="!text-xs !font-semibold">{String(row.getLeafRows()[0]?.getValue(row.groupingColumnId) ?? '(empty)')}</span>
+                                            <span className="text-xs! font-semibold!">{String(row.getLeafRows()[0]?.getValue(row.groupingColumnId) ?? '(empty)')}</span>
                                         </span>
                                     </button>
                                     <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Count: {row.getLeafRows().length}</span>
@@ -1034,14 +1034,14 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                         </tr>
                     ) : (
                         <tr key={row.id} className="border-b group dark:border-zinc-800">
-                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-[3] w-9 min-w-9 border-r-0 bg-white p-2 text-center align-middle dark:bg-zinc-950">
+                            {showSelection && <td style={selectionColumnStyle} className="sticky left-0 z-3 w-9 min-w-9 border-r-0 bg-white p-2 text-center align-middle dark:bg-zinc-950">
                                 <Checkbox
                                     checked={Boolean(selectedRows[row.id])}
                                     onCheckedChange={(checked) => setSelectedRows((current) => ({ ...current, [row.id]: checked === true }))}
                                     aria-label={`Select row ${Number(row.id) + 1}`}
                                     className="mx-auto block h-4 w-4"
                                 />
-                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
+                                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-5 w-px bg-zinc-200 dark:bg-zinc-800" />
                             </td>}
                             {row.getVisibleCells().map((cell) => {
                                 const isPinnedLeft = cell.column.getIsPinned?.() === 'left'
@@ -1051,9 +1051,9 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                 const cellValue = getCellValue(row, colId)
                                 const isSensitive = activeSensitiveColumns.some((column) => String(column).toLowerCase() === String(colId).toLowerCase())
                                 return (
-                                    <td key={cell.id} data-column-id={cell.column.id} className={['relative !text-xs !font-semibold bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-800 dark:border-zinc-800 dark:text-zinc-100 shadow-none', isPinnedLeft ? 'border-r-0' : 'border-r', isDirtyCell ? '!bg-orange-50 dark:!bg-orange-950 !text-orange-400' : ''].join(' ')} style={{ width: `${cell.column.getSize()}px`, position: isPinnedLeft ? 'sticky' : 'relative', left, zIndex: isPinnedLeft ? 2 : 1 }}>
+                                    <td key={cell.id} data-column-id={cell.column.id} className={['relative text-xs! font-semibold! bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-800 dark:border-zinc-800 dark:text-zinc-100 shadow-none', isPinnedLeft ? 'border-r-0' : 'border-r', isDirtyCell ? 'bg-orange-50! dark:bg-orange-950! text-orange-400!' : ''].join(' ')} style={{ width: `${cell.column.getSize()}px`, position: isPinnedLeft ? 'sticky' : 'relative', left, zIndex: isPinnedLeft ? 2 : 1 }}>
                                         {isSensitive ? (
-                                            <div aria-label="Sensitive value masked" className="block w-full overflow-hidden text-ellipsis whitespace-nowrap p-2 px-3 !text-xs !font-semibold">••••••••</div>
+                                            <div aria-label="Sensitive value masked" className="block w-full overflow-hidden text-ellipsis whitespace-nowrap p-2 px-3 text-xs! font-semibold!">••••••••</div>
                                         ) : row.original?.__insertDraft ? renderInsertCell(row, colId) : editable ? (
                                             <EditableTableCell
                                                 row={row}
@@ -1066,13 +1066,13 @@ function QueryResultsTable({ response, queryTabs, tableName, schema = EMPTY_SCHE
                                                 onInlineBlur={commitInlineCell}
                                             />
                                         ) : (
-                                            <div className="block w-full overflow-hidden text-ellipsis whitespace-nowrap p-2 px-3 !text-xs !font-semibold">
+                                            <div className="block w-full overflow-hidden text-ellipsis whitespace-nowrap p-2 px-3 text-xs! font-semibold!">
                                                 {String(cellValue ?? '')}
                                             </div>
                                         )}
                                         {isPinnedLeft && <>
-                                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-px bg-zinc-200 dark:bg-zinc-800" />
-                                            {hasHorizontalScroll && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-[-8px] z-[4] w-2 bg-gradient-to-r from-black/20 to-transparent dark:from-white/10" />}
+                                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-5 w-px bg-zinc-200 dark:bg-zinc-800" />
+                                            {hasHorizontalScroll && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-[-8px] z-4 w-2 bg-linear-to-r from-black/20 to-transparent dark:from-white/10" />}
                                         </>}
                                     </td>
                                 )

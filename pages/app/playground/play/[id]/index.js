@@ -26,9 +26,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import AddDatabase from "@/components/addDatabase";
 import DatabaseEngineIcon from "@/components/databaseEngineIcon";
+import DatabaseDropdownContent from "@/components/databaseDropdownContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { captureAnalyticsEvent } from "@/lib/analytics";
-import { toast } from "@/components/ui/base-toast";
+import { toast } from "@/lib/toast";
 import { startRefreshIconAnimation, stopRefreshIconAnimation } from "@/lib/refreshIconAnimation";
 
 const EMPTY_FILTER_RULES = Object.freeze([])
@@ -478,7 +479,7 @@ function PlaygroundPlayId(props) {
     const renderColumnSelector = () => (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                <Button className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">
                     <Columns3 size={12} />
                     Columns <ChevronDown size={12} />
                 </Button>
@@ -486,7 +487,7 @@ function PlaygroundPlayId(props) {
             <DropdownMenuContent align="start" className="w-56 p-1">
                 <div className="relative p-1">
                     <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                    <Input value={columnSearch} onChange={(event) => setColumnSearch(event.target.value)} onKeyDown={(event) => event.stopPropagation()} placeholder="Search..." aria-label="Search columns" className="h-7 rounded-md pl-7 pr-2 !text-xs !font-semibold" />
+                    <Input value={columnSearch} onChange={(event) => setColumnSearch(event.target.value)} onKeyDown={(event) => event.stopPropagation()} placeholder="Search..." aria-label="Search columns" className="h-7 rounded-md pl-7 pr-2 text-xs! font-semibold!" />
                 </div>
                 <div className="max-h-56 overflow-y-auto">
                     {filteredResultColumns.length > 0
@@ -495,7 +496,7 @@ function PlaygroundPlayId(props) {
                                 key={column}
                                 onSelect={(event) => event.preventDefault()}
                                 onClick={() => toggleColumnVisibility(column)}
-                                className="gap-2 !py-1.5 !font-mono !text-xs !font-semibold"
+                                className="gap-2 py-1.5! font-mono! text-xs! font-semibold!"
                             >
                                 <Checkbox
                                     checked={column.toLowerCase() === "id" || activeColumnVisibility[column] !== false}
@@ -511,7 +512,7 @@ function PlaygroundPlayId(props) {
                         : <p className="px-2 py-4 text-center text-xs font-semibold text-zinc-500">No columns match.</p>}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={hideAllColumns} className="justify-end !text-xs !font-semibold">Hide all</DropdownMenuItem>
+                <DropdownMenuItem onSelect={hideAllColumns} className="justify-end text-xs! font-semibold!">Hide all</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )
@@ -1000,10 +1001,13 @@ function PlaygroundPlayId(props) {
                                 <Skeleton className="h-6 w-6" />
                                 <Skeleton className="h-6 w-10" />
                             </div>}
-                            {navigationHidden && !showToolbarSkeleton && <DropdownMenu open={databaseMenuOpen} onOpenChange={setDatabaseMenuOpen}>
+                            {navigationHidden && !showToolbarSkeleton && <DropdownMenu open={databaseMenuOpen} onOpenChange={(open) => {
+                                setDatabaseMenuOpen(open)
+                                if (open) setDatabaseMenuSearch("")
+                            }}>
                                 <TooltipProvider>
                                     <Tooltip>
-                                        <TooltipTrigger asChild>
+                                        <TooltipTrigger render={<span className="inline-flex" />}>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     aria-label="Select database"
@@ -1016,55 +1020,28 @@ function PlaygroundPlayId(props) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
-                                        <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <TooltipContent className="font-semibold border">
                                             <p>Select database</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                                 <DropdownMenuContent align="start" className="w-56 overflow-hidden p-1">
-                                    <div className="sticky top-0 z-10 bg-popover pb-1">
-                                        <Input
-                                            value={databaseMenuSearch}
-                                            onChange={(event) => setDatabaseMenuSearch(event.target.value)}
-                                            onKeyDown={(event) => event.stopPropagation()}
-                                            onClick={(event) => event.stopPropagation()}
-                                            placeholder="Search databases..."
-                                            aria-label="Search databases"
-                                            className="h-7 !text-xs !font-semibold"
-                                        />
-                                    </div>
-                                    <div className="max-h-[min(70vh,400px)] overflow-y-auto">
-                                        {(databases || [])
-                                            .filter((item) => String(item.db_name || "").toLowerCase().includes(databaseMenuSearch.trim().toLowerCase()))
-                                            .map((item) => <DropdownMenuItem
-                                                key={item.id}
-                                                onSelect={() => selectDatabaseFromHiddenNavigation(item)}
-                                                className="flex items-center gap-2 !text-xs !font-semibold"
-                                            >
-                                                <DatabaseEngineIcon dialect={item.dialect} size={12} />
-                                                <span className="min-w-0 flex-1 truncate">{item.db_name}</span>
-                                                {item.id === database?.db_id && <Check size={12} className="shrink-0" />}
-                                            </DropdownMenuItem>)}
-                                        {!(databases || []).some((item) => String(item.db_name || "").toLowerCase().includes(databaseMenuSearch.trim().toLowerCase())) && (
-                                            <DropdownMenuItem disabled className="!text-xs !font-semibold">{databaseMenuSearch.trim() ? "No databases match your search" : "No databases found"}</DropdownMenuItem>
-                                        )}
-                                    </div>
-                                    <DropdownMenuSeparator className="my-1" />
-                                    <DropdownMenuItem
-                                        onSelect={() => {
+                                    <DatabaseDropdownContent
+                                        databases={databases}
+                                        selectedDatabaseId={database?.db_id}
+                                        search={databaseMenuSearch}
+                                        onSearchChange={setDatabaseMenuSearch}
+                                        onSelectDatabase={selectDatabaseFromHiddenNavigation}
+                                        onAddDatabase={() => {
                                             setDatabaseMenuOpen(false)
                                             setAddDatasetOpen(true)
                                         }}
-                                        className="flex items-center gap-2 !text-xs !font-semibold"
-                                    >
-                                        <Plus size={12} />
-                                        Add dataset
-                                    </DropdownMenuItem>
+                                    />
                                 </DropdownMenuContent>
                             </DropdownMenu>}
                             {navigationHidden && !showToolbarSkeleton && <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
+                                    <TooltipTrigger render={<span className="inline-flex" />}>
                                         <Button
                                             aria-label="Refresh schema"
                                             disabled={!database?.db_id || schemaRefreshing}
@@ -1074,7 +1051,7 @@ function PlaygroundPlayId(props) {
                                             <RefreshCcw ref={schemaRefreshIconRef} size={14} />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <TooltipContent className="border font-semibold">
                                         <p>Refresh schema</p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -1087,7 +1064,7 @@ function PlaygroundPlayId(props) {
                             }}>
                                 <TooltipProvider>
                                     <Tooltip>
-                                        <TooltipTrigger asChild>
+                                        <TooltipTrigger render={<span className="inline-flex" />}>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     aria-label="Show database tables"
@@ -1098,7 +1075,7 @@ function PlaygroundPlayId(props) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
-                                        <TooltipContent className="mt-2 font-semibold border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                        <TooltipContent className="font-semibold border">
                                             <p>Show database tables</p>
                                         </TooltipContent>
                                     </Tooltip>
@@ -1112,22 +1089,22 @@ function PlaygroundPlayId(props) {
                                             onClick={(event) => event.stopPropagation()}
                                             placeholder="Search tables..."
                                             aria-label="Search database tables"
-                                            className="h-7 !text-xs !font-semibold"
+                                            className="h-7 text-xs! font-semibold!"
                                         />
                                     </div>
                                     <div className="max-h-[min(70vh,400px)] overflow-y-auto">
-                                        {tableMenuLoading ? <DropdownMenuItem disabled className="!text-xs !font-semibold">Loading tables...</DropdownMenuItem>
+                                        {tableMenuLoading ? <DropdownMenuItem disabled className="text-xs! font-semibold!">Loading tables...</DropdownMenuItem>
                                             : filteredHiddenNavigationTables.length > 0
                                                 ? filteredHiddenNavigationTables.map((table) => <DropdownMenuItem
                                                     key={table.tableName}
                                                     onSelect={() => openTableFromHiddenNavigation(table.tableName)}
-                                                    className="flex items-center gap-2 !text-xs !font-semibold"
+                                                    className="flex items-center gap-2 text-xs! font-semibold!"
                                                 >
                                                     <Table size={12} />
                                                     <span className="min-w-0 flex-1 truncate">{table.tableName}</span>
                                                     {activeTab?.type === "table" && activeTab.name === table.tableName && <Check size={12} className="shrink-0" />}
                                                 </DropdownMenuItem>)
-                                                : <DropdownMenuItem disabled className="!text-xs !font-semibold">{tableMenuError || (tableMenuSearch.trim() ? "No tables match your search" : "No tables found")}</DropdownMenuItem>}
+                                                : <DropdownMenuItem disabled className="text-xs! font-semibold!">{tableMenuError || (tableMenuSearch.trim() ? "No tables match your search" : "No tables found")}</DropdownMenuItem>}
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>}
@@ -1152,7 +1129,7 @@ function PlaygroundPlayId(props) {
                                             onClick={(event) => event.stopPropagation()}
                                             placeholder="Search queries..."
                                             aria-label="Search saved queries"
-                                            className="h-7 !text-xs !font-semibold"
+                                            className="h-7 text-xs! font-semibold!"
                                         />
                                     </div>
                                     <div className="max-h-[min(70vh,400px)] overflow-y-auto">
@@ -1161,13 +1138,13 @@ function PlaygroundPlayId(props) {
                                                 <DropdownMenuItem
                                                     key={savedQuery.id}
                                                     onSelect={() => openSqlTab(savedQuery.query)}
-                                                    className="flex items-center gap-2 !text-xs !font-semibold"
+                                                    className="flex items-center gap-2 text-xs! font-semibold!"
                                                 >
                                                     <CodeXml size={12} className="shrink-0" />
                                                     <span className="min-w-0 truncate">{savedQuery.name}</span>
                                                 </DropdownMenuItem>
                                             ))
-                                            : <DropdownMenuItem disabled className="!text-xs !font-semibold">
+                                            : <DropdownMenuItem disabled className="text-xs! font-semibold!">
                                                 {savedQueries.length > 0 && savedQueryMenuSearch.trim() ? "No queries match your search" : "No saved queries for this database"}
                                             </DropdownMenuItem>}
                                     </div>
@@ -1175,14 +1152,14 @@ function PlaygroundPlayId(props) {
                             </DropdownMenu>}
                             {showToolbarSkeleton ? null : <Button
                                 onClick={handleSqlClick}
-                                className="bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold"
+                                className="bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-0 ring-1 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 text-xs! font-semibold!"
                             >
                                 SQL
                             </Button>}
                         </div>
                         <ElectronTitlebarSpacer />
                         <AlertDialog open={addDatasetOpen} onOpenChange={setAddDatasetOpen}>
-                            <AlertDialogContent className="z-[1000] bg-white text-zinc-900 outline-none focus:outline-none focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
+                            <AlertDialogContent className="z-1000 bg-white text-zinc-900 outline-hidden focus:outline-hidden focus-visible:ring-0 dark:bg-zinc-950 dark:text-zinc-100">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle className="text-sm font-semibold">Add new dataset</AlertDialogTitle>
                                     <p className="text-xs font-semibold text-muted-foreground">
@@ -1196,7 +1173,7 @@ function PlaygroundPlayId(props) {
                             {showToolbarSkeleton ? <div className="flex items-center gap-2" aria-hidden="true"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-20" /></div> : <>
                             {database?.db_id && <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
+                                    <TooltipTrigger render={<span className="inline-flex" />}>
                                         <Button
                                             type="button"
                                             aria-label="History"
@@ -1204,14 +1181,14 @@ function PlaygroundPlayId(props) {
                                             className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                         ><History size={14} /></Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <TooltipContent className="border font-semibold">
                                         <p>History</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>}
                             {database?.db_id && <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
+                                    <TooltipTrigger render={<span className="inline-flex" />}>
                                         <Button
                                             type="button"
                                             aria-label="Settings"
@@ -1219,14 +1196,14 @@ function PlaygroundPlayId(props) {
                                             className="h-6 w-6 border-0 bg-transparent p-1 text-zinc-700 shadow-none ring-zinc-400 hover:bg-zinc-200 hover:ring-1 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:ring-zinc-600"
                                         ><Settings2 size={14} /></Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="mt-2 border bg-white font-semibold text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">
+                                    <TooltipContent className="border font-semibold">
                                         <p>Settings</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>}
                             <Button
                                 disabled={modifiedRowsCount === 0}
-                                className={`flex flex-row gap-3 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-800 border-0 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold ring-1 ${modifiedRowsCount > 0 ? 'ring-orange-500 dark:ring-orange-500' : 'ring-zinc-300 dark:ring-zinc-700'}`}
+                                className={`flex flex-row gap-3 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-0 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 text-xs! font-semibold! ring-1 ${modifiedRowsCount > 0 ? 'ring-orange-500 dark:ring-orange-500' : 'ring-zinc-300 dark:ring-zinc-700'}`}
                                 onClick={() => setIsSheetOpen(!isSheetOpen)}>
                                 <span>Changes</span>
                                 <span>{modifiedRowsCount > 0 ? modifiedRowsCount : 0}</span>
@@ -1251,9 +1228,9 @@ function PlaygroundPlayId(props) {
                                     }}
                                     className={`${
                                         activeTabIndex === i
-                                            ? "!bg-zinc-100 dark:!bg-zinc-900"
+                                            ? "bg-zinc-100! dark:bg-zinc-900!"
                                             : ""
-                                    } px-4 py-2 cursor-pointer border-r flex items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-800/30 hover:dark:!bg-zinc-900 hover:!bg-zinc-100`}
+                                    } px-4 py-2 cursor-pointer border-r flex items-center justify-between gap-3 bg-zinc-50 dark:bg-zinc-800/30 dark:hover:bg-zinc-900! hover:bg-zinc-100!`}
                                     onClick={() => setActiveTabIndex(i)}
                                 >
                                     <div>{tab.type === "table" ? <Table size={12} /> : <CodeXml size={12}/>}</div>
@@ -1282,7 +1259,7 @@ function PlaygroundPlayId(props) {
                                     <Button
                                         disabled={!database?.db_id || !activeSqlQuery?.trim() || loading}
                                         onClick={fetchQuery}
-                                        className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold"
+                                        className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 text-xs! font-semibold!"
                                     >
                                         <Play size={12} />
                                         {loading === true
@@ -1301,7 +1278,7 @@ function PlaygroundPlayId(props) {
                                             setSaveQueryName(`Saved query ${savedQueries.length + 1}`)
                                             setSaveQueryDialogOpen(true)
                                         }}
-                                        className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                        className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!"
                                     >
                                         <Save size={12} />
                                         Save query
@@ -1323,7 +1300,7 @@ function PlaygroundPlayId(props) {
                                     <div className="flex items-center gap-1">
                                         {selectedRowsCount > 0 ? (
                                             <div className="flex items-center gap-3">
-                                                <Button onClick={() => setDeleteRowsRequest((count) => count + 1)} className="flex items-center gap-1 ring-1 ring-red-500 bg-red-600 hover:bg-red-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold">
+                                                <Button onClick={() => setDeleteRowsRequest((count) => count + 1)} className="flex items-center gap-1 ring-1 ring-red-500 bg-red-600 hover:bg-red-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 text-xs! font-semibold!">
                                                     <Trash2 size={12} />
                                                     Delete
                                                 </Button>
@@ -1332,41 +1309,41 @@ function PlaygroundPlayId(props) {
                                                 </span>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button disabled={exportingTable} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">
+                                                        <Button disabled={exportingTable} className="flex h-6 items-center gap-1 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">
                                                             <Download size={12} />
                                                             {exportingTable ? "Exporting..." : "Export"}
                                                             <ChevronDown size={12} />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="start">
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("json")}>JSON</DropdownMenuItem>
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("csv")}>CSV</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("json")}>JSON</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("csv")}>CSV</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
                                         ) : (
                                             <>
-                                                <Button onClick={() => setInsertRowRequest((count) => count + 1)} className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 !text-xs !font-semibold">
+                                                <Button onClick={() => setInsertRowRequest((count) => count + 1)} className="flex items-center gap-1 ring-1 ring-blue-500 bg-blue-600 hover:bg-blue-700 border-0 p-1 px-2 h-6 shadow-none text-white dark:text-zinc-100 text-xs! font-semibold!">
                                                     <Plus size={12} />
                                                     Insert
                                                 </Button>
-                                                <Button disabled={loading} onClick={refreshActiveTable} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold">
+                                                <Button disabled={loading} onClick={refreshActiveTable} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 text-xs! font-semibold!">
                                                     <RefreshCcw ref={refreshIconRef} size={12} />
                                                     Refresh
                                                 </Button>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button disabled={exportingTable} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold">
+                                                        <Button disabled={exportingTable} className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 text-xs! font-semibold!">
                                                             <Download size={12} />
                                                             {exportingTable ? "Exporting..." : "Export"}
                                                             <ChevronDown size={12} />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="start">
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("json")}>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("json")}>
                                                             JSON
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("csv")}>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("csv")}>
                                                             CSV
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
@@ -1394,12 +1371,12 @@ function PlaygroundPlayId(props) {
                                                             onValueChange={(value) => changeActiveTablePage(0, Number(value))}
                                                             disabled={paginationDisabled}
                                                         >
-                                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-white px-2 py-0 text-xs font-semibold text-zinc-900 shadow-none ring-1 ring-zinc-300 focus:ring-1 focus:ring-zinc-400 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:focus:ring-zinc-500 [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
-                                                                <SelectValue className="text-xs font-semibold" />
+                                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-white px-2 py-0 text-xs text-zinc-900 shadow-none ring-1 ring-zinc-300 focus:ring-1 focus:ring-zinc-400 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:focus:ring-zinc-500 [&>span]:text-xs [&>svg]:h-3 [&>svg]:w-3">
+                                                                <SelectValue className="text-xs" />
                                                             </SelectTrigger>
-                                                            <SelectContent align="end" className="min-w-[92px] text-xs font-semibold">
+                                                            <SelectContent align="end" className="min-w-[92px]">
                                                                 {[10, 25, 50, 100].map((size) => (
-                                                                    <SelectItem key={size} value={String(size)} className="py-1.5 text-xs font-semibold">{size} rows</SelectItem>
+                                                                    <SelectItem key={size} value={String(size)} className="py-1.5">{size} rows</SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
@@ -1413,12 +1390,12 @@ function PlaygroundPlayId(props) {
                                                         <Button
                                                             onClick={() => changeActiveTablePage(pageIndex - 1)}
                                                             disabled={pageIndex === 0 || paginationDisabled}
-                                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 text-xs! font-semibold!"
                                                         >Previous</Button>
                                                         <Button
                                                             onClick={() => changeActiveTablePage(pageIndex + 1)}
                                                             disabled={(countIsReady ? pageIndex + 1 >= totalPages : !activeTab.hasNext) || paginationDisabled}
-                                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold"
+                                                            className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 text-xs! font-semibold!"
                                                         >Next</Button>
                                                         <Button
                                                             onClick={() => changeActiveTablePage(Math.max(0, totalPages - 1))}
@@ -1506,15 +1483,15 @@ function PlaygroundPlayId(props) {
                                             <div className="flex items-center gap-2">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 hover:dark:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 !text-xs !font-semibold">
+                                                        <Button className="flex items-center gap-1 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-900 border-0 ring-0 ring-zinc-300 dark:ring-zinc-700 p-1 px-2 h-6 shadow-none text-black dark:text-zinc-100 text-xs! font-semibold!">
                                                             <Download size={12} />
                                                             Export
                                                             <ChevronDown size={12} />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="start">
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("json")}>JSON</DropdownMenuItem>
-                                                        <DropdownMenuItem className="!text-xs !font-semibold" onSelect={() => exportActiveTable("csv")}>CSV</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("json")}>JSON</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-xs! font-semibold!" onSelect={() => exportActiveTable("csv")}>CSV</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                                 {renderTableFilters()}
@@ -1535,16 +1512,16 @@ function PlaygroundPlayId(props) {
                                                             onValueChange={(value) => changeSqlResultPage(0, Number(value))}
                                                             disabled={modifiedRowsCount > 0 || selectedRowsCount > 0}
                                                         >
-                                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-white px-2 py-0 text-xs font-semibold text-zinc-900 shadow-none ring-1 ring-zinc-300 focus:ring-1 focus:ring-zinc-400 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:focus:ring-zinc-500 [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
-                                                                <SelectValue className="text-xs font-semibold" />
+                                                            <SelectTrigger aria-label="Rows per page" className="h-6 w-[92px] border-0 bg-white px-2 py-0 text-xs text-zinc-900 shadow-none ring-1 ring-zinc-300 focus:ring-1 focus:ring-zinc-400 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:focus:ring-zinc-500 [&>span]:text-xs [&>svg]:h-3 [&>svg]:w-3">
+                                                                <SelectValue className="text-xs" />
                                                             </SelectTrigger>
-                                                            <SelectContent align="end" className="min-w-[92px] text-xs font-semibold">
-                                                                {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="py-1.5 text-xs font-semibold">{size} rows</SelectItem>)}
+                                                            <SelectContent align="end" className="min-w-[92px]">
+                                                                {[10, 25, 50, 100].map((size) => <SelectItem key={size} value={String(size)} className="py-1.5">{size} rows</SelectItem>)}
                                                             </SelectContent>
                                                         </Select>
                                                         <Button onClick={() => changeSqlResultPage(0)} disabled={pageIndex === 0 || modifiedRowsCount > 0 || selectedRowsCount > 0} aria-label="First page" title="First page" className="h-6 w-6 border-0 bg-white p-1 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900"><ChevronsLeft size={14} /></Button>
-                                                        <Button onClick={() => changeSqlResultPage(pageIndex - 1)} disabled={pageIndex === 0 || modifiedRowsCount > 0 || selectedRowsCount > 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold">Previous</Button>
-                                                        <Button onClick={() => changeSqlResultPage(pageIndex + 1)} disabled={pageIndex + 1 >= totalPages || modifiedRowsCount > 0 || selectedRowsCount > 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 !text-xs !font-semibold">Next</Button>
+                                                        <Button onClick={() => changeSqlResultPage(pageIndex - 1)} disabled={pageIndex === 0 || modifiedRowsCount > 0 || selectedRowsCount > 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 text-xs! font-semibold!">Previous</Button>
+                                                        <Button onClick={() => changeSqlResultPage(pageIndex + 1)} disabled={pageIndex + 1 >= totalPages || modifiedRowsCount > 0 || selectedRowsCount > 0} className="h-6 border-0 bg-white p-1 px-2 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900 text-xs! font-semibold!">Next</Button>
                                                         <Button onClick={() => changeSqlResultPage(totalPages - 1)} disabled={pageIndex >= totalPages - 1 || modifiedRowsCount > 0 || selectedRowsCount > 0} aria-label="Last page" title="Last page" className="h-6 w-6 border-0 bg-white p-1 text-black shadow-none ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-900"><ChevronsRight size={14} /></Button>
                                                         </>}
                                                 </>;
@@ -1565,7 +1542,7 @@ function PlaygroundPlayId(props) {
                                                                 description: "SQL results and their exports are capped at 1,000 rows to keep queries responsive. Add a filter or LIMIT clause to narrow the results, or open a table from the database navigation to browse its rows in pages.",
                                                                 type: "info",
                                                             })}
-                                                            className="rounded-full p-0.5 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 dark:hover:bg-amber-950"
+                                                            className="rounded-full p-0.5 hover:bg-amber-100 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-amber-500 dark:hover:bg-amber-950"
                                                         >
                                                             <Info size={12} />
                                                         </button>
@@ -1626,15 +1603,15 @@ function PlaygroundPlayId(props) {
                         }}
                         aria-label="Query name"
                         placeholder="Query name"
-                        className="h-8 !text-xs !font-semibold"
+                        className="h-8 text-xs! font-semibold!"
                     />
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="!mt-0 h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 !text-xs !font-semibold">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="mt-0! h-7 border-0 bg-white p-1 px-2 text-black shadow-none ring-0 hover:bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900 text-xs! font-semibold!">Cancel</AlertDialogCancel>
                         <Button
                             type="button"
                             disabled={!saveQueryName.trim() || !String(activeSqlQuery || "").trim()}
                             onClick={handleSaveQuery}
-                            className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 !text-xs !font-semibold"
+                            className="flex h-6 items-center gap-1 border-0 bg-blue-600 p-1 px-2 text-white shadow-none ring-1 ring-blue-500 hover:bg-blue-700 disabled:opacity-50 dark:text-zinc-100 text-xs! font-semibold!"
                         >Save query</Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>

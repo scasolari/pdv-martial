@@ -49,7 +49,7 @@ function TableFilters({ columns = [], rules = [], onChange, disabled = false, se
             setOpen(nextOpen)
         }}>
             <PopoverTrigger asChild>
-                <Button type="button" disabled={disabled} className={`flex h-6 items-center gap-1 border-0 p-1 px-2 shadow-none !text-xs !font-semibold ${activeCount > 0 ? 'bg-primary text-primary-foreground ring-1 ring-ring hover:bg-primary/90' : 'bg-background text-foreground ring-0 hover:bg-accent hover:text-accent-foreground'}`}>
+                <Button type="button" disabled={disabled} className={`flex h-6 items-center gap-1 border-0 p-1 px-2 shadow-none text-xs! font-semibold! ${activeCount > 0 ? 'bg-primary text-primary-foreground ring-1 ring-ring hover:bg-primary/90' : 'bg-background text-foreground ring-0 hover:bg-accent hover:text-accent-foreground'}`}>
                     <ListFilter size={12} />
                     Filter
                     {activeCount > 0 && <span className="ml-1 text-current">{activeCount}</span>}
@@ -65,33 +65,33 @@ function TableFilters({ columns = [], rules = [], onChange, disabled = false, se
                                 <span className="w-[58px] shrink-0 text-xs font-semibold text-muted-foreground dark:text-muted-foreground">Where</span>
                             ) : (
                                 <Select value={rule.conjunction || 'and'} onValueChange={(conjunction) => updateRule(rule.id, { conjunction })}>
-                                    <SelectTrigger aria-label="Filter conjunction" className="h-7 w-[58px] shrink-0 border-0 bg-background px-2 py-0 text-xs font-semibold text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
+                                    <SelectTrigger aria-label="Filter conjunction" className="h-7 w-[58px] shrink-0 border-0 bg-background px-2 py-0 text-xs text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>svg]:h-3 [&>svg]:w-3">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="text-xs font-semibold">
-                                        <SelectItem value="and" className="py-1.5 text-xs font-semibold">And</SelectItem>
-                                        <SelectItem value="or" className="py-1.5 text-xs font-semibold">Or</SelectItem>
+                                    <SelectContent className="">
+                                        <SelectItem value="and" className="py-1.5">And</SelectItem>
+                                        <SelectItem value="or" className="py-1.5">Or</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
                             <Select value={rule.column || ''} onValueChange={(column) => updateRule(rule.id, { column })}>
-                                <SelectTrigger aria-label="Filter column" className="h-7 w-[180px] shrink-0 border-0 bg-background px-2 py-0 text-xs font-semibold text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>span]:font-mono [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
+                                <SelectTrigger aria-label="Filter column" className="h-7 w-[180px] shrink-0 border-0 bg-background px-2 py-0 text-xs text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>span]:font-mono [&>svg]:h-3 [&>svg]:w-3">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="text-xs font-semibold">
-                                    {availableColumns.map((column) => <SelectItem key={column} value={column} className="py-1.5 text-xs font-mono font-semibold">{column}</SelectItem>)}
+                                <SelectContent className="">
+                                    {availableColumns.map((column) => <SelectItem key={column} value={column} className="py-1.5 font-mono">{column}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <Select value={rule.operator || 'contains'} onValueChange={(operator) => updateRule(rule.id, { operator, value: ['isEmpty', 'isNotEmpty'].includes(operator) ? '' : String(rule.value ?? '') })}>
-                                <SelectTrigger aria-label="Filter condition" className="h-7 w-[132px] shrink-0 border-0 bg-background px-2 py-0 text-xs font-semibold text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>span]:font-semibold [&>svg]:h-3 [&>svg]:w-3">
+                                <SelectTrigger aria-label="Filter condition" className="h-7 w-[132px] shrink-0 border-0 bg-background px-2 py-0 text-xs text-foreground shadow-none ring-1 ring-border dark:bg-background dark:text-foreground dark:ring-border [&>span]:text-xs [&>svg]:h-3 [&>svg]:w-3">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="text-xs font-semibold">
-                                    {operators.map((operator) => <SelectItem key={operator.value} value={operator.value} className="py-1.5 text-xs font-semibold">{operator.label}</SelectItem>)}
+                                <SelectContent className="">
+                                    {operators.map((operator) => <SelectItem key={operator.value} value={operator.value} className="py-1.5">{operator.label}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             {!['isEmpty', 'isNotEmpty'].includes(rule.operator) && (
-                                <Input value={String(rule.value ?? '')} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="Enter value..." aria-label="Filter value" className="h-7 min-w-0 flex-1 px-2 py-0 !text-xs !font-semibold" />
+                                <Input value={String(rule.value ?? '')} onChange={(event) => updateRule(rule.id, { value: event.target.value })} placeholder="Enter value..." aria-label="Filter value" className="h-7 min-w-0 flex-1 px-2 py-0 text-xs! font-semibold!" />
                             )}
                             <Button type="button" onClick={() => updateRules(draftRules.filter((item) => item.id !== rule.id))} aria-label="Remove filter" className="h-6 w-6 shrink-0 border-0 bg-transparent p-1 text-muted-foreground shadow-none hover:bg-accent dark:text-muted-foreground dark:hover:bg-accent">
                                 <X size={12} />
@@ -104,14 +104,14 @@ function TableFilters({ columns = [], rules = [], onChange, disabled = false, se
                     ))}
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-border px-3 pt-2 pb-3 dark:border-border">
-                    <Button type="button" onClick={addRule} disabled={disabled || !canAddRule} className="flex h-6 items-center gap-1 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent disabled:opacity-50 dark:bg-background dark:text-foreground dark:hover:bg-accent !text-xs !font-semibold">
+                    <Button type="button" onClick={addRule} disabled={disabled || !canAddRule} className="flex h-6 items-center gap-1 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent disabled:opacity-50 dark:bg-background dark:text-foreground dark:hover:bg-accent text-xs! font-semibold!">
                         <Plus size={12} /> Add filter
                     </Button>
                     <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => { updateRules([]); onChange?.([]) }} disabled={disabled || (draftRules.length === 0 && safeRules.length === 0)} className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent disabled:opacity-50 dark:bg-background dark:text-foreground dark:hover:bg-accent !text-xs !font-semibold">
+                        <Button type="button" onClick={() => { updateRules([]); onChange?.([]) }} disabled={disabled || (draftRules.length === 0 && safeRules.length === 0)} className="h-6 border-0 bg-background p-1 px-2 text-foreground shadow-none ring-0 hover:bg-accent disabled:opacity-50 dark:bg-background dark:text-foreground dark:hover:bg-accent text-xs! font-semibold!">
                             Clear all filters
                         </Button>
-                        <Button type="button" onClick={() => { onChange?.(draftRules); setOpen(false) }} disabled={disabled || !hasUnappliedChanges} className="flex h-6 items-center gap-1 border-0 bg-primary p-1 px-2 text-primary-foreground shadow-none ring-1 ring-ring hover:bg-primary/90 disabled:opacity-50 !text-xs !font-semibold">
+                        <Button type="button" onClick={() => { onChange?.(draftRules); setOpen(false) }} disabled={disabled || !hasUnappliedChanges} className="flex h-6 items-center gap-1 border-0 bg-primary p-1 px-2 text-primary-foreground shadow-none ring-1 ring-ring hover:bg-primary/90 disabled:opacity-50 text-xs! font-semibold!">
                             Apply filters
                         </Button>
                     </div>

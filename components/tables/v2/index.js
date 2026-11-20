@@ -208,12 +208,12 @@ function TablesV2(props) {
                             "bg-zinc-100 dark:bg-zinc-900",
                             // 🔥 tabella attiva evidenziata
                             isActive &&
-                            "!bg-blue-100 dark:!bg-zinc-800 text-blue-700 dark:text-white"
+                            "bg-blue-100! dark:bg-zinc-800! text-blue-700 dark:text-white"
                         )}
                     >
                         <div className="flex flex-row items-center gap-3">
                             <Table size={12} />
-                            <p className="!text-xs !font-semibold">{data.tableName}</p>
+                            <p className="text-xs! font-semibold!">{data.tableName}</p>
                         </div>
                         <div>
                             <DropdownMenu
@@ -234,7 +234,7 @@ function TablesV2(props) {
                                 <DropdownMenuContent
                                     align="start"
                                     side="right"
-                                    className="z-[10000] w-[200px] border border-neutral-200 dark:border-neutral-700"
+                                    className="z-10000 w-[200px] border border-neutral-200 dark:border-neutral-700"
                                 >
                                     <DropdownMenuItem
                                         className="text-xs font-semibold hover:cursor-pointer"

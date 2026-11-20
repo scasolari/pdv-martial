@@ -5,7 +5,7 @@ import {PersistGate} from "redux-persist/integration/react";
 import {store, persistor} from "@/redux";
 import {ThemeProvider} from "next-themes";
 import {NavigationVisibilityProvider, useNavigationVisibility} from "@/components/navigationBar/navigationVisibility";
-import {Toaster} from "@/components/ui/base-toast";
+import {Toaster} from "@/components/ui/sonner";
 import {useEffect, useRef} from "react";
 import {useDispatch, useSelector} from "react-redux";
 import {useRouter} from "next/router";
